@@ -74,13 +74,12 @@
 }
 
 .day-adjusted::after {
-    content: "•";
+    content: "*";
     display: inline-block;
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    color: orange;
-    font-size: 14px;
+    margin-left: 2px;
+    color: #ffab56; /* Softer orange */
+    font-size: 11px;
+    vertical-align: super;
 }
 
 /*------------------------------------------------------
@@ -161,7 +160,7 @@
     .header-settings-btn {
         width: 28px;
         height: 28px;
-        right: 30px;
+        right: 10px; /* Keep consistent with desktop value */
     }
 
     /* Responsive settings panel */
@@ -212,7 +211,7 @@
     }
 
     .header-settings-btn {
-        right: 20px;
+        right: 10px; /* Keep consistent with all breakpoints */
     }
 }
 
@@ -296,7 +295,7 @@
     color: #3db4f2; /* AniList blue */
     transition: color 0.2s ease;
     position: absolute;
-    right: 40px; /* Moved left to avoid conflict with AniList controls */
+    right: 10px; /* Moved to the right edge with small margin */
     top: 50%;
     transform: translateY(-50%);
     z-index: 10;
@@ -395,12 +394,12 @@
 
 /* Current day styling */
 .anilist-calendar-day.current-day {
-    background: rgba(61, 180, 242, 0.05); /* Very subtle highlight */
+    background: #151f2e; /* Using AniList's default background color */
 }
 
 /* Current day header styling */
 .anilist-calendar-day.current-day .day-header {
-    background: rgba(61, 180, 242, 0.1); /* Subtle highlight */
+    background: #1f2c3c; /* Darker but less blue */
     color: #3db4f2; /* AniList blue */
 }
 
@@ -527,11 +526,12 @@
 
 .anime-time {
     font-size: 12px;
-    color: white;
-    background: #3db4f2; /* AniList blue */
-    padding: 2px 6px;
-    border-radius: 12px;
+    color: #3db4f2; /* AniList blue */
+    background: transparent; /* Removed background */
+    padding: 0;
+    border-radius: 0;
     font-weight: 500;
+    font-style: italic; /* Added italic style */
     display: inline-block;
     margin-left: 4px;
     vertical-align: middle;
@@ -1104,7 +1104,7 @@ input:checked + .slider:before {
 /* Position the settings button in the external header */
 .header-settings-btn {
     position: absolute;
-    right: 40px; /* Moved left to avoid overlap with AniList controls */
+    right: 10px; /* Moved to the right edge with small margin */
     top: 50%;
     transform: translateY(-50%);
     background: transparent; /* No background */
