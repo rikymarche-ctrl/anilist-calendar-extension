@@ -84,7 +84,200 @@ function setupObserver() {
 }
 
 /**
- * Renders the calendar with schedule data
+ * Finds the container for an Airing header element
+ */
+function findAiringContainer(headerElement) {
+    try {
+        // Try to find the appropriate container
+        const sectionHeader = headerElement.closest('.section-header');
+        if (!sectionHeader) return null;
+
+        const listPreviewWrap = sectionHeader.closest('.list-preview-wrap');
+        if (listPreviewWrap) {
+            log("Found Airing container via list-preview-wrap", listPreviewWrap);
+            return listPreviewWrap;
+        }
+
+        const listPreview = sectionHeader.closest('.list-preview');
+        if (listPreview) {
+            log("Found Airing container via list-preview", listPreview);
+            return listPreview;
+        }
+
+        // If we can't find the usual containers, go up a few levels
+        let parent = sectionHeader.parentElement;
+        for (let i = 0; i < 3 && parent; i++) {
+            log(`Checking parent level ${i}`, parent);
+            if (parent.querySelectorAll('.media-preview-card').length > 0) {
+                return parent;
+            }
+            parent = parent.parentElement;
+        }
+
+        return null;
+    } catch (err) {
+        log("Error finding container", err);
+        return null;
+    }
+}
+
+
+
+
+
+
+
+
+/**
+ * Modified functions to improve AniList integration
+ * These updates improve the visual consistency with AniList's interface
+ */
+
+/**
+ * Finds and replaces the Airing section with unified header
+ */
+function findAndReplaceAiringSection() {
+    try {
+        // Direct approach: look for h2 with "Airing" text
+        const airingElements = Array.from(document.querySelectorAll('h2')).filter(el =>
+            el.textContent.trim() === 'Airing'
+        );
+
+        log(`Found ${airingElements.length} h2 elements with Airing text`);
+
+        // Find the first valid airing section
+        for (const element of airingElements) {
+            // Replace the "Airing" text with our custom header text
+            element.innerHTML = `Weekly Schedule <span class="timezone-separator">|</span> <span class="timezone-info">${getTimezoneName()}</span>`;
+            element.className = 'airing-replaced-header';
+
+            // Add settings button next to the title - MODIFIED: position and styling
+            const settingsButton = document.createElement('button');
+            settingsButton.className = 'calendar-settings-btn header-settings-btn';
+            settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
+            settingsButton.title = 'Open settings';
+            settingsButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                createSettingsOverlay();
+            });
+
+            // Add the settings button after the title
+            element.parentNode.appendChild(settingsButton);
+
+            // Find the container
+            const container = findAiringContainer(element);
+            if (container) {
+                replaceAiringSection(container, element, true); // Pass true to skip header creation
+                return true;
+            }
+        }
+
+        // Second try: look for section headers
+        const sectionHeaders = document.querySelectorAll('.section-header');
+        for (const header of sectionHeaders) {
+            if (header.textContent.trim() === 'Airing') {
+                // Find the title element inside the section header
+                const titleElement = header.querySelector('h2') || header.querySelector('h3');
+                if (titleElement) {
+                    titleElement.innerHTML = `Weekly Schedule <span class="timezone-separator">|</span> <span class="timezone-info">${getTimezoneName()}</span>`;
+                    titleElement.className = 'airing-replaced-header';
+
+                    // Add settings button with improved positioning
+                    const settingsButton = document.createElement('button');
+                    settingsButton.className = 'calendar-settings-btn header-settings-btn';
+                    settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
+                    settingsButton.title = 'Open settings';
+                    settingsButton.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        createSettingsOverlay();
+                    });
+
+                    // Add the settings button after the title
+                    header.appendChild(settingsButton);
+                }
+
+                const container = findAiringContainer(header);
+                if (container) {
+                    replaceAiringSection(container, header, true); // Pass true to skip header creation
+                    return true;
+                }
+            }
+        }
+
+        log("Airing section not found");
+        return false;
+    } catch (err) {
+        log("Error finding Airing section", err);
+        return false;
+    }
+}
+
+/**
+ * Replaces the Airing section with our calendar
+ * @param {HTMLElement} container - The container element
+ * @param {HTMLElement} headerElement - The header element
+ * @param {boolean} skipHeader - Whether to skip header creation
+ */
+function replaceAiringSection(container, headerElement, skipHeader = false) {
+    try {
+        log("Replacing Airing section", container);
+
+        // First extract the data from the existing cards
+        const animeData = extractAnimeDataFromDOM(container);
+
+        if (!animeData || animeData.length === 0) {
+            log("No anime data found in the Airing section");
+            return false;
+        }
+
+        // Create calendar container with improved styling
+        calendarContainer = document.createElement('div');
+        calendarContainer.className = 'anilist-weekly-calendar';
+
+        // Apply compact mode class if needed
+        if (userPreferences.compactMode) {
+            calendarContainer.classList.add('compact-mode');
+        }
+
+        // Apply grid mode class if needed
+        if (userPreferences.gridMode) {
+            calendarContainer.classList.add('grid-mode');
+        }
+
+        // Find the section header
+        const sectionHeader = headerElement.closest('.section-header');
+
+        // Keep the header, remove everything else
+        const children = Array.from(container.children);
+        for (const child of children) {
+            if (child !== sectionHeader && child.querySelector('.section-header') !== sectionHeader) {
+                child.remove();
+            }
+        }
+
+        // Add our calendar after the header
+        if (sectionHeader && sectionHeader.parentNode === container) {
+            container.insertBefore(calendarContainer, sectionHeader.nextSibling);
+        } else {
+            container.appendChild(calendarContainer);
+        }
+
+        // Process data and render calendar with skipHeader option
+        const schedule = processAnimeData(animeData);
+        renderCalendar(schedule, skipHeader);
+
+        isCalendarInitialized = true;
+        return true;
+    } catch (err) {
+        log("Error replacing section", err);
+        return false;
+    }
+}
+
+/**
+ * Renders the calendar with improved AniList-style design
  * @param {Object} schedule - The schedule data
  * @param {boolean} skipHeader - Whether to skip header creation (use external header)
  */
@@ -155,7 +348,7 @@ function renderCalendar(schedule, skipHeader = false) {
         calendarTitle.className = 'calendar-title';
         calendarTitle.innerHTML = `Weekly Schedule <span class="timezone-separator">|</span> <span class="timezone-info">${getTimezoneName()}</span>`;
 
-        // Settings button
+        // Settings button with improved positioning
         const settingsButton = document.createElement('button');
         settingsButton.className = 'calendar-settings-btn';
         settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
@@ -326,125 +519,6 @@ function renderCalendar(schedule, skipHeader = false) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * Finds the container for an Airing header element
- */
-function findAiringContainer(headerElement) {
-    try {
-        // Try to find the appropriate container
-        const sectionHeader = headerElement.closest('.section-header');
-        if (!sectionHeader) return null;
-
-        const listPreviewWrap = sectionHeader.closest('.list-preview-wrap');
-        if (listPreviewWrap) {
-            log("Found Airing container via list-preview-wrap", listPreviewWrap);
-            return listPreviewWrap;
-        }
-
-        const listPreview = sectionHeader.closest('.list-preview');
-        if (listPreview) {
-            log("Found Airing container via list-preview", listPreview);
-            return listPreview;
-        }
-
-        // If we can't find the usual containers, go up a few levels
-        let parent = sectionHeader.parentElement;
-        for (let i = 0; i < 3 && parent; i++) {
-            log(`Checking parent level ${i}`, parent);
-            if (parent.querySelectorAll('.media-preview-card').length > 0) {
-                return parent;
-            }
-            parent = parent.parentElement;
-        }
-
-        return null;
-    } catch (err) {
-        log("Error finding container", err);
-        return null;
-    }
-}
-
-/**
- * Replaces the Airing section with our calendar
- * @param {HTMLElement} container - The container element
- * @param {HTMLElement} headerElement - The header element
- * @param {boolean} skipHeader - Whether to skip header creation
- */
-function replaceAiringSection(container, headerElement, skipHeader = false) {
-    try {
-        log("Replacing Airing section", container);
-
-        // First extract the data from the existing cards
-        const animeData = extractAnimeDataFromDOM(container);
-
-        if (!animeData || animeData.length === 0) {
-            log("No anime data found in the Airing section");
-            return false;
-        }
-
-        // Create calendar container
-        calendarContainer = document.createElement('div');
-        calendarContainer.className = 'anilist-weekly-calendar';
-
-        // Apply compact mode class if needed
-        if (userPreferences.compactMode) {
-            calendarContainer.classList.add('compact-mode');
-        }
-
-        // Apply grid mode class if needed
-        if (userPreferences.gridMode) {
-            calendarContainer.classList.add('grid-mode');
-        }
-
-        // Find the section header
-        const sectionHeader = headerElement.closest('.section-header');
-
-        // Keep the header, remove everything else
-        const children = Array.from(container.children);
-        for (const child of children) {
-            if (child !== sectionHeader && child.querySelector('.section-header') !== sectionHeader) {
-                child.remove();
-            }
-        }
-
-        // Add our calendar after the header
-        if (sectionHeader && sectionHeader.parentNode === container) {
-            container.insertBefore(calendarContainer, sectionHeader.nextSibling);
-        } else {
-            container.appendChild(calendarContainer);
-        }
-
-        // Process data and render calendar with skipHeader option
-        const schedule = processAnimeData(animeData);
-        renderCalendar(schedule, skipHeader);
-
-        isCalendarInitialized = true;
-        return true;
-    } catch (err) {
-        log("Error replacing section", err);
-        return false;
-    }
-}
 
 
 
@@ -1105,8 +1179,7 @@ function getTimezoneName() {
     const timezone = TIMEZONE_OPTIONS.find(tz => tz.value === userPreferences.timezone);
     if (timezone) {
         // Extract just the UTC part before the pipe symbol
-        const utcPart = timezone.text.split('|')[0].trim();
-        return utcPart;
+        return timezone.text.split('|')[0].trim();
     }
 
     return 'UTC+9'; // Default to Japan timezone
@@ -1211,7 +1284,6 @@ function calculateAiringDateWithDayTracking(days, hours, minutes) {
 
     // Original Japan time
     airingDate.setHours(airingDate.getHours() + diffHours);
-    const japanTime = new Date(airingDate);
 
     // Now convert from Japan time to user's selected timezone
     const selectedOffset = getSelectedTimezoneOffset();
