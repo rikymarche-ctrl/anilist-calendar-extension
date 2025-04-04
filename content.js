@@ -803,6 +803,19 @@ function renderCalendar(schedule) {
         if (orderedDays.length === 0) {
             orderedDays = [currentDayName];
         }
+
+        // Add class to container based on number of visible days for dynamic sizing
+        // First remove all previous day count classes
+        for (let i = 1; i <= 7; i++) {
+            calendarContainer.classList.remove(`days-count-${i}`);
+        }
+
+        // Then add the appropriate one
+        calendarContainer.classList.add(`days-count-${orderedDays.length}`);
+    } else {
+        // If all days are shown, make sure we have the days-count-7 class
+        calendarContainer.classList.remove('days-count-1', 'days-count-2', 'days-count-3', 'days-count-4', 'days-count-5', 'days-count-6');
+        calendarContainer.classList.add('days-count-7');
     }
 
     // Create header with title and settings button
@@ -891,28 +904,37 @@ function renderCalendar(schedule) {
                 titleDiv.textContent = anime.title;
                 animeInfoDiv.appendChild(titleDiv);
 
-                // Add episode and time (modified to have time next to episode number)
+                // Add episode and time - optimized for space
                 const episodeDiv = document.createElement('div');
                 episodeDiv.className = 'anime-episode';
 
                 const episodeText = document.createElement('span');
+                episodeText.className = 'episode-number';
                 episodeText.textContent = `Episode ${anime.episode}`;
                 episodeDiv.appendChild(episodeText);
 
-                // Only append time inside episode div if not in grid mode
-                // In grid mode, time is positioned absolutely
-                if (!userPreferences.gridMode) {
-                    episodeDiv.appendChild(animeTimeDiv);
-                }
+                // Add time to the right side
+                const timeWrapper = document.createElement('span');
+                timeWrapper.className = 'time-wrapper';
+                timeWrapper.appendChild(animeTimeDiv);
+                episodeDiv.appendChild(timeWrapper);
 
                 animeInfoDiv.appendChild(episodeDiv);
 
-                // Assemble the entry
+                // Assemble the entry based on mode
                 if (userPreferences.gridMode) {
-                    animeEntry.appendChild(animeTimeDiv);  // Time is absolute positioned in grid mode
+                    // For grid mode: image as background with info overlay
+                    animeEntry.appendChild(animeImageDiv);
+                    animeEntry.appendChild(animeInfoDiv);
+                    // Time is displayed within the episode div in grid mode
+                } else {
+                    // For standard and compact modes
+                    if (!userPreferences.compactMode) {
+                        // Standard mode: show image
+                        animeEntry.appendChild(animeImageDiv);
+                    }
+                    animeEntry.appendChild(animeInfoDiv);
                 }
-                animeEntry.appendChild(animeImageDiv);
-                animeEntry.appendChild(animeInfoDiv);
 
                 // Make clickable to anime page
                 animeEntry.addEventListener('click', () => {
