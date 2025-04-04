@@ -10,7 +10,9 @@ const DEFAULT_SETTINGS = {
   hideEmptyDays: false,
   compactMode: false,
   gridMode: false,
-  timezone: 'jst'  // Default timezone is Japan Standard Time
+  showCountdown: false,        // Mostra countdown invece dell'orario
+  showEpisodeNumbers: true,    // Mostra numeri degli episodi
+  timezone: 'jst'              // Default timezone is Japan Standard Time
 };
 
 // Common timezone options with UTC offsets
@@ -34,6 +36,8 @@ const startDaySelect = document.getElementById('start-day');
 const hideEmptyDaysCheckbox = document.getElementById('hide-empty-days');
 const compactModeCheckbox = document.getElementById('compact-mode');
 const gridModeCheckbox = document.getElementById('grid-mode');
+const showCountdownCheckbox = document.getElementById('show-countdown');
+const showEpisodeNumbersCheckbox = document.getElementById('show-episode-numbers');
 const timezoneSelect = document.getElementById('timezone');
 const themeToggleButton = document.getElementById('theme-toggle');
 
@@ -67,12 +71,10 @@ function populateTimezoneSelect() {
 startDaySelect.addEventListener('change', saveSettings);
 hideEmptyDaysCheckbox.addEventListener('change', saveSettings);
 compactModeCheckbox.addEventListener('change', saveSettings);
-if (document.getElementById('grid-mode')) {
-  document.getElementById('grid-mode').addEventListener('change', saveSettings);
-}
-if (timezoneSelect) {
-  timezoneSelect.addEventListener('change', saveSettings);
-}
+gridModeCheckbox.addEventListener('change', saveSettings);
+showCountdownCheckbox.addEventListener('change', saveSettings);
+showEpisodeNumbersCheckbox.addEventListener('change', saveSettings);
+timezoneSelect.addEventListener('change', saveSettings);
 themeToggleButton.addEventListener('click', toggleTheme);
 
 /**
@@ -102,18 +104,26 @@ function loadSettings() {
     compactModeCheckbox.checked = compactMode;
 
     // Grid mode setting
-    if (document.getElementById('grid-mode')) {
-      const gridMode = items[`${STORAGE_KEY_PREFIX}grid_mode`] !== undefined
-          ? items[`${STORAGE_KEY_PREFIX}grid_mode`]
-          : DEFAULT_SETTINGS.gridMode;
-      document.getElementById('grid-mode').checked = gridMode;
-    }
+    const gridMode = items[`${STORAGE_KEY_PREFIX}grid_mode`] !== undefined
+        ? items[`${STORAGE_KEY_PREFIX}grid_mode`]
+        : DEFAULT_SETTINGS.gridMode;
+    gridModeCheckbox.checked = gridMode;
+
+    // Show countdown setting
+    const showCountdown = items[`${STORAGE_KEY_PREFIX}show_countdown`] !== undefined
+        ? items[`${STORAGE_KEY_PREFIX}show_countdown`]
+        : DEFAULT_SETTINGS.showCountdown;
+    showCountdownCheckbox.checked = showCountdown;
+
+    // Show episode numbers setting
+    const showEpisodeNumbers = items[`${STORAGE_KEY_PREFIX}show_episode_numbers`] !== undefined
+        ? items[`${STORAGE_KEY_PREFIX}show_episode_numbers`]
+        : DEFAULT_SETTINGS.showEpisodeNumbers;
+    showEpisodeNumbersCheckbox.checked = showEpisodeNumbers;
 
     // Timezone setting
-    if (timezoneSelect) {
-      const timezone = items[`${STORAGE_KEY_PREFIX}timezone`] || DEFAULT_SETTINGS.timezone;
-      timezoneSelect.value = timezone;
-    }
+    const timezone = items[`${STORAGE_KEY_PREFIX}timezone`] || DEFAULT_SETTINGS.timezone;
+    timezoneSelect.value = timezone;
   });
 }
 
@@ -124,18 +134,12 @@ function saveSettings() {
   const settings = {
     [`${STORAGE_KEY_PREFIX}start_day`]: startDaySelect.value,
     [`${STORAGE_KEY_PREFIX}hide_empty_days`]: hideEmptyDaysCheckbox.checked,
-    [`${STORAGE_KEY_PREFIX}compact_mode`]: compactModeCheckbox.checked
+    [`${STORAGE_KEY_PREFIX}compact_mode`]: compactModeCheckbox.checked,
+    [`${STORAGE_KEY_PREFIX}grid_mode`]: gridModeCheckbox.checked,
+    [`${STORAGE_KEY_PREFIX}show_countdown`]: showCountdownCheckbox.checked,
+    [`${STORAGE_KEY_PREFIX}show_episode_numbers`]: showEpisodeNumbersCheckbox.checked,
+    [`${STORAGE_KEY_PREFIX}timezone`]: timezoneSelect.value
   };
-
-  // Add grid mode if it exists
-  if (document.getElementById('grid-mode')) {
-    settings[`${STORAGE_KEY_PREFIX}grid_mode`] = document.getElementById('grid-mode').checked;
-  }
-
-  // Add timezone if it exists
-  if (timezoneSelect) {
-    settings[`${STORAGE_KEY_PREFIX}timezone`] = timezoneSelect.value;
-  }
 
   chrome.storage.sync.set(settings, function() {
     // Show a brief "Saved" indicator

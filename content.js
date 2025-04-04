@@ -14,6 +14,40 @@ const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 const ABBREVIATED_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const STORAGE_KEY_PREFIX = 'anilist_calendar_';
 
+// Timezone Configuration
+// Common timezone options with UTC offsets - listed by popularity in anime community
+const TIMEZONE_OPTIONS = [
+    { value: 'jst', text: 'UTC+9 | Japan Standard Time', offset: 9 },
+    { value: 'pst', text: 'UTC-8 | Pacific Standard Time', offset: -8 },
+    { value: 'pdt', text: 'UTC-7 | Pacific Daylight Time', offset: -7 },
+    { value: 'est', text: 'UTC-5 | Eastern Standard Time', offset: -5 },
+    { value: 'edt', text: 'UTC-4 | Eastern Daylight Time', offset: -4 },
+    { value: 'bst', text: 'UTC+1 | British Summer Time', offset: 1 },
+    { value: 'cet', text: 'UTC+1 | Central European Time', offset: 1 },
+    { value: 'cest', text: 'UTC+2 | Central European Summer Time', offset: 2 },
+    { value: 'ist', text: 'UTC+5:30 | Indian Standard Time', offset: 5.5 },
+    { value: 'aest', text: 'UTC+10 | Australian Eastern Standard Time', offset: 10 },
+    { value: 'nzst', text: 'UTC+12 | New Zealand Standard Time', offset: 12 },
+    { value: 'auto', text: 'Auto-detect from browser', offset: null }
+];
+
+// Default to Japan timezone (where most anime airs)
+const DEFAULT_TIMEZONE = 'jst';
+
+// Constant for Japan's offset (UTC+9), used as the base timezone for calculations
+const JAPAN_OFFSET = 9;
+
+// User Preferences with Default Values
+let userPreferences = {
+    startDay: 'today',                 // 'today' or index 0-6 (Sunday-Saturday)
+    hideEmptyDays: false,              // Hide days without episodes
+    compactMode: false,                // Use compact layout
+    gridMode: false,                   // Use grid layout (images only with hover info)
+    timezone: DEFAULT_TIMEZONE,        // Timezone preference
+    showCountdown: false,              // Show countdown instead of time
+    showEpisodeNumbers: true           // Show episode numbers
+};
+
 // Global variables
 let weeklySchedule = {};
 let isCalendarInitialized = false;
@@ -121,18 +155,6 @@ function findAiringContainer(headerElement) {
     }
 }
 
-
-
-
-
-
-
-
-/**
- * Modified functions to improve AniList integration
- * These updates improve the visual consistency with AniList's interface
- */
-
 /**
  * Finds and replaces the Airing section with unified header
  */
@@ -151,7 +173,7 @@ function findAndReplaceAiringSection() {
             element.innerHTML = `Weekly Schedule <span class="timezone-separator">|</span> <span class="timezone-info">${getTimezoneName()}</span>`;
             element.className = 'airing-replaced-header';
 
-            // Add settings button next to the title - MODIFIED: position and styling
+            // Add settings button next to the title
             const settingsButton = document.createElement('button');
             settingsButton.className = 'calendar-settings-btn header-settings-btn';
             settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
@@ -277,7 +299,7 @@ function replaceAiringSection(container, headerElement, skipHeader = false) {
 }
 
 /**
- * Renders the calendar with improved AniList-style design
+ * Renders the calendar with the schedule data
  * @param {Object} schedule - The schedule data
  * @param {boolean} skipHeader - Whether to skip header creation (use external header)
  */
@@ -286,7 +308,7 @@ function renderCalendar(schedule, skipHeader = false) {
 
     log("Rendering calendar");
 
-    // Clear container
+    // Clear the container
     calendarContainer.innerHTML = '';
 
     // Get current day
@@ -294,7 +316,7 @@ function renderCalendar(schedule, skipHeader = false) {
     const currentDayIndex = today.getDay();
     const currentDayName = DAYS_OF_WEEK[currentDayIndex];
 
-    // Determine the order of days to display based on user preference
+    // Determine the order of days to display based on user preferences
     let orderedDays = [...DAYS_OF_WEEK];
 
     if (userPreferences.startDay === 'today') {
@@ -304,7 +326,7 @@ function renderCalendar(schedule, skipHeader = false) {
             ...DAYS_OF_WEEK.slice(0, currentDayIndex)
         ];
     } else if (!isNaN(userPreferences.startDay)) {
-        // Reorder days to start with user-selected day
+        // Reorder days to start with user selected day
         const startDayIndex = parseInt(userPreferences.startDay);
         orderedDays = [
             ...DAYS_OF_WEEK.slice(startDayIndex),
@@ -318,7 +340,7 @@ function renderCalendar(schedule, skipHeader = false) {
             return schedule[day] && schedule[day].length > 0;
         });
 
-        // If no days have episodes, add back current day
+        // If no days have episodes, add the current day back
         if (orderedDays.length === 0) {
             orderedDays = [currentDayName];
         }
@@ -332,12 +354,12 @@ function renderCalendar(schedule, skipHeader = false) {
         // Then add the appropriate one
         calendarContainer.classList.add(`days-count-${orderedDays.length}`);
     } else {
-        // If all days are shown, make sure we have the days-count-7 class
+        // If showing all days, make sure we have the days-count-7 class
         calendarContainer.classList.remove('days-count-1', 'days-count-2', 'days-count-3', 'days-count-4', 'days-count-5', 'days-count-6');
         calendarContainer.classList.add('days-count-7');
     }
 
-    // Only create header if not skipped (when using external header)
+    // Create header only if not skipped (when using external header)
     if (!skipHeader) {
         // Create header with title and settings button
         const headerContainer = document.createElement('div');
@@ -362,7 +384,7 @@ function renderCalendar(schedule, skipHeader = false) {
         headerContainer.appendChild(calendarTitle);
         headerContainer.appendChild(settingsButton);
 
-        // Append header container
+        // Add header container
         calendarContainer.appendChild(headerContainer);
     }
 
@@ -370,7 +392,7 @@ function renderCalendar(schedule, skipHeader = false) {
     const calendarGrid = document.createElement('div');
     calendarGrid.className = `anilist-calendar-grid ${userPreferences.compactMode ? 'compact-mode' : ''}`;
 
-    // Add days of week in the order determined above
+    // Add days of the week in the determined order
     orderedDays.forEach(day => {
         const dayCol = document.createElement('div');
         dayCol.className = `anilist-calendar-day ${day === currentDayName ? 'current-day' : ''}`;
@@ -415,10 +437,17 @@ function renderCalendar(schedule, skipHeader = false) {
 
                 animeImageDiv.appendChild(animeImg);
 
-                // Create time element
+                // Create time/countdown element based on user preference
                 const animeTimeDiv = document.createElement('div');
-                animeTimeDiv.className = 'anime-time';
-                animeTimeDiv.textContent = anime.formattedTime;
+                animeTimeDiv.className = 'anime-time inline-time';
+
+                // Show countdown or time based on preference
+                if (userPreferences.showCountdown) {
+                    animeTimeDiv.textContent = formatCountdown(anime.days, anime.hours, anime.minutes);
+                    animeTimeDiv.classList.add('countdown-mode');
+                } else {
+                    animeTimeDiv.textContent = anime.formattedTime;
+                }
 
                 // If this time was adjusted across day boundaries, add a tooltip
                 if (anime.dayChanged) {
@@ -430,26 +459,100 @@ function renderCalendar(schedule, skipHeader = false) {
                 const animeInfoDiv = document.createElement('div');
                 animeInfoDiv.className = 'anime-info';
 
-                // Add title
+                // Parse the title to extract the real anime name and progress information
+                let realTitle = anime.title;
+                let watchedEpisodes = 0;
+                let availableEpisodes = 0;
+                let totalEpisodes = 0;
+                let isBehind = false;
+
+                // Parse the title looking for progress patterns
+                if (realTitle.includes("Progress:")) {
+                    // Example: "1 episode behind Anne Shirley Progress: 0/24"
+                    // Parse episode behind info
+                    if (realTitle.includes("episode behind")) {
+                        isBehind = true;
+                        // Extract the real title (middle part)
+                        const behindMatch = realTitle.match(/(\d+)\s+episode(s)?\s+behind\s+(.+?)\s+Progress:/i);
+                        if (behindMatch) {
+                            const behindCount = parseInt(behindMatch[1]);
+                            realTitle = behindMatch[3].trim();
+                            availableEpisodes = behindCount; // This is simplified, should add to watched
+                        }
+                    }
+
+                    // Extract progress info (0/24)
+                    const progressMatch = realTitle.match(/Progress:\s*(\d+)\/(\d+)/i);
+                    if (progressMatch) {
+                        watchedEpisodes = parseInt(progressMatch[1]);
+                        totalEpisodes = parseInt(progressMatch[2]);
+
+                        // Clean up the title by removing the progress part
+                        realTitle = realTitle.replace(/Progress:\s*\d+\/\d+/i, "").trim();
+
+                        // Also clean up any "episode behind" part
+                        realTitle = realTitle.replace(/\d+\s+episode(s)?\s+behind/i, "").trim();
+                    }
+
+                    // If we know watched and total, and "behind" flag, calculate available
+                    if (isBehind && watchedEpisodes > 0) {
+                        availableEpisodes = watchedEpisodes + 1; // Simplified; in reality get from Anilist
+                    } else if (watchedEpisodes === 0 && totalEpisodes > 0) {
+                        // If watched is 0, at least 1 episode is available
+                        availableEpisodes = 1;
+                    } else {
+                        availableEpisodes = watchedEpisodes; // Default if we can't determine
+                    }
+                }
+
+                // Update the title and episode display
+                // Add clean title
                 const titleDiv = document.createElement('div');
-                titleDiv.className = 'anime-title';
-                titleDiv.textContent = anime.title;
+                titleDiv.className = 'anime-title compact-title';
+                titleDiv.textContent = realTitle;
                 animeInfoDiv.appendChild(titleDiv);
 
                 // Add episode and time - optimized for space
                 const episodeDiv = document.createElement('div');
                 episodeDiv.className = 'anime-episode';
 
-                const episodeText = document.createElement('span');
-                episodeText.className = 'episode-number';
-                episodeText.textContent = `Episode ${anime.episode}`;
-                episodeDiv.appendChild(episodeText);
+                // Show episode number based on preference with the processed info
+                if (userPreferences.showEpisodeNumbers) {
+                    const episodeText = document.createElement('span');
+                    episodeText.className = 'episode-number';
 
-                // Add time to the right side
+                    // If we determined that we're behind, show the indicator
+                    if (watchedEpisodes < availableEpisodes) {
+                        const indicator = document.createElement('span');
+                        indicator.className = 'behind-indicator';
+                        episodeText.appendChild(indicator);
+                    }
+
+                    // Format based on what we know
+                    if (totalEpisodes > 0) {
+                        // We know the total episodes
+                        if (watchedEpisodes < availableEpisodes) {
+                            // We're behind - show x/y format
+                            episodeText.appendChild(document.createTextNode(`Ep ${watchedEpisodes}/${availableEpisodes}`));
+                        } else {
+                            // We're caught up - just show current episode
+                            episodeText.appendChild(document.createTextNode(`Ep ${watchedEpisodes}`));
+                        }
+                    } else {
+                        // Fallback to original episode number if we couldn't parse
+                        episodeText.appendChild(document.createTextNode(`Ep ${anime.episode}`));
+                    }
+
+                    episodeDiv.appendChild(episodeText);
+                }
+
+                // Add time on the right side with compact format
                 const timeWrapper = document.createElement('span');
                 timeWrapper.className = 'time-wrapper';
                 timeWrapper.appendChild(animeTimeDiv);
                 episodeDiv.appendChild(timeWrapper);
+
+                animeInfoDiv.appendChild(episodeDiv);
 
                 animeInfoDiv.appendChild(episodeDiv);
 
@@ -458,7 +561,7 @@ function renderCalendar(schedule, skipHeader = false) {
                     // For grid mode: image as background with info overlay
                     animeEntry.appendChild(animeImageDiv);
                     animeEntry.appendChild(animeInfoDiv);
-                    // Time is displayed within the episode div in grid mode
+                    // Info is now all in animeInfoDiv with the new structure
                 } else {
                     // For standard and compact modes
                     if (!userPreferences.compactMode) {
@@ -487,40 +590,9 @@ function renderCalendar(schedule, skipHeader = false) {
         calendarGrid.appendChild(dayCol);
     });
 
-    // Append calendar grid
+    // Add calendar grid
     calendarContainer.appendChild(calendarGrid);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /**
  * Gets the episode number from the card
@@ -606,270 +678,8 @@ function loadFontAwesome() {
     log("Font Awesome loaded");
 }
 
-// Initialize when the page is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        loadFontAwesome();
-        initialize();
-    });
-} else {
-    loadFontAwesome();
-    initialize();
-}
-
-// Also run when URL changes (SPA navigation)
-let lastUrl = location.href;
-setInterval(() => {
-    const currentUrl = location.href;
-    if (currentUrl !== lastUrl) {
-        lastUrl = currentUrl;
-        log("URL changed, re-initializing");
-        isCalendarInitialized = false;
-        initialize();
-    }
-}, 1000);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
- * Creates and populates the start day selector with a separator after "Today"
- */
-function createStartDaySelector(startDaySelect, currentValue) {
-    // Clear any existing options
-    startDaySelect.innerHTML = '';
-
-    // Add "Today" option
-    const todayOption = document.createElement('option');
-    todayOption.value = 'today';
-    todayOption.textContent = 'Today';
-    todayOption.selected = currentValue === 'today';
-    startDaySelect.appendChild(todayOption);
-
-    // Add separator after Today
-    const separator = document.createElement('option');
-    separator.disabled = true;
-    separator.className = 'day-separator';
-    separator.value = '';
-    separator.innerHTML = '─────────────';
-    startDaySelect.appendChild(separator);
-
-    // Add the day options
-    const dayOptions = [
-        { value: '0', text: 'Sunday' },
-        { value: '1', text: 'Monday' },
-        { value: '2', text: 'Tuesday' },
-        { value: '3', text: 'Wednesday' },
-        { value: '4', text: 'Thursday' },
-        { value: '5', text: 'Friday' },
-        { value: '6', text: 'Saturday' }
-    ];
-
-    dayOptions.forEach(option => {
-        const optElement = document.createElement('option');
-        optElement.value = option.value;
-        optElement.textContent = option.text;
-        optElement.selected = currentValue === option.value;
-        startDaySelect.appendChild(optElement);
-    });
-}
-
-
-/**
- * Timezone Configuration
- *
- * This adds timezone support to adjust airing times based on user preferences.
- * The base assumption is that anime airing times are in Japan Standard Time (JST/UTC+9).
- */
-
-// Common timezone options with UTC offsets - listed by popularity in anime community
-const TIMEZONE_OPTIONS = [
-    { value: 'jst', text: 'UTC+9 | Japan Standard Time', offset: 9 },
-    { value: 'pst', text: 'UTC-8 | Pacific Standard Time', offset: -8 },
-    { value: 'pdt', text: 'UTC-7 | Pacific Daylight Time', offset: -7 },
-    { value: 'est', text: 'UTC-5 | Eastern Standard Time', offset: -5 },
-    { value: 'edt', text: 'UTC-4 | Eastern Daylight Time', offset: -4 },
-    { value: 'bst', text: 'UTC+1 | British Summer Time', offset: 1 },
-    { value: 'cet', text: 'UTC+1 | Central European Time', offset: 1 },
-    { value: 'cest', text: 'UTC+2 | Central European Summer Time', offset: 2 },
-    { value: 'ist', text: 'UTC+5:30 | Indian Standard Time', offset: 5.5 },
-    { value: 'aest', text: 'UTC+10 | Australian Eastern Standard Time', offset: 10 },
-    { value: 'nzst', text: 'UTC+12 | New Zealand Standard Time', offset: 12 },
-    { value: 'auto', text: 'Auto-detect from browser', offset: null }
-];
-
-// Default to Japan timezone (where most anime airs)
-const DEFAULT_TIMEZONE = 'jst';
-
-// Constant for Japan's offset (UTC+9), used as the base timezone for calculations
-const JAPAN_OFFSET = 9;
-
-// Update user preferences to include timezone
-let userPreferences = {
-    startDay: 'today', // 'today' or index 0-6 (Sunday-Saturday)
-    hideEmptyDays: false, // Whether to hide days with no episodes
-    compactMode: false, // Whether to use compact layout
-    gridMode: false, // Whether to use grid layout (images only with hover info)
-    timezone: DEFAULT_TIMEZONE, // NEW: Timezone preference
-};
-
-/**
- * Gets the current browser timezone offset in hours
- * @returns {number} Timezone offset in hours (e.g., -7 for UTC-7)
- */
-function getBrowserTimezoneOffset() {
-    // Get minutes and convert to hours
-    const offsetMinutes = new Date().getTimezoneOffset();
-    // Convert to hours (note: getTimezoneOffset returns the opposite of what we need)
-    return -(offsetMinutes / 60);
-}
-
-/**
- * Gets the timezone offset in hours for the selected timezone
- * @returns {number} Timezone offset in hours
- */
-function getSelectedTimezoneOffset() {
-    if (userPreferences.timezone === 'auto') {
-        return getBrowserTimezoneOffset();
-    }
-
-    // Find the selected timezone in options
-    const timezone = TIMEZONE_OPTIONS.find(tz => tz.value === userPreferences.timezone);
-    return timezone ? timezone.offset : JAPAN_OFFSET; // Default to Japan if not found
-}
-
-/**
- * Loads user preferences from storage
- */
-async function loadUserPreferences() {
-    return new Promise((resolve) => {
-        try {
-            chrome.storage.sync.get([
-                `${STORAGE_KEY_PREFIX}start_day`,
-                `${STORAGE_KEY_PREFIX}hide_empty_days`,
-                `${STORAGE_KEY_PREFIX}compact_mode`,
-                `${STORAGE_KEY_PREFIX}grid_mode`,
-                `${STORAGE_KEY_PREFIX}timezone`  // NEW: Load timezone
-            ], function(result) {
-                if (result[`${STORAGE_KEY_PREFIX}start_day`] !== undefined) {
-                    userPreferences.startDay = result[`${STORAGE_KEY_PREFIX}start_day`];
-                }
-                if (result[`${STORAGE_KEY_PREFIX}hide_empty_days`] !== undefined) {
-                    userPreferences.hideEmptyDays = result[`${STORAGE_KEY_PREFIX}hide_empty_days`];
-                }
-                if (result[`${STORAGE_KEY_PREFIX}compact_mode`] !== undefined) {
-                    userPreferences.compactMode = result[`${STORAGE_KEY_PREFIX}compact_mode`];
-                }
-                if (result[`${STORAGE_KEY_PREFIX}grid_mode`] !== undefined) {
-                    userPreferences.gridMode = result[`${STORAGE_KEY_PREFIX}grid_mode`];
-                }
-                if (result[`${STORAGE_KEY_PREFIX}timezone`] !== undefined) {
-                    userPreferences.timezone = result[`${STORAGE_KEY_PREFIX}timezone`];
-                }
-                log("Loaded user preferences", userPreferences);
-                resolve();
-            });
-        } catch (e) {
-            log("Error loading preferences", e);
-            resolve();
-        }
-    });
-}
-
-/**
- * Saves user preferences to storage
- */
-function saveUserPreferences() {
-    try {
-        const data = {
-            [`${STORAGE_KEY_PREFIX}start_day`]: userPreferences.startDay,
-            [`${STORAGE_KEY_PREFIX}hide_empty_days`]: userPreferences.hideEmptyDays,
-            [`${STORAGE_KEY_PREFIX}compact_mode`]: userPreferences.compactMode,
-            [`${STORAGE_KEY_PREFIX}grid_mode`]: userPreferences.gridMode,
-            [`${STORAGE_KEY_PREFIX}timezone`]: userPreferences.timezone  // NEW: Save timezone
-        };
-
-        chrome.storage.sync.set(data, function() {
-            log("Saved user preferences", data);
-        });
-    } catch (e) {
-        log("Error saving preferences", e);
-    }
-}
-
-/**
- * Calculates airing date based on countdown, adjusted for the user's timezone
- * @param {number} days Days until airing
- * @param {number} hours Hours until airing
- * @param {number} minutes Minutes until airing
- * @returns {Date} Adjusted airing date in user's timezone
- */
-function calculateAiringDate(days, hours, minutes) {
-    const now = new Date();
-    const airingDate = new Date(now);
-
-    // Calculate airing date based on countdown (this is in local time)
-    airingDate.setDate(now.getDate() + days);
-    airingDate.setHours(now.getHours() + hours);
-    airingDate.setMinutes(now.getMinutes() + minutes);
-
-    // Convert countdown-based time to the assumed Japan time
-    // This is needed because the countdown is shown in local time on Anilist
-    // But the original airing time is in Japan time
-    const userOffset = getBrowserTimezoneOffset();
-    const japanOffset = JAPAN_OFFSET;
-    const diffHours = japanOffset - userOffset;
-
-    // Adjust the calculated time from browser time to Japan time
-    airingDate.setHours(airingDate.getHours() + diffHours);
-
-    // Now convert from Japan time to user's selected timezone
-    const selectedOffset = getSelectedTimezoneOffset();
-    const tzDiffHours = selectedOffset - japanOffset;
-
-    // Apply the timezone difference
-    airingDate.setHours(airingDate.getHours() + tzDiffHours);
-
-    return airingDate;
-}
-
-/**
- * Creates and opens the settings overlay
+ * Creates and opens the settings overlay with new options
  */
 function createSettingsOverlay() {
     // Check if overlay already exists
@@ -918,7 +728,7 @@ function createSettingsOverlay() {
     displayTitle.textContent = 'Display Settings';
     displaySection.appendChild(displayTitle);
 
-    // First day of week setting
+    // First day of the week
     const startDayRow = document.createElement('div');
     startDayRow.className = 'settings-row';
 
@@ -927,7 +737,7 @@ function createSettingsOverlay() {
     <div class="settings-label">First day of the week</div>
     <div class="settings-description">Choose which day to display first in the calendar</div>
   `;
-    // Create the select element
+    // Create select element
     const startDaySelect = document.createElement('select');
     startDaySelect.className = 'settings-select';
     startDaySelect.id = 'start-day-select';
@@ -935,30 +745,10 @@ function createSettingsOverlay() {
     // Populate with options including separator
     createStartDaySelector(startDaySelect, userPreferences.startDay);
 
-    // Options for select
-    const startDayOptions = [
-        { value: 'today', text: 'Today' },
-        { value: '0', text: 'Sunday' },
-        { value: '1', text: 'Monday' },
-        { value: '2', text: 'Tuesday' },
-        { value: '3', text: 'Wednesday' },
-        { value: '4', text: 'Thursday' },
-        { value: '5', text: 'Friday' },
-        { value: '6', text: 'Saturday' }
-    ];
-
-    startDayOptions.forEach(option => {
-        const optElement = document.createElement('option');
-        optElement.value = option.value;
-        optElement.textContent = option.text;
-        optElement.selected = userPreferences.startDay === option.value;
-        startDaySelect.appendChild(optElement);
-    });
-
     startDayRow.appendChild(startDayLabel);
     startDayRow.appendChild(startDaySelect);
 
-    // Hide empty days setting
+    // Hide empty days
     const hideEmptyRow = document.createElement('div');
     hideEmptyRow.className = 'settings-row';
 
@@ -978,7 +768,7 @@ function createSettingsOverlay() {
     hideEmptyRow.appendChild(hideEmptyLabel);
     hideEmptyRow.appendChild(hideEmptyToggle);
 
-    // Compact mode setting
+    // Compact mode
     const compactRow = document.createElement('div');
     compactRow.className = 'settings-row';
 
@@ -998,7 +788,7 @@ function createSettingsOverlay() {
     compactRow.appendChild(compactLabel);
     compactRow.appendChild(compactToggle);
 
-    // Grid mode setting
+    // Grid view
     const gridRow = document.createElement('div');
     gridRow.className = 'settings-row';
 
@@ -1018,7 +808,47 @@ function createSettingsOverlay() {
     gridRow.appendChild(gridLabel);
     gridRow.appendChild(gridToggle);
 
-    // NEW: Timezone section
+    // Show countdown instead of time
+    const countdownRow = document.createElement('div');
+    countdownRow.className = 'settings-row';
+
+    const countdownLabel = document.createElement('div');
+    countdownLabel.innerHTML = `
+    <div class="settings-label">Show countdown</div>
+    <div class="settings-description">Display remaining time instead of airing time</div>
+  `;
+
+    const countdownToggle = document.createElement('label');
+    countdownToggle.className = 'toggle-switch';
+    countdownToggle.innerHTML = `
+    <input type="checkbox" id="countdown-toggle" ${userPreferences.showCountdown ? 'checked' : ''}>
+    <span class="slider"></span>
+  `;
+
+    countdownRow.appendChild(countdownLabel);
+    countdownRow.appendChild(countdownToggle);
+
+    // Show episode numbers
+    const episodeNumbersRow = document.createElement('div');
+    episodeNumbersRow.className = 'settings-row';
+
+    const episodeNumbersLabel = document.createElement('div');
+    episodeNumbersLabel.innerHTML = `
+    <div class="settings-label">Show episode numbers</div>
+    <div class="settings-description">Display episode numbers in the calendar</div>
+  `;
+
+    const episodeNumbersToggle = document.createElement('label');
+    episodeNumbersToggle.className = 'toggle-switch';
+    episodeNumbersToggle.innerHTML = `
+    <input type="checkbox" id="episode-numbers-toggle" ${userPreferences.showEpisodeNumbers ? 'checked' : ''}>
+    <span class="slider"></span>
+  `;
+
+    episodeNumbersRow.appendChild(episodeNumbersLabel);
+    episodeNumbersRow.appendChild(episodeNumbersToggle);
+
+    // Timezone section
     const timezoneRow = document.createElement('div');
     timezoneRow.className = 'settings-row';
 
@@ -1049,7 +879,9 @@ function createSettingsOverlay() {
     displaySection.appendChild(hideEmptyRow);
     displaySection.appendChild(compactRow);
     displaySection.appendChild(gridRow);
-    displaySection.appendChild(timezoneRow);  // NEW: Add timezone row
+    displaySection.appendChild(countdownRow);
+    displaySection.appendChild(episodeNumbersRow);
+    displaySection.appendChild(timezoneRow);
 
     // Add sections to panel
     settingsContent.appendChild(displaySection);
@@ -1070,19 +902,23 @@ function createSettingsOverlay() {
     saveButton.className = 'settings-save-btn';
     saveButton.innerHTML = '<i class="fa fa-save"></i> Save Settings';
     saveButton.addEventListener('click', () => {
-        // Collect current values
+        // Gather current values
         const newStartDay = document.getElementById('start-day-select').value;
         const newHideEmpty = document.getElementById('hide-empty-toggle').checked;
         const newCompactMode = document.getElementById('compact-toggle').checked;
         const newGridMode = document.getElementById('grid-toggle').checked;
-        const newTimezone = document.getElementById('timezone-select').value;  // NEW: Get timezone value
+        const newShowCountdown = document.getElementById('countdown-toggle').checked;
+        const newShowEpisodeNumbers = document.getElementById('episode-numbers-toggle').checked;
+        const newTimezone = document.getElementById('timezone-select').value;
 
         // Update preferences
         userPreferences.startDay = newStartDay;
         userPreferences.hideEmptyDays = newHideEmpty;
         userPreferences.compactMode = newCompactMode;
         userPreferences.gridMode = newGridMode;
-        userPreferences.timezone = newTimezone;  // NEW: Update timezone preference
+        userPreferences.showCountdown = newShowCountdown;
+        userPreferences.showEpisodeNumbers = newShowEpisodeNumbers;
+        userPreferences.timezone = newTimezone;
 
         // Show loading indicator
         loadingSection.classList.add('active');
@@ -1090,7 +926,7 @@ function createSettingsOverlay() {
         // Save and update
         saveUserPreferences();
 
-        // Wait a moment to show loading effect before refreshing the entire page
+        // Wait a moment to show loading effect before refreshing the page
         setTimeout(() => {
             // Show notification
             showNotification('Settings applied! Refreshing page...');
@@ -1101,9 +937,9 @@ function createSettingsOverlay() {
             // Hide overlay
             settingsOverlay.classList.remove('active');
 
-            // Force a complete page refresh after a brief delay to allow the notification to be seen
+            // Force a complete page refresh after a short delay to allow the notification to be shown
             setTimeout(() => {
-                window.location.reload(true); // true forces a reload from server, not cache
+                window.location.reload(true); // true forces reload from server, not cache
             }, 800);
         }, 500);
     });
@@ -1127,7 +963,7 @@ function createSettingsOverlay() {
         settingsOverlay.classList.add('active');
     }, 10);
 
-    // Close overlay when clicking outside panel
+    // Close overlay when clicking outside the panel
     settingsOverlay.addEventListener('click', (e) => {
         if (e.target === settingsOverlay) {
             settingsOverlay.classList.remove('active');
@@ -1135,30 +971,160 @@ function createSettingsOverlay() {
     });
 }
 
+/**
+ * Saves user preferences to storage
+ */
+function saveUserPreferences() {
+    try {
+        const data = {
+            [`${STORAGE_KEY_PREFIX}start_day`]: userPreferences.startDay,
+            [`${STORAGE_KEY_PREFIX}hide_empty_days`]: userPreferences.hideEmptyDays,
+            [`${STORAGE_KEY_PREFIX}compact_mode`]: userPreferences.compactMode,
+            [`${STORAGE_KEY_PREFIX}grid_mode`]: userPreferences.gridMode,
+            [`${STORAGE_KEY_PREFIX}show_countdown`]: userPreferences.showCountdown,
+            [`${STORAGE_KEY_PREFIX}show_episode_numbers`]: userPreferences.showEpisodeNumbers,
+            [`${STORAGE_KEY_PREFIX}timezone`]: userPreferences.timezone
+        };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        chrome.storage.sync.set(data, function() {
+            log("Saved user preferences", data);
+        });
+    } catch (e) {
+        log("Error saving preferences", e);
+    }
+}
 
 /**
- * Calendar UI Enhancements for Timezone Display
- *
- * This adds visual indicators for the current timezone setting
- * to help users understand the airing times shown in the calendar.
+ * Loads user preferences from storage
  */
+async function loadUserPreferences() {
+    return new Promise((resolve) => {
+        try {
+            chrome.storage.sync.get([
+                `${STORAGE_KEY_PREFIX}start_day`,
+                `${STORAGE_KEY_PREFIX}hide_empty_days`,
+                `${STORAGE_KEY_PREFIX}compact_mode`,
+                `${STORAGE_KEY_PREFIX}grid_mode`,
+                `${STORAGE_KEY_PREFIX}show_countdown`,
+                `${STORAGE_KEY_PREFIX}show_episode_numbers`,
+                `${STORAGE_KEY_PREFIX}timezone`
+            ], function(result) {
+                if (result[`${STORAGE_KEY_PREFIX}start_day`] !== undefined) {
+                    userPreferences.startDay = result[`${STORAGE_KEY_PREFIX}start_day`];
+                }
+                if (result[`${STORAGE_KEY_PREFIX}hide_empty_days`] !== undefined) {
+                    userPreferences.hideEmptyDays = result[`${STORAGE_KEY_PREFIX}hide_empty_days`];
+                }
+                if (result[`${STORAGE_KEY_PREFIX}compact_mode`] !== undefined) {
+                    userPreferences.compactMode = result[`${STORAGE_KEY_PREFIX}compact_mode`];
+                }
+                if (result[`${STORAGE_KEY_PREFIX}grid_mode`] !== undefined) {
+                    userPreferences.gridMode = result[`${STORAGE_KEY_PREFIX}grid_mode`];
+                }
+                if (result[`${STORAGE_KEY_PREFIX}show_countdown`] !== undefined) {
+                    userPreferences.showCountdown = result[`${STORAGE_KEY_PREFIX}show_countdown`];
+                }
+                if (result[`${STORAGE_KEY_PREFIX}show_episode_numbers`] !== undefined) {
+                    userPreferences.showEpisodeNumbers = result[`${STORAGE_KEY_PREFIX}show_episode_numbers`];
+                }
+                if (result[`${STORAGE_KEY_PREFIX}timezone`] !== undefined) {
+                    userPreferences.timezone = result[`${STORAGE_KEY_PREFIX}timezone`];
+                }
+                log("Loaded user preferences", userPreferences);
+                resolve();
+            });
+        } catch (e) {
+            log("Error loading preferences", e);
+            resolve();
+        }
+    });
+}
+
+/**
+ * Formats a countdown as a string
+ * @param {number} days - Days
+ * @param {number} hours - Hours
+ * @param {number} minutes - Minutes
+ * @returns {string} Formatted countdown
+ */
+function formatCountdown(days, hours, minutes) {
+    // Format as d:hh:mm or hh:mm
+    const formattedHours = hours.toString().padStart(2, '0');
+    const formattedMinutes = minutes.toString().padStart(2, '0');
+
+    if (days > 0) {
+        return `${days}:${formattedHours}:${formattedMinutes}`;
+    } else {
+        return `${formattedHours}:${formattedMinutes}`;
+    }
+}
+
+/**
+ * Creates and populates the start day selector with a separator after "Today"
+ */
+function createStartDaySelector(startDaySelect, currentValue) {
+    // Clear any existing options
+    startDaySelect.innerHTML = '';
+
+    // Add "Today" option
+    const todayOption = document.createElement('option');
+    todayOption.value = 'today';
+    todayOption.textContent = 'Today';
+    todayOption.selected = currentValue === 'today';
+    startDaySelect.appendChild(todayOption);
+
+    // Add separator after Today
+    const separator = document.createElement('option');
+    separator.disabled = true;
+    separator.className = 'day-separator';
+    separator.value = '';
+    separator.innerHTML = '─────────────';
+    startDaySelect.appendChild(separator);
+
+    // Add the day options
+    const dayOptions = [
+        { value: '0', text: 'Sunday' },
+        { value: '1', text: 'Monday' },
+        { value: '2', text: 'Tuesday' },
+        { value: '3', text: 'Wednesday' },
+        { value: '4', text: 'Thursday' },
+        { value: '5', text: 'Friday' },
+        { value: '6', text: 'Saturday' }
+    ];
+
+    dayOptions.forEach(option => {
+        const optElement = document.createElement('option');
+        optElement.value = option.value;
+        optElement.textContent = option.text;
+        optElement.selected = currentValue === option.value;
+        startDaySelect.appendChild(optElement);
+    });
+}
+
+/**
+ * Gets the current browser timezone offset in hours
+ * @returns {number} Timezone offset in hours (e.g., -7 for UTC-7)
+ */
+function getBrowserTimezoneOffset() {
+    // Get minutes and convert to hours
+    const offsetMinutes = new Date().getTimezoneOffset();
+    // Convert to hours (note: getTimezoneOffset returns the opposite of what we need)
+    return -(offsetMinutes / 60);
+}
+
+/**
+ * Gets the timezone offset in hours for the selected timezone
+ * @returns {number} Timezone offset in hours
+ */
+function getSelectedTimezoneOffset() {
+    if (userPreferences.timezone === 'auto') {
+        return getBrowserTimezoneOffset();
+    }
+
+    // Find the selected timezone in options
+    const timezone = TIMEZONE_OPTIONS.find(tz => tz.value === userPreferences.timezone);
+    return timezone ? timezone.offset : JAPAN_OFFSET; // Default to Japan if not found
+}
 
 /**
  * Gets a clean timezone name format for display
@@ -1184,76 +1150,6 @@ function getTimezoneName() {
 
     return 'UTC+9'; // Default to Japan timezone
 }
-
-/**
- * Enhanced processAnimeData function that accounts for timezone differences
- * and possible day changes when converting times
- */
-function processAnimeData(animeData) {
-    const schedule = {
-        Sunday: [],
-        Monday: [],
-        Tuesday: [],
-        Wednesday: [],
-        Thursday: [],
-        Friday: [],
-        Saturday: []
-    };
-
-    // Process each anime entry
-    for (const anime of animeData) {
-        // Get the timezone-adjusted day and track if it changed
-        const originalDay = DAYS_OF_WEEK[anime.airingDate.getDay()];
-
-        // Store original day information in the anime object
-        anime.originalDay = originalDay;
-        anime.dayChanged = false;
-
-        // Add to corresponding day
-        schedule[originalDay].push({
-            id: anime.id,
-            title: anime.title,
-            coverImage: anime.coverImage,
-            airingDate: anime.airingDate,
-            formattedTime: anime.formattedTime,
-            episode: anime.episode,
-            color: anime.color,
-            originalDay: anime.originalDay,
-            dayChanged: anime.dayChanged
-        });
-    }
-
-    // Sort each day's anime by airing time
-    for (const day in schedule) {
-        schedule[day].sort((a, b) => {
-            const timeA = a.formattedTime.split(':');
-            const timeB = b.formattedTime.split(':');
-
-            const hoursA = parseInt(timeA[0]);
-            const hoursB = parseInt(timeB[0]);
-
-            if (hoursA !== hoursB) {
-                return hoursA - hoursB;
-            }
-
-            const minutesA = parseInt(timeA[1]);
-            const minutesB = parseInt(timeB[1]);
-
-            return minutesA - minutesB;
-        });
-    }
-
-    log("Processed schedule data with timezone adjustments", schedule);
-    return schedule;
-}
-
-
-/**
- * Enhanced Airing Date Calculation with Day Tracking
- *
- * These functions handle the conversion of airing times between timezones,
- * tracking when a date change occurs due to timezone differences.
- */
 
 /**
  * Calculates airing date based on countdown, adjusted for the user's timezone
@@ -1304,7 +1200,7 @@ function calculateAiringDateWithDayTracking(days, hours, minutes) {
 }
 
 /**
- * Updated extraction function that includes day tracking
+ * Extracts anime data from the DOM
  */
 function extractAnimeDataFromDOM(container) {
     try {
@@ -1320,7 +1216,7 @@ function extractAnimeDataFromDOM(container) {
         // Process each card
         animeCards.forEach(card => {
             try {
-                // Get anime ID from the URL
+                // Get anime ID from URL
                 const animeLink = card.querySelector('a[href^="/anime/"]');
                 if (!animeLink) return;
 
@@ -1407,3 +1303,91 @@ function extractAnimeDataFromDOM(container) {
         return [];
     }
 }
+
+/**
+ * Enhanced processAnimeData function that accounts for timezone differences
+ * and possible day changes when converting times
+ */
+function processAnimeData(animeData) {
+    const schedule = {
+        Sunday: [],
+        Monday: [],
+        Tuesday: [],
+        Wednesday: [],
+        Thursday: [],
+        Friday: [],
+        Saturday: []
+    };
+
+    // Process each anime entry
+    for (const anime of animeData) {
+        // Get the timezone-adjusted day and track if it changed
+        const originalDay = DAYS_OF_WEEK[anime.airingDate.getDay()];
+
+        // Store original day information in the anime object
+        anime.originalDay = originalDay;
+        anime.dayChanged = false;
+
+        // Add to corresponding day
+        schedule[originalDay].push({
+            id: anime.id,
+            title: anime.title,
+            coverImage: anime.coverImage,
+            airingDate: anime.airingDate,
+            formattedTime: anime.formattedTime,
+            episode: anime.episode,
+            color: anime.color,
+            originalDay: anime.originalDay,
+            dayChanged: anime.dayChanged,
+            days: anime.days,
+            hours: anime.hours,
+            minutes: anime.minutes
+        });
+    }
+
+    // Sort each day's anime by airing time
+    for (const day in schedule) {
+        schedule[day].sort((a, b) => {
+            const timeA = a.formattedTime.split(':');
+            const timeB = b.formattedTime.split(':');
+
+            const hoursA = parseInt(timeA[0]);
+            const hoursB = parseInt(timeB[0]);
+
+            if (hoursA !== hoursB) {
+                return hoursA - hoursB;
+            }
+
+            const minutesA = parseInt(timeA[1]);
+            const minutesB = parseInt(timeB[1]);
+
+            return minutesA - minutesB;
+        });
+    }
+
+    log("Processed schedule data with timezone adjustments", schedule);
+    return schedule;
+}
+
+// Initialize when the page is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        loadFontAwesome();
+        initialize();
+    });
+} else {
+    loadFontAwesome();
+    initialize();
+}
+
+// Also run when URL changes (SPA navigation)
+let lastUrl = location.href;
+setInterval(() => {
+    const currentUrl = location.href;
+    if (currentUrl !== lastUrl) {
+        lastUrl = currentUrl;
+        log("URL changed, re-initializing");
+        isCalendarInitialized = false;
+        initialize();
+    }
+}, 1000);
