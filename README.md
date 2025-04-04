@@ -4,11 +4,9 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
-![Anilist Weekly Schedule](https://via.placeholder.com/800x400?text=Anilist+Weekly+Schedule+Screenshot)
-
 ## Overview
 
-Anilist Weekly Schedule enhances your anime tracking experience by replacing the basic "Airing" section with an intuitive weekly calendar. Instead of just showing a list of upcoming episodes with numbers, this extension organizes your shows by day of the week, making it much easier to see at a glance when new episodes are releasing.
+Anilist Weekly Schedule enhances your anime tracking experience by replacing the basic "Airing" section with an intuitive weekly calendar. Instead of just showing a list of upcoming episodes with countdowns, this extension organizes your shows by day of the week, making it much easier to see at a glance when new episodes are releasing.
 
 The extension is designed to integrate seamlessly with Anilist's interface, respecting both light and dark themes while providing a clean, responsive layout that works on both desktop and mobile.
 
@@ -17,10 +15,14 @@ The extension is designed to integrate seamlessly with Anilist's interface, resp
 - **Weekly Calendar View**: See your airing anime organized by day of the week
 - **Episode Information**: Clear display of episode numbers and airing times
 - **Current Day Highlight**: Today's column is highlighted for quick reference
+- **Multiple Display Modes**:
+   - **Standard Mode**: Detailed view with titles, episode numbers, and times
+   - **Compact Mode**: Space-efficient layout ideal for many shows
+   - **Grid Mode**: Image-focused view similar to Anilist's default style with hover details
+- **Customizable Start Day**: Choose which day of the week appears first (Today, Sunday, Monday, etc.)
+- **Empty Day Filtering**: Option to hide days with no scheduled episodes
 - **Responsive Design**: Works perfectly on both desktop and mobile devices
 - **Custom Styling**: Matches Anilist's design language and respects the site's theme
-- **Cached Data**: Efficiently stores schedule data to minimize API requests
-- **Manual Refresh**: Update your schedule data anytime with a single click
 
 ## Browser Compatibility
 
@@ -33,10 +35,10 @@ Installation steps are similar across browsers:
 1. Download the latest release from the [Releases](https://github.com/rikymarche-ctrl/anilist-weekly-schedule/releases) page
 2. Unzip the file to a location of your choice
 3. Go to your browser's extensions page:
-    - Chrome: `chrome://extensions/`
-    - Edge: `edge://extensions/`
-    - Brave: `brave://extensions/`
-    - Other browsers: Check your browser's menu for the extensions/add-ons section
+   - Chrome: `chrome://extensions/`
+   - Edge: `edge://extensions/`
+   - Brave: `brave://extensions/`
+   - Other browsers: Check your browser's menu for the extensions/add-ons section
 4. Enable "Developer mode" (usually a toggle in the top-right corner)
 5. Click "Load unpacked" and select the extension directory (unzipped)
 
@@ -44,16 +46,20 @@ Installation steps are similar across browsers:
 
 1. Navigate to [Anilist](https://anilist.co) and log in to your account
 2. The extension will automatically replace the "Airing" section on your home page with the weekly calendar
-3. Click on any anime in the calendar to go to its page
-4. Use the "Refresh Schedule" button at the bottom of the calendar to update the data if needed
+3. Click the settings icon in the calendar header to customize your view:
+   - Change the first day of the week
+   - Toggle compact mode for a more condensed view
+   - Enable grid mode to see anime covers in a gallery layout
+   - Choose to hide empty days
+4. Click on any anime in the calendar to go to its page
 
 ## Privacy
 
 This extension:
 - Works exclusively on anilist.co
-- Stores schedule data locally in your browser for caching purposes
-- Makes API requests only to the official Anilist GraphQL endpoint
+- Stores user preferences locally in your browser
 - Does not collect or transmit any personal data
+- Does not modify any Anilist data
 
 ## Development
 
@@ -76,6 +82,8 @@ cd anilist-weekly-schedule
 - `manifest.json`: Extension configuration
 - `content.js`: Main script that detects and replaces the Airing section
 - `styles.css`: Styling for the weekly calendar view
+- `options.html/js`: Options page for extension settings
+- `popup.html/js`: Extension popup interface
 - `icons/`: Extension icons in various sizes
 
 ## Contributing
@@ -94,7 +102,7 @@ This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.t
 
 ## Acknowledgments
 
-- Thanks to the Anilist team for providing a great API
+- Thanks to the Anilist team for providing a great anime tracking platform
 - Inspired by various calendar applications and anime tracking solutions
 
 ---

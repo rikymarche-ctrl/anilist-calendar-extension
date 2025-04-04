@@ -6,9 +6,20 @@
   "author": "ExAstra",
   "homepage_url": "https://github.com/rikymarche-ctrl/anilist-weekly-schedule",
   "permissions": ["storage"],
-  "host_permissions": ["https://anilist.co/*", "https://graphql.anilist.co/*"],
+  "host_permissions": ["https://anilist.co/*"],
   "icons": {
     "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_icon": {
+      "128": "icons/icon128.png"
+    },
+    "default_title": "Anilist Weekly Schedule",
+    "default_popup": "popup.html"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
   },
   "content_scripts": [
     {
