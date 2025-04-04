@@ -15,10 +15,11 @@ The extension is designed to integrate seamlessly with Anilist's interface, resp
 - **Weekly Calendar View**: See your airing anime organized by day of the week
 - **Episode Information**: Clear display of episode numbers and airing times
 - **Current Day Highlight**: Today's column is highlighted for quick reference
+- **Timezone Support**: Adjust airing times to your local timezone or any preferred timezone
 - **Multiple Display Modes**:
-   - **Standard Mode**: Detailed view with titles, episode numbers, and times
-   - **Compact Mode**: Space-efficient layout ideal for many shows
-   - **Grid Mode**: Image-focused view similar to Anilist's default style with hover details
+    - **Standard Mode**: Detailed view with titles, episode numbers, and times
+    - **Compact Mode**: Space-efficient layout ideal for many shows
+    - **Grid Mode**: Image-focused view similar to Anilist's default style with hover details
 - **Customizable Start Day**: Choose which day of the week appears first (Today, Sunday, Monday, etc.)
 - **Empty Day Filtering**: Option to hide days with no scheduled episodes
 - **Responsive Design**: Works perfectly on both desktop and mobile devices
@@ -35,10 +36,10 @@ Installation steps are similar across browsers:
 1. Download the latest release from the [Releases](https://github.com/rikymarche-ctrl/anilist-weekly-schedule/releases) page
 2. Unzip the file to a location of your choice
 3. Go to your browser's extensions page:
-   - Chrome: `chrome://extensions/`
-   - Edge: `edge://extensions/`
-   - Brave: `brave://extensions/`
-   - Other browsers: Check your browser's menu for the extensions/add-ons section
+    - Chrome: `chrome://extensions/`
+    - Edge: `edge://extensions/`
+    - Brave: `brave://extensions/`
+    - Other browsers: Check your browser's menu for the extensions/add-ons section
 4. Enable "Developer mode" (usually a toggle in the top-right corner)
 5. Click "Load unpacked" and select the extension directory (unzipped)
 
@@ -47,11 +48,24 @@ Installation steps are similar across browsers:
 1. Navigate to [Anilist](https://anilist.co) and log in to your account
 2. The extension will automatically replace the "Airing" section on your home page with the weekly calendar
 3. Click the settings icon in the calendar header to customize your view:
-   - Change the first day of the week
-   - Toggle compact mode for a more condensed view
-   - Enable grid mode to see anime covers in a gallery layout
-   - Choose to hide empty days
+    - Change the first day of the week
+    - Toggle compact mode for a more condensed view
+    - Enable grid mode to see anime covers in a gallery layout
+    - Choose to hide empty days
+    - Select your timezone to adjust airing times appropriately
 4. Click on any anime in the calendar to go to its page
+
+### Timezone Feature
+
+The timezone feature allows you to see anime airing times adjusted to your preferred timezone:
+
+- **Default**: Japan Standard Time (JST/UTC+9) where most anime airs originally
+- **Auto-detect**: Automatically uses your browser's local timezone
+- **Multiple Options**: Choose from popular timezones in the anime community
+- **Day Adjustment**: Automatically updates the day of the week when crossing date boundaries due to timezone differences
+- **Visual Indicators**: Timezone information is displayed in the calendar header
+
+This feature is especially useful for international viewers who want to know exactly when a new episode will be available in their local time, rather than having to manually convert from Japan time.
 
 ## Privacy
 

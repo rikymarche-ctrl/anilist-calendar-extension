@@ -208,6 +208,28 @@
     .footer a:hover {
       text-decoration: underline;
     }
+
+    /* Timezone select needs more width */
+    #timezone {
+      width: 220px;
+    }
+
+    /* Responsive styles for small screens */
+    @media screen and (max-width: 600px) {
+      .setting-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      select, .toggle-switch {
+        margin-top: 10px;
+        width: 100%;
+      }
+
+      #timezone {
+        width: 100%;
+      }
+    }
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
@@ -260,6 +282,28 @@
           <input type="checkbox" id="compact-mode">
           <span class="slider"></span>
         </label>
+      </div>
+
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Grid view</div>
+          <div class="setting-description">Display anime as a grid of images (hover for details)</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="grid-mode">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <!-- NEW: Timezone Setting -->
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Timezone</div>
+          <div class="setting-description">Adjust anime airing times to your timezone</div>
+        </div>
+        <select id="timezone">
+          <!-- Options will be populated by JavaScript -->
+        </select>
       </div>
     </div>
   </div>
