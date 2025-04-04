@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Anilist Weekly Schedule",
+  "version": "1.0.0",
+  "description": "Replaces the Airing section with a weekly calendar view of your anime release schedule",
+  "author": "ExAstra",
+  "homepage_url": "https://github.com/rikymarche-ctrl/anilist-weekly-schedule",
+  "permissions": ["storage"],
+  "host_permissions": ["https://anilist.co/*", "https://graphql.anilist.co/*"],
+  "icons": {
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://anilist.co/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*"],
+      "matches": ["https://anilist.co/*"]
+    }
+  ]
+}
