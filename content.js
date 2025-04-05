@@ -184,8 +184,8 @@ function findAndReplaceAiringSection() {
             settingsButton.className = 'calendar-settings-btn header-settings-btn';
             settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
             settingsButton.title = 'Open settings';
-            settingsButton.style.right = 'auto'; // Remove right positioning
-            settingsButton.style.left = '10px'; // Position on the left
+            settingsButton.style.left = 'auto'; // Reset left positioning
+            settingsButton.style.right = '10px'; // Position on the right
             settingsButton.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -229,8 +229,8 @@ function findAndReplaceAiringSection() {
                 settingsButton.className = 'calendar-settings-btn header-settings-btn';
                 settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
                 settingsButton.title = 'Open settings';
-                settingsButton.style.right = 'auto'; // Remove right positioning
-                settingsButton.style.left = '10px'; // Position on the left
+                settingsButton.style.left = 'auto'; // Reset left positioning
+                settingsButton.style.right = '10px'; // Position on the right
                 settingsButton.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -1087,10 +1087,10 @@ function createAnimeEntry(container, anime) {
 
         // Usa direttamente il testo originale di progresso da Anilist
         if (anime.episodeProgressString) {
-            episodeNumber.appendChild(document.createTextNode(anime.episodeProgressString));
+            episodeNumber.appendChild(document.createTextNode('Ep ' + anime.episodeProgressString));
         } else {
             // Fallback al formato calcolato
-            episodeNumber.appendChild(document.createTextNode(anime.episodeInfo));
+            episodeNumber.appendChild(document.createTextNode('Ep ' + anime.episodeInfo));
         }
 
         infoRow.appendChild(episodeNumber);

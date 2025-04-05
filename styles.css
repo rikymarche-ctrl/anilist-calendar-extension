@@ -146,8 +146,7 @@
 /* Settings button in section header */
 .header-settings-btn {
     position: absolute;
-    right: auto;
-    left: 10px;
+    right: 10px; /* Riposizionato a destra */
     top: 50%;
     transform: translateY(-50%);
     background: transparent;
@@ -168,7 +167,8 @@
 /* Show settings buttons on hover */
 .section-header:hover .header-settings-btn,
 .calendar-header:hover .calendar-settings-btn,
-.anilist-weekly-calendar:hover .calendar-settings-btn {
+.anilist-weekly-calendar:hover .calendar-settings-btn,
+.anilist-weekly-calendar:hover .header-settings-btn {
     opacity: 1;
 }
 
@@ -347,6 +347,29 @@
     height: 100%;
     object-fit: cover;
     border-radius: 3px;
+}
+
+/* Hover overlay for anime image */
+.anime-image::after {
+    content: "+";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 0%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.5) 60%, rgba(0, 0, 0, 0) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    opacity: 0;
+    transition: height 0.3s ease, opacity 0.3s ease;
+}
+
+.anime-entry:hover .anime-image::after {
+    height: 100%;
+    opacity: 1;
 }
 
 /* Anime info container */
