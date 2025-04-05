@@ -100,11 +100,9 @@ function initialize() {
             let element = e.target;
             while (element && element !== document.body) {
                 if (element.classList && (
-                    element.classList.contains('anilist-calendar-grid') ||
-                    element.classList.contains('anilist-calendar-day') ||
-                    element.classList.contains('day-anime-list') ||
-                    element.classList.contains('anime-entry') ||
-                    element.closest('.anilist-calendar-grid')
+                    element.classList.contains('anilist-weekly-calendar') ||
+                    element.classList.contains('section-header') ||
+                    element.closest('.anilist-weekly-calendar')
                 )) {
                     const settingsBtn = document.querySelector('.header-settings-btn');
                     if (settingsBtn) settingsBtn.style.opacity = '1';
@@ -115,13 +113,17 @@ function initialize() {
         });
 
         document.addEventListener('mouseout', function(e) {
-            // Controlla se stiamo uscendo dalla griglia del calendario
+            // Controlla se stiamo uscendo dalla tabella del calendario
             if (e.target && (
-                e.target.classList.contains('anilist-calendar-grid') ||
-                e.target.closest('.anilist-calendar-grid')
+                e.target.classList.contains('anilist-weekly-calendar') ||
+                e.target.closest('.anilist-weekly-calendar') ||
+                e.target.classList.contains('section-header') ||
+                e.target.closest('.section-header')
             )) {
-                // Controlliamo che il nuovo elemento non sia all'interno della griglia
-                if (!e.relatedTarget || !e.relatedTarget.closest('.anilist-calendar-grid')) {
+                // Controlliamo che il nuovo elemento non sia all'interno della tabella o nell'header
+                if (!e.relatedTarget ||
+                    (!e.relatedTarget.closest('.anilist-weekly-calendar') &&
+                        !e.relatedTarget.closest('.section-header'))) {
                     const settingsBtn = document.querySelector('.header-settings-btn');
                     if (settingsBtn) settingsBtn.style.opacity = '0';
                 }

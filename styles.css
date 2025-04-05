@@ -1,4 +1,8 @@
-/**
+/* Day number display for current day */
+.anilist-calendar-day.current-day .day-number,
+.anilist-calendar-day.current-day .separator {
+    color: var(--color-blue); /* Stesso colore del giorno corrente */
+}/**
  * Anilist Weekly Schedule Extension - Styles
  *
  * This stylesheet provides styling for the weekly calendar view
@@ -96,7 +100,7 @@
 .anilist-weekly-calendar {
     width: 100%;
     max-width: 100%; /* Ensure it never exceeds container width */
-    background: #0B1622; /* Colore esatto delle div sottostanti come da screenshot */
+    background: #0B1622FF; /* Colore esatto specificato */
     border-radius: 6px; /* Bordi leggermente più arrotondati */
     overflow: hidden;
     animation: fadeIn 0.3s ease-in-out;
@@ -204,7 +208,7 @@
 /* Day column */
 .anilist-calendar-day {
     border-right: none; /* Rimosse le righe verticali */
-    background: #0B1622; /* Colore esatto delle div sottostanti */
+    background: #0B1622FF; /* Colore esatto specificato */
     display: flex;
     flex-direction: column;
     position: relative;
@@ -221,19 +225,19 @@
 
 /* Current day styling */
 .anilist-calendar-day.current-day {
-    background: #0B1622; /* Colore esatto delle div sottostanti */
+    background: #0B1622FF; /* Colore esatto specificato */
 }
 
 /* Current day header styling */
 .anilist-calendar-day.current-day .day-header {
-    background: #0B1622; /* Colore esatto delle div sottostanti */
+    background: #0B1622FF; /* Colore esatto specificato */
     color: var(--color-blue);
 }
 
 /* Day header */
 .day-header {
     padding: 10px 15px;
-    background: #0B1622; /* Colore esatto delle div sottostanti */
+    background: #0B1622FF; /* Colore esatto specificato */
     font-weight: 600;
     text-align: center;
     border-bottom: 1px solid rgba(var(--color-border-rgb), 0.5); /* Bordo più sottile */
@@ -367,6 +371,17 @@
     border-radius: 3px;
     display: block;
     position: relative;
+    transition: border-color 0.2s ease;
+}
+
+/* Anime image hover effect */
+.anime-entry .anime-image {
+    border: 2px solid transparent;
+    box-sizing: border-box;
+}
+
+.anime-entry:hover .anime-image:hover {
+    border: 2px solid var(--color-blue);
 }
 
 .anime-image img {
