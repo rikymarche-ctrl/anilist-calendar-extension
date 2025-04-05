@@ -94,6 +94,41 @@ function initialize() {
             log("Global error caught", event.error);
         });
 
+        // Initialize settings button events globally
+        document.addEventListener('mouseover', function(e) {
+            // Find if we're hovering any calendar element
+            let element = e.target;
+            while (element && element !== document.body) {
+                if (element.classList && (
+                    element.classList.contains('anilist-weekly-calendar') ||
+                    element.classList.contains('anilist-calendar-grid') ||
+                    element.classList.contains('anilist-calendar-day') ||
+                    element.classList.contains('day-anime-list') ||
+                    element.classList.contains('anime-entry') ||
+                    element.classList.contains('section-header')
+                )) {
+                    const settingsBtn = document.querySelector('.header-settings-btn');
+                    if (settingsBtn) settingsBtn.style.opacity = '1';
+                    break;
+                }
+                element = element.parentElement;
+            }
+        });
+
+        document.addEventListener('mouseout', function(e) {
+            // Controlla se stiamo uscendo dalla tabella del calendario
+            if (e.target && (
+                e.target.classList.contains('anilist-weekly-calendar') ||
+                e.target.closest('.anilist-weekly-calendar')
+            )) {
+                // Controlliamo che il nuovo elemento non sia all'interno della tabella
+                if (!e.relatedTarget || !e.relatedTarget.closest('.anilist-weekly-calendar')) {
+                    const settingsBtn = document.querySelector('.header-settings-btn');
+                    if (settingsBtn) settingsBtn.style.opacity = '0';
+                }
+            }
+        });
+
     } catch (err) {
         log("Error during initialization", err);
     }
@@ -185,7 +220,10 @@ function findAndReplaceAiringSection() {
             settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
             settingsButton.title = 'Open settings';
             settingsButton.style.left = 'auto'; // Reset left positioning
-            settingsButton.style.right = '10px'; // Position on the right
+            settingsButton.style.right = '0'; // Position all the way to the right
+            settingsButton.style.width = '28px'; // Smaller button
+            settingsButton.style.height = '28px'; // Smaller button
+            settingsButton.innerHTML = '<i class="fa fa-cog" style="font-size: 14px;"></i>'; // Smaller icon
             settingsButton.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -230,7 +268,10 @@ function findAndReplaceAiringSection() {
                 settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
                 settingsButton.title = 'Open settings';
                 settingsButton.style.left = 'auto'; // Reset left positioning
-                settingsButton.style.right = '10px'; // Position on the right
+                settingsButton.style.right = '0'; // Position all the way to the right
+                settingsButton.style.width = '28px'; // Smaller button
+                settingsButton.style.height = '28px'; // Smaller button
+                settingsButton.innerHTML = '<i class="fa fa-cog" style="font-size: 14px;"></i>'; // Smaller icon
                 settingsButton.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -997,8 +1038,20 @@ function renderCalendar(schedule, skipHeader = false) {
         // Create day header
         const dayHeader = document.createElement('div');
         dayHeader.className = 'day-header';
+
+        // Calcola la data corrente del giorno della settimana
+        const currentDate = new Date();
+        const todayIndex = currentDate.getDay(); // 0 = Sunday, 1 = Monday, ...
+        const dayIndex = DAYS_OF_WEEK.indexOf(day);
+        const daysToAdd = (dayIndex - todayIndex + 7) % 7; // Giorni da aggiungere per arrivare al giorno richiesto
+
+        const targetDate = new Date(currentDate);
+        targetDate.setDate(currentDate.getDate() + daysToAdd);
+        const dayNumber = targetDate.getDate(); // Numero del giorno
+
         dayHeader.innerHTML = `
             <span class="day-name">${day}</span>
+            <span class="day-number">${dayNumber}</span>
             <span class="abbreviated-day">${ABBREVIATED_DAYS[DAYS_OF_WEEK.indexOf(day)]}</span>
         `;
         dayCol.appendChild(dayHeader);
@@ -1072,12 +1125,12 @@ function createAnimeEntry(container, anime) {
     const infoRow = document.createElement('div');
     infoRow.className = 'anime-info-row';
 
-    // Episode number - usando direttamente il testo originale dall'Anilist
+    // Episode number - using directly the original text from Anilist
     if (userPreferences.showEpisodeNumbers) {
         const episodeNumber = document.createElement('div');
         episodeNumber.className = 'episode-number';
 
-        // Add 'behind' indicator if needed (pallino rosso)
+        // Add 'behind' indicator if needed (red dot)
         if (anime.episodesBehind > 0) {
             const behindIndicator = document.createElement('span');
             behindIndicator.className = 'behind-indicator';
@@ -1085,11 +1138,11 @@ function createAnimeEntry(container, anime) {
             episodeNumber.appendChild(behindIndicator);
         }
 
-        // Usa direttamente il testo originale di progresso da Anilist
+        // Use original progress text directly from Anilist
         if (anime.episodeProgressString) {
             episodeNumber.appendChild(document.createTextNode('Ep ' + anime.episodeProgressString));
         } else {
-            // Fallback al formato calcolato
+            // Fallback to calculated format
             episodeNumber.appendChild(document.createTextNode('Ep ' + anime.episodeInfo));
         }
 

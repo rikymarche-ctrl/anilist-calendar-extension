@@ -12,31 +12,26 @@
  * ANIMATIONS & KEYFRAMES
  *------------------------------------------------------*/
 
-/* Fade in animation */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Slide up animation for image overlay */
 @keyframes slideUp {
     from { transform: translateY(100%); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
 
-/* Fade in animation for plus button */
 @keyframes fadeInButton {
     from { opacity: 0; transform: scale(0.8); }
     to { opacity: 1; transform: scale(1); }
 }
 
-/* Spin animation for loading indicators */
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
 
-/* Pulse animation for highlights */
 @keyframes pulse {
     0% { opacity: 0.6; }
     50% { opacity: 1; }
@@ -55,6 +50,7 @@
     --color-foreground: #ffffff;
     --color-foreground-grey: #f3f4f6;
     --color-border: #e5e7eb;
+    --color-border-rgb: 229, 231, 235;
     --color-blue: #3db4f2;
     --color-blue-dim: rgba(61, 180, 242, 0.8);
 }
@@ -67,6 +63,7 @@
     --color-foreground: #152232;
     --color-foreground-grey: #1A2C3D;
     --color-border: #2c3e50;
+    --color-border-rgb: 44, 62, 80;
     --color-blue: #3db4f2;
     --color-blue-dim: rgba(61, 180, 242, 0.8);
 }
@@ -79,6 +76,7 @@
     --color-foreground: #111827;
     --color-foreground-grey: #1f2937;
     --color-border: #4b5563;
+    --color-border-rgb: 75, 85, 99;
     --color-blue: #60a5fa;
     --color-blue-dim: rgba(96, 165, 250, 0.8);
 }
@@ -91,14 +89,14 @@
 .anilist-weekly-calendar {
     width: 100%;
     max-width: 100%; /* Ensure it never exceeds container width */
-    background: var(--color-foreground);
-    border-radius: 8px;
+    background: #152232; /* Colore di sfondo delle sezioni Anilist */
+    border-radius: 0; /* Rimuove bordi arrotondati */
     overflow: hidden;
     animation: fadeIn 0.3s ease-in-out;
     margin: 0 0 15px 0; /* Remove top margin completely */
     position: relative;
-    border: 1px solid var(--color-border);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: none; /* Rimuove il bordo esterno */
+    box-shadow: none; /* Rimuove l'ombra */
     box-sizing: border-box; /* Include padding and border in the width calculation */
 }
 
@@ -146,22 +144,26 @@
 /* Settings button in section header */
 .header-settings-btn {
     position: absolute;
-    right: 10px; /* Riposizionato a destra */
+    right: 0; /* Completely to the right */
     top: 50%;
     transform: translateY(-50%);
     background: transparent;
     border: none;
     border-radius: 4px;
-    width: 32px;
-    height: 32px;
+    width: 28px; /* Reduced from 32px */
+    height: 28px; /* Reduced from 32px */
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     color: var(--color-text-lighter);
-    transition: color 0.2s ease, opacity 0.15s ease;
+    transition: color 0.2s ease;
     z-index: 10;
-    opacity: 0;
+    opacity: 0; /* Nascosto di default */
+}
+
+.header-settings-btn i {
+    font-size: 14px; /* Reduced from 16px (default size) */
 }
 
 /* Show settings buttons on hover */
@@ -187,15 +189,15 @@
     grid-template-columns: repeat(7, 1fr); /* Equal width for 7 days */
     width: 100%;
     max-width: 100%; /* Ensure grid doesn't overflow */
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: none; /* Rimuove il bordo inferiore */
     overflow-x: hidden; /* Prevent horizontal overflow */
     box-sizing: border-box; /* Include padding and border in width calculation */
 }
 
 /* Day column */
 .anilist-calendar-day {
-    border-right: 1px solid var(--color-border);
-    background: var(--color-background);
+    border-right: 1px solid rgba(var(--color-border-rgb), 0.5); /* Bordo più sottile */
+    background: #152232; /* Colore di sfondo delle sezioni Anilist */
     display: flex;
     flex-direction: column;
     position: relative;
@@ -212,32 +214,43 @@
 
 /* Current day styling */
 .anilist-calendar-day.current-day {
-    background: var(--color-foreground);
+    background: #152232; /* Colore di sfondo delle sezioni Anilist */
 }
 
 /* Current day header styling */
 .anilist-calendar-day.current-day .day-header {
-    background: var(--color-foreground);
+    background: #152232; /* Colore di sfondo delle sezioni Anilist */
     color: var(--color-blue);
 }
 
 /* Day header */
 .day-header {
     padding: 10px 15px;
-    background: var(--color-background);
+    background: #152232; /* Colore di sfondo delle sezioni Anilist */
     font-weight: 600;
     text-align: center;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid rgba(var(--color-border-rgb), 0.5); /* Bordo più sottile */
     position: sticky;
     top: 0;
     z-index: 2;
     color: var(--color-text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 /* Day name display */
 .day-name {
     display: block;
     font-size: 15px;
+}
+
+/* Day number display */
+.day-number {
+    display: block;
+    font-size: 12px;
+    color: #9ca3af; /* Colore più chiaro */
+    margin-top: 2px;
 }
 
 /* Abbreviated day name (for mobile) */
@@ -251,7 +264,7 @@
     padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 6px; /* Riduco leggermente lo spazio tra gli elementi */
+    gap: 6px; /* Slightly reduce space between elements */
     min-height: 100px;
     overflow-y: auto;
     overflow-x: hidden; /* Prevent horizontal overflow */
@@ -259,6 +272,7 @@
     scrollbar-color: var(--color-blue) var(--color-background);
     width: 100%; /* Take full width of parent */
     box-sizing: border-box; /* Include padding in width calculation */
+    position: relative; /* Per posizionare correttamente "No episodes" */
 }
 
 /* Empty day message */
@@ -266,10 +280,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 80px;
     color: var(--color-text-lighter);
     font-style: italic;
     text-align: center;
+    height: 100px; /* Altezza fissa */
+    width: 100%;
 }
 
 /*------------------------------------------------------
@@ -309,25 +324,25 @@
 .anime-entry {
     display: flex;
     align-items: center;
-    background: rgba(27, 44, 65, 0.4); /* Colore leggermente diverso ma sottile */
+    background: rgba(21, 31, 46, 0.8); /* Background più scuro per le card anime */
     border-radius: 4px;
-    padding: 8px;
+    padding: 8px 2px 8px 8px; /* Riduce ulteriormente il padding a destra */
     position: relative;
     cursor: pointer;
     transition: all 0.2s ease;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-shadow: none; /* Rimuove ombra */
     width: 100%; /* Take full width of parent */
     max-width: 100%; /* Ensure it doesn't exceed parent width */
     box-sizing: border-box; /* Include padding and border in width calculation */
     margin-bottom: 6px; /* Add a bit of spacing between entries */
 }
 
-/* Hover effect - uso un colore leggermente più chiaro senza bordo */
+/* Hover effect - use a slightly lighter color without border */
 .anime-entry:hover {
     transform: translateY(-1px);
-    background: rgba(38, 57, 80, 0.6);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: rgba(33, 47, 65, 0.8); /* Background più chiaro per hover */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 /* Anime image */
@@ -381,6 +396,8 @@
     max-width: calc(100% - 48px); /* Account for image width + margin when present */
     overflow: hidden;
     box-sizing: border-box;
+    width: 100%; /* Ensure full width to give more space to title and countdown */
+    padding-right: 0; /* Nessun padding a destra */
 }
 
 /* When image is hidden (compact mode), allow full width */
@@ -398,18 +415,22 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 13px;
+    max-width: 100%; /* Increased space for the title */
+    padding-right: 0; /* Nessun padding a destra */
 }
 
 /* Anime info row */
 .anime-info-row {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px; /* Increased gap between episode number and time */
     font-size: 12px;
     color: var(--color-text-lighter);
     white-space: nowrap;
     margin-top: 2px;
     justify-content: space-between;
+    width: 100%; /* Full width to allow better spacing */
+    padding-right: 0; /* No padding on right */
 }
 
 /* Anime time display */
@@ -420,6 +441,8 @@
     order: 2;
     text-align: right;
     margin-left: auto;
+    padding-right: 4px; /* Padding a destra per evitare che l'ultima cifra esca */
+    margin-right: 0;
 }
 
 /* Countdown mode */
