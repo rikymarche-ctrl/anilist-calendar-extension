@@ -68,99 +68,6 @@ function log(message, data = null) {
 }
 
 /**
- * Updates the progress on AniList via API
- * @param {string} animeId - The anime ID
- * @param {number} progress - The new progress (episodes watched)
- * @returns {Promise} A promise that resolves when the update is complete
- */
-async function updateAniListProgress(animeId, progress) {
-    try {
-        // Check if we have an access token
-        const token = await getAniListToken();
-
-        if (!token) {
-            throw new Error('Not logged in to AniList');
-        }
-
-        // GraphQL mutation to update progress
-        const query = `
-            mutation ($mediaId: Int, $progress: Int) {
-                SaveMediaListEntry (mediaId: $mediaId, progress: $progress) {
-                    id
-                    progress
-                }
-            }
-        `;
-
-        const variables = {
-            mediaId: parseInt(animeId),
-            progress: progress
-        };
-
-        // Make the API request
-        const response = await fetch('https://graphql.anilist.co', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                query: query,
-                variables: variables
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.errors) {
-            throw new Error(data.errors[0].message);
-        }
-
-        return data.data.SaveMediaListEntry;
-    } catch (error) {
-        log('Error updating AniList progress', error);
-        throw error;
-    }
-}
-
-/**
- * Gets the AniList access token from cookies or localStorage
- * @returns {Promise<string|null>} The access token or null if not found
- */
-async function getAniListToken() {
-    try {
-        // Try to get token from cookies first
-        const cookies = document.cookie.split(';');
-        for (const cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'access_token') {
-                return decodeURIComponent(value);
-            }
-        }
-
-        // If not in cookies, try localStorage
-        const token = localStorage.getItem('auth') || localStorage.getItem('access_token');
-        if (token) {
-            // If stored as JSON, parse it
-            try {
-                const parsed = JSON.parse(token);
-                return parsed.access_token || parsed.token || null;
-            } catch (e) {
-                // Not JSON, return as is
-                return token;
-            }
-        }
-
-        // Not found
-        return null;
-    } catch (error) {
-        log('Error getting AniList token', error);
-        return null;
-    }
-}
-
-/**
  * Main initialization function
  */
 function initialize() {
@@ -373,7 +280,6 @@ function replaceAiringSection(container, headerElement, skipHeader = false) {
         // Create calendar container with improved styling
         calendarContainer = document.createElement('div');
         calendarContainer.className = 'anilist-weekly-calendar';
-        calendarContainer.style.marginTop = "0"; // Remove margin directly
 
         // Apply compact mode class if needed
         if (userPreferences.compactMode) {
@@ -399,11 +305,6 @@ function replaceAiringSection(container, headerElement, skipHeader = false) {
         // Add our calendar after the header with no space
         if (sectionHeader && sectionHeader.parentNode === container) {
             container.insertBefore(calendarContainer, sectionHeader.nextSibling);
-
-            // Remove any margin or padding from the header and container
-            sectionHeader.style.marginBottom = "0";
-            sectionHeader.style.paddingBottom = "6px";
-            calendarContainer.style.marginTop = "0";
         } else {
             container.appendChild(calendarContainer);
         }
@@ -498,137 +399,521 @@ function startCountdownTimer() {
 }
 
 /**
- * Parses episode information from the anime title and content
- * @param {string} title - The anime title that might contain episode information
- * @param {Element} card - The anime card element that contains additional information
+ * Parses episode info from anime title and card
+ * @param {string} rawTitle - The raw title text
+ * @param {HTMLElement} card - The card element
  * @returns {Object} Parsed episode information
  */
-function parseEpisodeInfo(title, card) {
-    // Initialize episode info
+function parseEpisodeInfo(rawTitle, card) {
     let episodeInfo = {
-        cleanTitle: title,
-        watched: 0,
-        available: 0,
-        total: 0,
-        episodesBehind: 0,
-        formatted: '',
-        isUpcoming: false
+        cleanTitle: '',             // Title to display
+        watched: 0,                 // x (episodes watched)
+        available: 0,               // y (watched + behind, or +1 if next episode in countdown)
+        total: 0,                   // z (total episodes)
+        episodesBehind: 0,          // Number of unwatched available episodes
+        formatted: '',              // "x/y/z" or "x/z"
+        isUpcoming: false,          // If next episode is upcoming
+        countdownText: '',          // Text for countdown
+        hasProgressInfo: false      // If progress info is available
     };
 
     try {
-        // Extract "episodes behind" information - FIXED to ensure correct behind detection
-        const behindMatch = title.match(/(\d+)\s+episode(?:s)?\s+behind\s+(.+?)(?:\s+Progress:|$)/i);
+        let title = rawTitle;
+
+        // Extract and remove "x episodes behind"
+        const behindMatch = title.match(/(\d+)\s+episodes?\s+behind\s+/i);
         if (behindMatch) {
             episodeInfo.episodesBehind = parseInt(behindMatch[1]);
-            // Update clean title by removing the "episodes behind" part
-            episodeInfo.cleanTitle = episodeInfo.cleanTitle.replace(/\d+\s+episode(?:s)?\s+behind\s+/i, '');
-
-            // FIX: If we detect "episodes behind", make sure available is set correctly
-            // This is critical for the correct episode format display
-            if (episodeInfo.watched > 0) {
-                episodeInfo.available = episodeInfo.watched + episodeInfo.episodesBehind;
-            }
+            title = title.replace(/\d+\s+episodes?\s+behind\s+/i, '');
         }
 
-        // Extract progress information (x/y)
-        const progressMatch = title.match(/Progress:\s*(\d+)\/(\d+)/i);
+        // Extract and remove "Progress: x/z"
+        const progressMatch = title.match(/Progress:\s*(\d+)\s*\/\s*(\d+)/i);
         if (progressMatch) {
             episodeInfo.watched = parseInt(progressMatch[1]);
             episodeInfo.total = parseInt(progressMatch[2]);
-
-            // Clean up title by removing the progress part
-            episodeInfo.cleanTitle = episodeInfo.cleanTitle
-                .replace(/Progress:\s*\d+\/\d+/i, '')
-                .replace(/\s+$/, ''); // Trim trailing spaces
+            episodeInfo.hasProgressInfo = true;
+            title = title.replace(/Progress:\s*\d+\s*\/\s*\d+/i, '');
         }
 
-        // If we have a progress element in the card, use it (it's more reliable)
-        const progressElement = card.querySelector('.info');
-        if (progressElement) {
-            const progressText = progressElement.textContent.trim();
-            const progressCardMatch = progressText.match(/Progress:\s*(\d+)\/(\d+)/i);
-            if (progressCardMatch) {
-                episodeInfo.watched = parseInt(progressCardMatch[1]);
-                episodeInfo.total = parseInt(progressCardMatch[2]);
+        // Extract simple progress value (progress: x)
+        const singleProgressMatch = title.match(/Progress:\s*(\d+)\s*(?!\/)/) ||
+            title.match(/Progress:\s*(\d+)\s*$/) ||
+            title.match(/Progress:\s*(\d+)\b/);
+        if (singleProgressMatch) {
+            episodeInfo.watched = parseInt(singleProgressMatch[1]);
+            episodeInfo.hasProgressInfo = true;
+            title = title.replace(/Progress:\s*\d+\s*(?!\/)/, '').trim();
+        }
+
+        // Check card for more reliable progress info - PRIORITY SOURCE
+        const infoEl = card.querySelector('.info');
+        const mobileEl = card.querySelector('.plus-progress.mobile');
+        const fallbackEl = infoEl || mobileEl;
+
+        if (fallbackEl) {
+            const text = fallbackEl.textContent.trim();
+
+            // Match for "Progress: x/y" format
+            const matchWithTotal = text.match(/Progress:\s*(\d+)\/(\d+)/i);
+            if (matchWithTotal) {
+                episodeInfo.watched = parseInt(matchWithTotal[1]);
+                episodeInfo.total = parseInt(matchWithTotal[2]);
+                episodeInfo.hasProgressInfo = true;
+            } else {
+                // Match for "Progress: x" format (no total)
+                const matchSingle = text.match(/Progress:\s*(\d+)\s*(?!\/)/) ||
+                    text.match(/Progress:\s*(\d+)\s*$/);
+                if (matchSingle) {
+                    episodeInfo.watched = parseInt(matchSingle[1]);
+                    episodeInfo.hasProgressInfo = true;
+                    episodeInfo.total = 0; // Explicitly set to 0 when no total is provided
+                }
             }
         }
 
-        // Calculate available episodes
+        // Check for "episode behind" info in header
+        const infoHeader = card.querySelector('.info-header');
+        if (infoHeader && !episodeInfo.episodesBehind) {
+            const behindText = infoHeader.textContent.trim();
+            const behindMatch = behindText.match(/(\d+)\s+episodes?\s+behind/i);
+            if (behindMatch) {
+                episodeInfo.episodesBehind = parseInt(behindMatch[1]);
+            }
+        }
+
+        // Calculate available episodes (y)
         if (episodeInfo.episodesBehind > 0) {
             episodeInfo.available = episodeInfo.watched + episodeInfo.episodesBehind;
         } else {
             episodeInfo.available = episodeInfo.watched;
         }
 
-        // Check for upcoming episode information
-        const upcomingEpMatch = title.match(/(?:Ep|Episode)\s+(\d+)/i);
-        const countdownMatch = card.querySelector('.countdown');
-
-        if (upcomingEpMatch && countdownMatch) {
-            // This is likely an upcoming episode
+        // Check for countdown (upcoming episode)
+        const countdownEl = card.querySelector('.countdown');
+        if (countdownEl) {
             episodeInfo.isUpcoming = true;
-
-            // If we know the total episodes but not the upcoming episode number,
-            // then it's likely the next episode after what's watched
-            if (episodeInfo.watched > 0 && !episodeInfo.available) {
+            // Only increment available if there's a countdown and we don't already have episodes behind
+            if (episodeInfo.episodesBehind === 0) {
                 episodeInfo.available = episodeInfo.watched + 1;
             }
+            episodeInfo.countdownText = `Ep ${episodeInfo.available}`;
         }
 
-        // Clean title further - remove various patterns from title
-        episodeInfo.cleanTitle = episodeInfo.cleanTitle
-            .replace(/\s+Ep\s+\d+(?:\+)?/i, '') // Remove "Ep X" or "Ep X+"
-            .replace(/\s+Episode\s+\d+(?:\+)?/i, '') // Remove "Episode X" or "Episode X+"
-            .replace(/\s+\+\s*$/, '') // Remove "+" at the end of title
-            .replace(/\s+\+$/, '') // Remove trailing "+" without space
+        // Clean title from episode numbers
+        title = title
+            .replace(/^\s*Ep\s+\d+\+?\s*/i, '')
+            .replace(/^\s*Episode\s+\d+\+?\s*/i, '')
+            .replace(/\s+\+\s*$/, '')
             .trim();
 
-        // Format episode information with improved consistency for upcoming episodes
+        // Save clean title
+        episodeInfo.cleanTitle = title;
+
+        // Format the episode string (x/y/z) - EXACT representation as in Anilist
         if (episodeInfo.total > 0) {
-            if (episodeInfo.isUpcoming) {
-                // For upcoming episodes with known total, just show watched/total
-                episodeInfo.formatted = `Ep ${episodeInfo.watched}/${episodeInfo.total}`;
-            } else if (episodeInfo.available > episodeInfo.watched) {
-                // We have unwatched episodes
-                episodeInfo.formatted = `Ep ${episodeInfo.watched}/${episodeInfo.available}/${episodeInfo.total}`;
+            // Has total episodes count
+            if (episodeInfo.available > episodeInfo.watched && episodeInfo.episodesBehind > 0) {
+                // Show format with available episodes only when actually behind
+                episodeInfo.formatted = `${episodeInfo.watched}/${episodeInfo.available}/${episodeInfo.total}`;
             } else {
-                // We're caught up
-                episodeInfo.formatted = `Ep ${episodeInfo.watched}/${episodeInfo.total}`;
+                // Standard watched/total format
+                episodeInfo.formatted = `${episodeInfo.watched}/${episodeInfo.total}`;
             }
-        } else if (episodeInfo.watched > 0) {
-            // We only know how many episodes we've watched
-            episodeInfo.formatted = `Ep ${episodeInfo.watched}`;
-        } else if (episodeInfo.isUpcoming) {
-            // Upcoming episode but no watch data
-            const upcomingEp = upcomingEpMatch[1];
-            episodeInfo.formatted = `Next: Ep ${upcomingEp}`;
+        } else {
+            // No total episodes known, just show watched count
+            episodeInfo.formatted = `${episodeInfo.watched}`;
+        }
+
+        // Debug logging for episode info
+        if (DEBUG) {
+            console.log(`Episode info for ${title}:`, {
+                watched: episodeInfo.watched,
+                available: episodeInfo.available,
+                total: episodeInfo.total,
+                behind: episodeInfo.episodesBehind,
+                formatted: episodeInfo.formatted
+            });
         }
     } catch (err) {
-        log("Error parsing episode info", err);
+        log('parseEpisodeInfo error:', err);
     }
 
     return episodeInfo;
 }
 
 /**
+ * Extracts anime data from the DOM
+ * @param {HTMLElement} container - The container element
+ * @returns {Array} Array of anime data objects
+ */
+function extractAnimeDataFromDOM(container) {
+    try {
+        log("Extracting anime data from DOM");
+        const animeCards = container.querySelectorAll('.media-preview-card');
+        log(`Found ${animeCards.length} anime cards`);
+        const animeData = [];
+
+        animeCards.forEach(card => {
+            try {
+                // Debug entire card structure if enabled
+                if (DEBUG) {
+                    console.log("Card HTML:", card.outerHTML);
+                }
+
+                const animeLink = card.querySelector('a[href^="/anime/"]');
+                if (!animeLink) return;
+
+                const animeId = animeLink.getAttribute('href').split('/anime/')[1].split('/')[0];
+                const titleElement = card.querySelector('.content');
+                const rawTitle = titleElement ? titleElement.textContent.trim() : "Unknown Anime";
+
+                // Extract from .info-header if present (for "episode behind" text)
+                const infoHeader = card.querySelector('.info-header');
+                const infoHeaderText = infoHeader ? infoHeader.textContent.trim() : "";
+
+                // Debug log the extract elements
+                if (DEBUG) {
+                    console.log("Processing:", {
+                        id: animeId,
+                        title: rawTitle,
+                        infoHeader: infoHeaderText
+                    });
+
+                    // Log all relevant elements for debugging
+                    const infoEl = card.querySelector('.info');
+                    const mobileEl = card.querySelector('.plus-progress.mobile');
+
+                    console.log("Info elements:", {
+                        info: infoEl ? infoEl.textContent : null,
+                        mobile: mobileEl ? mobileEl.textContent : null
+                    });
+                }
+
+                // Parse episode information
+                const episodeInfo = parseEpisodeInfo(rawTitle, card);
+
+                // Get cover image
+                const coverImgElement = card.querySelector('img') || card.querySelector('.cover');
+                const coverImage = getCoverImage(coverImgElement);
+
+                // Get countdown information
+                const countdownElement = card.querySelector('.countdown');
+                let days = 0, hours = 0, minutes = 0;
+
+                if (countdownElement) {
+                    const text = countdownElement.textContent;
+                    const dMatch = text.match(/(\d+)d/);
+                    const hMatch = text.match(/(\d+)h/);
+                    const mMatch = text.match(/(\d+)m/);
+                    days = dMatch ? parseInt(dMatch[1]) : 0;
+                    hours = hMatch ? parseInt(hMatch[1]) : 0;
+                    minutes = mMatch ? parseInt(mMatch[1]) : 0;
+                }
+
+                // Get card color
+                let color = '#3db4f2';
+                if (coverImgElement && coverImgElement.getAttribute('data-src-color')) {
+                    color = coverImgElement.getAttribute('data-src-color');
+                }
+
+                // Get episode string - EXACT as displayed by Anilist
+                const progressElement = card.querySelector('.plus-progress.mobile');
+                let epString = "";
+                if (progressElement) {
+                    const progressText = progressElement.textContent.trim();
+                    epString = progressText.replace("Progress:", "").trim();
+                }
+
+                // Extract episode behind data from info-header if present
+                let episodeBehindInfoHeaderText = "";
+                if (infoHeader) {
+                    episodeBehindInfoHeaderText = infoHeader.textContent.trim();
+                }
+
+                // Calculate airing date with timezone adjustment
+                const airingInfo = calculateAiringDateWithDayTracking(days, hours, minutes);
+                const airingDate = airingInfo.date;
+
+                // Build the anime data object
+                animeData.push({
+                    id: animeId,
+                    title: rawTitle,
+                    cleanTitle: episodeInfo.cleanTitle,
+                    episodeInfo: episodeInfo.formatted,
+                    episodeProgressString: epString,
+                    episodeBehindHeader: episodeBehindInfoHeaderText,
+                    coverImage: coverImage,
+                    airingDate: airingDate,
+                    formattedTime: formatTime(airingDate),
+                    days: days,
+                    hours: hours,
+                    minutes: minutes,
+                    color: color,
+                    episode: getEpisodeNumber(card) || "Next",
+                    originalDay: airingInfo.originalDay,
+                    dayChanged: airingInfo.dayChanged,
+                    watched: episodeInfo.watched,
+                    available: episodeInfo.available,
+                    total: episodeInfo.total,
+                    episodesBehind: episodeInfo.episodesBehind
+                });
+
+            } catch (cardErr) {
+                log("Error processing anime card", cardErr);
+            }
+        });
+
+        log("Extracted anime data", animeData);
+        return animeData;
+
+    } catch (err) {
+        log("Error extracting anime data from DOM", err);
+        return [];
+    }
+}
+
+/**
+ * Gets the episode number from the card
+ * @param {HTMLElement} card - The card element
+ * @returns {string|null} Episode number or null
+ */
+function getEpisodeNumber(card) {
+    try {
+        const episodeText = card.textContent;
+        const episodeMatch = episodeText.match(/Ep\s*(\d+)/i) ||
+            episodeText.match(/Episode\s*(\d+)/i);
+
+        if (episodeMatch && episodeMatch[1]) {
+            return episodeMatch[1];
+        }
+
+        return null;
+    } catch (err) {
+        return null;
+    }
+}
+
+/**
+ * Gets cover image URL from element
+ * @param {HTMLElement} coverImg - The image element
+ * @returns {string} Image URL
+ */
+function getCoverImage(coverImg) {
+    if (!coverImg) return '';
+
+    let coverImage = coverImg.getAttribute('src') ||
+        coverImg.getAttribute('data-src') ||
+        coverImg.getAttribute('data-srcset') || '';
+
+    if (!coverImage) {
+        // Check for background-image style
+        const style = coverImg.getAttribute('style');
+        if (style && style.includes('background-image')) {
+            const match = style.match(/url\(['"]?(.*?)['"]?\)/);
+            if (match && match[1]) {
+                coverImage = match[1];
+            }
+        }
+    }
+
+    return coverImage;
+}
+
+/**
+ * Formats time as HH:MM
+ * @param {Date} date - The date object
+ * @returns {string} Formatted time
+ */
+function formatTime(date) {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
+/**
+ * Gets the timezone offset for the selected timezone
+ * @returns {number} Timezone offset in hours
+ */
+function getSelectedTimezoneOffset() {
+    if (userPreferences.timezone === 'auto') {
+        return getBrowserTimezoneOffset();
+    }
+
+    // Find the selected timezone in options
+    const timezone = TIMEZONE_OPTIONS.find(tz => tz.value === userPreferences.timezone);
+    return timezone ? timezone.offset : JAPAN_OFFSET; // Default to Japan if not found
+}
+
+/**
+ * Gets the current browser timezone offset in hours
+ * @returns {number} Timezone offset in hours
+ */
+function getBrowserTimezoneOffset() {
+    // Get minutes and convert to hours
+    const offsetMinutes = new Date().getTimezoneOffset();
+    // Convert to hours (note: getTimezoneOffset returns the opposite of what we need)
+    return -(offsetMinutes / 60);
+}
+
+/**
+ * Gets a clean timezone name format for display
+ * @returns {string} Formatted timezone name
+ */
+function getTimezoneName() {
+    if (userPreferences.timezone === 'auto') {
+        const offset = getBrowserTimezoneOffset();
+        const sign = offset >= 0 ? '+' : '-';
+        const absOffset = Math.abs(offset);
+        const hours = Math.floor(absOffset);
+        const minutes = Math.round((absOffset - hours) * 60);
+
+        return `UTC${sign}${hours}${minutes > 0 ? `:${minutes}` : ''}`;
+    }
+
+    // Find the timezone in options and get just the UTC part
+    const timezone = TIMEZONE_OPTIONS.find(tz => tz.value === userPreferences.timezone);
+    if (timezone) {
+        // Extract just the UTC part before the pipe symbol
+        return timezone.text.split('|')[0].trim();
+    }
+
+    return 'UTC+9'; // Default to Japan timezone
+}
+
+/**
+ * Calculates airing date based on countdown, adjusted for the user's timezone
+ * This enhanced version tracks if the day changes due to timezone differences
+ * @param {number} days - Days until airing
+ * @param {number} hours - Hours until airing
+ * @param {number} minutes - Minutes until airing
+ * @returns {object} Object containing adjusted date and day change information
+ */
+function calculateAiringDateWithDayTracking(days, hours, minutes) {
+    const now = new Date();
+    const airingDate = new Date(now);
+
+    // Calculate basic airing date based on countdown (local time)
+    airingDate.setDate(now.getDate() + days);
+    airingDate.setHours(now.getHours() + hours);
+    airingDate.setMinutes(now.getMinutes() + minutes);
+
+    // Get the original day before any timezone adjustments
+    const originalDate = new Date(airingDate);
+    const originalDay = DAYS_OF_WEEK[originalDate.getDay()];
+
+    // Convert countdown-based time to Japan time (assumed origin timezone)
+    const userOffset = getBrowserTimezoneOffset();
+    const japanOffset = JAPAN_OFFSET;
+    const diffHours = japanOffset - userOffset;
+
+    // Original Japan time
+    airingDate.setHours(airingDate.getHours() + diffHours);
+
+    // Now convert from Japan time to user's selected timezone
+    const selectedOffset = getSelectedTimezoneOffset();
+    const tzDiffHours = selectedOffset - japanOffset;
+
+    // Apply timezone difference
+    airingDate.setHours(airingDate.getHours() + tzDiffHours);
+
+    // Check if the day changed
+    const newDay = DAYS_OF_WEEK[airingDate.getDay()];
+    const dayChanged = newDay !== originalDay;
+
+    return {
+        date: airingDate,
+        originalDay: originalDay,
+        dayChanged: dayChanged
+    };
+}
+
+/**
+ * Processes anime data into a weekly schedule
+ * @param {Array} animeData - Array of anime data objects
+ * @returns {Object} Weekly schedule organized by day
+ */
+function processAnimeData(animeData) {
+    const schedule = {
+        Sunday: [],
+        Monday: [],
+        Tuesday: [],
+        Wednesday: [],
+        Thursday: [],
+        Friday: [],
+        Saturday: []
+    };
+
+    // Process each anime entry
+    for (const anime of animeData) {
+        // Get the timezone-adjusted day
+        const adjustedDay = DAYS_OF_WEEK[anime.airingDate.getDay()];
+
+        // Add to corresponding day
+        schedule[adjustedDay].push({
+            id: anime.id,
+            title: anime.title,
+            cleanTitle: anime.cleanTitle,
+            episodeInfo: anime.episodeInfo,
+            coverImage: anime.coverImage,
+            airingDate: anime.airingDate,
+            formattedTime: anime.formattedTime,
+            episode: anime.episode,
+            color: anime.color,
+            originalDay: anime.originalDay,
+            dayChanged: anime.dayChanged,
+            days: anime.days,
+            hours: anime.hours,
+            minutes: anime.minutes,
+            watched: anime.watched,
+            available: anime.available,
+            total: anime.total,
+            episodesBehind: anime.episodesBehind
+        });
+    }
+
+    // Sort each day's anime by airing time
+    for (const day in schedule) {
+        schedule[day].sort((a, b) => {
+            const timeA = a.formattedTime.split(':');
+            const timeB = b.formattedTime.split(':');
+
+            const hoursA = parseInt(timeA[0]);
+            const hoursB = parseInt(timeB[0]);
+
+            if (hoursA !== hoursB) {
+                return hoursA - hoursB;
+            }
+
+            const minutesA = parseInt(timeA[1]);
+            const minutesB = parseInt(timeB[1]);
+
+            return minutesA - minutesB;
+        });
+    }
+
+    log("Processed schedule data", schedule);
+    return schedule;
+}
+
+/**
  * Renders the calendar with the schedule data
  * @param {Object} schedule - The schedule data
- * @param {boolean} skipHeader - Whether to skip header creation (use external header)
+ * @param {boolean} skipHeader - Whether to skip header creation
  */
 function renderCalendar(schedule, skipHeader = false) {
     if (!calendarContainer) return;
 
     log("Rendering calendar");
 
-    // Clear the container
+    // Clear previous content
     calendarContainer.innerHTML = '';
 
-    // Get current day
     const today = new Date();
     const currentDayIndex = today.getDay();
     const currentDayName = DAYS_OF_WEEK[currentDayIndex];
 
-    // Determine the order of days to display based on user preferences
+    // Determine the order of days to display
     let orderedDays = [...DAYS_OF_WEEK];
 
     if (userPreferences.startDay === 'today') {
@@ -644,20 +929,16 @@ function renderCalendar(schedule, skipHeader = false) {
         ];
     }
 
-    // If hideEmptyDays is enabled, filter out days with no episodes
+    // Optionally hide empty days
     if (userPreferences.hideEmptyDays) {
-        orderedDays = orderedDays.filter(day => {
-            return schedule[day] && schedule[day].length > 0;
-        });
+        orderedDays = orderedDays.filter(day => schedule[day] && schedule[day].length > 0);
+        if (orderedDays.length === 0) orderedDays = [currentDayName];
 
-        if (orderedDays.length === 0) {
-            orderedDays = [currentDayName];
-        }
-
-        for (let i = 1; i <= 7; i++) {
-            calendarContainer.classList.remove(`days-count-${i}`);
-        }
-
+        // Update day count class
+        calendarContainer.classList.remove(
+            'days-count-1', 'days-count-2', 'days-count-3',
+            'days-count-4', 'days-count-5', 'days-count-6', 'days-count-7'
+        );
         calendarContainer.classList.add(`days-count-${orderedDays.length}`);
     } else {
         calendarContainer.classList.remove(
@@ -667,7 +948,7 @@ function renderCalendar(schedule, skipHeader = false) {
         calendarContainer.classList.add('days-count-7');
     }
 
-    // Create header if needed
+    // Optional header
     if (!skipHeader) {
         const headerContainer = document.createElement('div');
         headerContainer.className = 'calendar-header';
@@ -691,16 +972,25 @@ function renderCalendar(schedule, skipHeader = false) {
         calendarContainer.appendChild(headerContainer);
     }
 
-    // Create calendar grid
+    // Create grid container
     const calendarGrid = document.createElement('div');
-    calendarGrid.className = `anilist-calendar-grid ${userPreferences.compactMode ? 'compact-mode' : ''}`;
+    calendarGrid.className = 'anilist-calendar-grid';
+    calendarGrid.style.width = '100%'; // Force 100% width
+    calendarGrid.style.maxWidth = '100%'; // Ensure it doesn't overflow
 
-    // Only display the necessary days, not more (fix for empty column issue)
-    const daysToDisplay = orderedDays.length <= 7 ? orderedDays : orderedDays.slice(0, 7);
-    daysToDisplay.forEach(day => {
+    if (userPreferences.compactMode) {
+        calendarGrid.classList.add('compact-mode');
+    }
+
+    // Limit to maximum of 7 days
+    const daysToShow = orderedDays.slice(0, 7);
+
+    // Create day columns
+    daysToShow.forEach(day => {
         const dayCol = document.createElement('div');
         dayCol.className = `anilist-calendar-day ${day === currentDayName ? 'current-day' : ''}`;
 
+        // Create day header
         const dayHeader = document.createElement('div');
         dayHeader.className = 'day-header';
         dayHeader.innerHTML = `
@@ -709,221 +999,17 @@ function renderCalendar(schedule, skipHeader = false) {
         `;
         dayCol.appendChild(dayHeader);
 
+        // Create anime list for this day
         const animeList = document.createElement('div');
         animeList.className = 'day-anime-list';
 
         if (schedule[day] && schedule[day].length > 0) {
+            // Create entries for each anime
             schedule[day].forEach(anime => {
-                const animeEntry = document.createElement('div');
-                animeEntry.className = 'anime-entry';
-                animeEntry.dataset.animeId = anime.id;
-
-                const animeImageDiv = document.createElement('div');
-                animeImageDiv.className = 'anime-image';
-
-                const imageOverlay = document.createElement('div');
-                imageOverlay.className = 'anime-image-overlay';
-
-                const plusButton = document.createElement('button');
-                plusButton.className = 'anime-increment-button';
-                plusButton.innerHTML = '<i class="fa fa-plus"></i>';
-                plusButton.title = 'Mark next episode as watched';
-                plusButton.setAttribute('aria-label', 'Mark next episode as watched');
-
-                plusButton.addEventListener('click', async function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    const animeId = animeEntry.dataset.animeId;
-                    if (!animeId) {
-                        showNotification('Error: Cannot find anime ID', 'error');
-                        return;
-                    }
-
-                    // Get current watched episode count
-                    const episodeElement = animeEntry.querySelector('.episode-number');
-                    if (!episodeElement) {
-                        showNotification('Error: Cannot find episode information', 'error');
-                        return;
-                    }
-
-                    // Parse current progress
-                    const text = episodeElement.textContent;
-                    const match = text.match(/Ep\s+(\d+)(?:\/(\d+))?(?:\/(\d+))?/i);
-
-                    if (!match) {
-                        showNotification('Error: Cannot parse episode information', 'error');
-                        return;
-                    }
-
-                    const currentProgress = parseInt(match[1]);
-                    const newProgress = currentProgress + 1;
-
-                    try {
-                        // Show loading indicator
-                        showNotification('Updating...', 'loading');
-
-                        // Call the AniList API to update progress
-                        const result = await updateAniListProgress(animeId, newProgress);
-
-                        if (result) {
-                            // Update all instances of this anime in the UI
-                            updateEpisodeCountInUI(animeId, newProgress);
-
-                            // Show success notification
-                            const titleElement = animeEntry.querySelector('.anime-title');
-                            const title = titleElement ? titleElement.textContent.trim() : 'this anime';
-                            showNotification(`Updated "${title}" to episode ${newProgress}`, 'success');
-                        }
-                    } catch (error) {
-                        // Show error notification
-                        showNotification(`Error: ${error.message}`, 'error');
-                        console.error('Error updating progress:', error);
-                    }
-                });
-
-                imageOverlay.appendChild(plusButton);
-                animeImageDiv.appendChild(imageOverlay);
-
-                const animeImg = document.createElement('img');
-                animeImg.src = anime.coverImage;
-                animeImg.alt = anime.title;
-                animeImg.loading = 'lazy';
-                animeImg.addEventListener('error', () => {
-                    animeImageDiv.classList.add('error');
-
-                    // Retry loading the image after a short delay
-                    setTimeout(() => {
-                        if (animeImg.src) {
-                            const originalSrc = animeImg.src;
-                            animeImg.src = '';
-                            animeImg.src = originalSrc + '?retry=' + new Date().getTime();
-                        }
-                    }, 1000);
-                });
-
-                animeImageDiv.appendChild(animeImg);
-
-                const animeTimeDiv = document.createElement('div');
-                animeTimeDiv.className = 'anime-time inline-time';
-
-                if (userPreferences.showCountdown) {
-                    animeTimeDiv.textContent = formatCountdown(anime.days, anime.hours, anime.minutes);
-                    animeTimeDiv.classList.add('countdown-mode');
-                } else {
-                    animeTimeDiv.textContent = anime.formattedTime;
-                }
-
-                if (anime.dayChanged) {
-                    animeTimeDiv.title = `Originally aired on ${anime.originalDay}`;
-                    animeTimeDiv.classList.add('day-adjusted');
-                }
-
-                const animeInfoDiv = document.createElement('div');
-                animeInfoDiv.className = 'anime-info';
-
-                const titleDiv = document.createElement('div');
-                titleDiv.className = 'anime-title';
-                titleDiv.textContent = anime.cleanTitle || anime.title;
-                animeInfoDiv.appendChild(titleDiv);
-
-                const episodeTimeContainer = document.createElement('div');
-                episodeTimeContainer.className = 'anime-info-row';
-
-                // Episode display - Fixed format as requested
-                if (userPreferences.showEpisodeNumbers) {
-                    const episodeText = document.createElement('span');
-                    episodeText.className = 'episode-number';
-                    episodeText.dataset.watched = anime.watched || 0;
-                    episodeText.dataset.available = anime.available || 0;
-                    episodeText.dataset.total = anime.total || 0;
-
-                    // Generate episode format based on the requested rules:
-                    // - Show red dot if behind on episodes
-                    // - Use x/y/z format where:
-                    //   x = episodes watched
-                    //   y = available episodes
-                    //   z = total episodes
-
-                    let isBehind = anime.available > anime.watched;
-                    let hasTotal = anime.total > 0;
-                    let displayText = '';
-
-                    // Add red indicator if behind
-                    if (isBehind) {
-                        const indicator = document.createElement('span');
-                        indicator.className = 'behind-indicator';
-                        indicator.title = `${anime.available - anime.watched} episode(s) behind`;
-                        episodeText.appendChild(indicator);
-                    }
-
-                    // Format according to the updated rules
-                    if (anime.watched > 0) {
-                        if (hasTotal) {
-                            if (isBehind) {
-                                displayText = `Ep ${anime.watched}/${anime.available}/${anime.total}`;
-                            } else {
-                                displayText = `Ep ${anime.watched}/${anime.total}`;
-                            }
-                        } else {
-                            if (isBehind) {
-                                displayText = `Ep ${anime.watched}/${anime.available}`;
-                            } else {
-                                displayText = `Ep ${anime.watched}`;
-                            }
-                        }
-                    } else if (anime.episode && anime.episode !== "Next") {
-                        displayText = `Ep ${anime.episode}`;
-                    } else {
-                        displayText = `Ep 0`;
-                    }
-
-                    // Add basic episode text
-                    episodeText.appendChild(document.createTextNode(displayText));
-
-                    // Add the "next episode" information only in countdown mode
-                    if (userPreferences.showCountdown && anime.episode) {
-                        const nextEpisodeSpan = document.createElement('span');
-                        nextEpisodeSpan.className = 'next-episode';
-
-                        // The next episode is the watched + 1 or just the known episode number
-                        let nextEpNum = anime.episode;
-                        if (nextEpNum === "Next" && anime.watched > 0) {
-                            nextEpNum = (anime.watched + 1).toString();
-                        }
-
-                        if (nextEpNum !== "Next") {
-                            nextEpisodeSpan.textContent = ` Ep ${nextEpNum} in`;
-                        } else {
-                            nextEpisodeSpan.textContent = ` Next in`;
-                        }
-
-                        episodeText.appendChild(nextEpisodeSpan);
-                    }
-
-                    episodeTimeContainer.appendChild(episodeText);
-                }
-
-                episodeTimeContainer.appendChild(animeTimeDiv);
-                animeInfoDiv.appendChild(episodeTimeContainer);
-
-                if (userPreferences.gridMode) {
-                    animeEntry.appendChild(animeImageDiv);
-                    animeEntry.appendChild(animeInfoDiv);
-                } else {
-                    if (!userPreferences.compactMode) {
-                        animeEntry.appendChild(animeImageDiv);
-                    }
-                    animeEntry.appendChild(animeInfoDiv);
-                }
-
-                animeEntry.addEventListener('click', () => {
-                    window.location.href = `https://anilist.co/anime/${anime.id}`;
-                });
-
-                animeList.appendChild(animeEntry);
+                createAnimeEntry(animeList, anime);
             });
         } else {
+            // Show "No episodes" message for empty days
             const emptyDay = document.createElement('div');
             emptyDay.className = 'empty-day';
             emptyDay.textContent = 'No episodes';
@@ -935,87 +1021,408 @@ function renderCalendar(schedule, skipHeader = false) {
     });
 
     calendarContainer.appendChild(calendarGrid);
+    log("Calendar rendered");
 }
 
 /**
- * Updates episode counts in the UI for a specific anime
- * @param {string} animeId - The anime ID
- * @param {number} newProgress - The new progress count
+ * Creates an anime entry element
+ * @param {HTMLElement} container - The container element
+ * @param {Object} anime - The anime data
  */
-function updateEpisodeCountInUI(animeId, newProgress) {
-    // Find all episode number elements for this anime
-    const progressElements = document.querySelectorAll(`[data-anime-id="${animeId}"] .episode-number`);
+function createAnimeEntry(container, anime) {
+    // Create the entry container
+    const entry = document.createElement('div');
+    entry.className = 'anime-entry';
+    entry.dataset.animeId = anime.id;
 
-    progressElements.forEach(element => {
-        const text = element.textContent;
-        const match = text.match(/Ep\s+(\d+)(?:\/(\d+))?(?:\/(\d+))?/i);
+    // Make the entry clickable to go to the anime page
+    entry.addEventListener('click', () => {
+        window.location.href = `/anime/${anime.id}`;
+    });
 
-        if (match) {
-            let watched = newProgress;
-            let available = match[2] ? parseInt(match[2]) : null;
-            let total = match[3] ? parseInt(match[3]) : (match[2] ? parseInt(match[2]) : null);
+    // Create cover image
+    const imageContainer = document.createElement('div');
+    imageContainer.className = 'anime-image';
 
-            // If new progress is greater than available, update available
-            if (available && watched > available) {
-                available = watched;
-            }
+    const coverImg = document.createElement('img');
+    coverImg.src = anime.coverImage || '/images/default_cover.png';
+    coverImg.alt = anime.cleanTitle;
+    coverImg.onerror = function() {
+        this.parentNode.classList.add('error');
+    };
 
-            // Update displayed text
-            if (total) {
-                element.textContent = available && available > watched
-                    ? `Ep ${watched}/${available}/${total}`
-                    : `Ep ${watched}/${total}`;
+    imageContainer.appendChild(coverImg);
+    entry.appendChild(imageContainer);
+
+    // Create info container
+    const infoContainer = document.createElement('div');
+    infoContainer.className = 'anime-info';
+
+    // Title
+    const title = document.createElement('div');
+    title.className = 'anime-title';
+    title.textContent = anime.cleanTitle;
+    infoContainer.appendChild(title);
+
+    // Info row (episodes and time)
+    const infoRow = document.createElement('div');
+    infoRow.className = 'anime-info-row';
+
+    // Episode number - usando direttamente il testo originale dall'Anilist
+    if (userPreferences.showEpisodeNumbers) {
+        const episodeNumber = document.createElement('div');
+        episodeNumber.className = 'episode-number';
+
+        // Add 'behind' indicator if needed (pallino rosso)
+        if (anime.episodesBehind > 0) {
+            const behindIndicator = document.createElement('span');
+            behindIndicator.className = 'behind-indicator';
+            behindIndicator.title = `${anime.episodesBehind} episode(s) behind`;
+            episodeNumber.appendChild(behindIndicator);
+        }
+
+        // Usa direttamente il testo originale di progresso da Anilist
+        if (anime.episodeProgressString) {
+            episodeNumber.appendChild(document.createTextNode(anime.episodeProgressString));
+        } else {
+            // Fallback al formato calcolato
+            episodeNumber.appendChild(document.createTextNode(anime.episodeInfo));
+        }
+
+        infoRow.appendChild(episodeNumber);
+    }
+
+    // Time or countdown
+    const timeDisplay = document.createElement('div');
+    timeDisplay.className = 'anime-time';
+    if (userPreferences.showCountdown) {
+        timeDisplay.classList.add('countdown-mode');
+
+        const now = new Date();
+        const targetTime = new Date(anime.airingDate);
+        const diff = targetTime - now;
+
+        if (diff <= 0) {
+            timeDisplay.textContent = "Aired";
+        } else {
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+            if (days > 0) {
+                timeDisplay.textContent = `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
             } else {
-                element.textContent = `Ep ${watched}`;
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                timeDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             }
+        }
+    } else {
+        timeDisplay.textContent = anime.formattedTime;
+    }
 
-            // Update data attributes
-            element.dataset.watched = watched;
-            if (available) element.dataset.available = available;
-            if (total) element.dataset.total = total;
+    // Add day-adjusted indicator if the day changed due to timezone
+    if (anime.dayChanged) {
+        timeDisplay.classList.add('day-adjusted');
+        timeDisplay.title = `Originally scheduled on ${anime.originalDay}`;
+    }
 
-            // Remove behind indicator if caught up
-            if (available && watched >= available) {
-                const indicator = element.querySelector('.behind-indicator');
-                if (indicator) indicator.remove();
-            }
+    infoRow.appendChild(timeDisplay);
+    infoContainer.appendChild(infoRow);
+    entry.appendChild(infoContainer);
+
+    // Add to container
+    container.appendChild(entry);
+}
+
+/**
+ * Creates and opens the settings overlay
+ */
+function createSettingsOverlay() {
+    // Check if overlay already exists
+    let settingsOverlay = document.querySelector('.settings-overlay');
+    if (settingsOverlay) {
+        settingsOverlay.classList.add('active');
+        return;
+    }
+
+    // Create overlay
+    settingsOverlay = document.createElement('div');
+    settingsOverlay.className = 'settings-overlay';
+
+    // Create settings panel
+    const settingsPanel = document.createElement('div');
+    settingsPanel.className = 'settings-panel';
+
+    // Panel header
+    const settingsHeader = document.createElement('div');
+    settingsHeader.className = 'settings-header';
+
+    const settingsTitle = document.createElement('h3');
+    settingsTitle.className = 'settings-title';
+    settingsTitle.textContent = 'Weekly Schedule Settings';
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'settings-close-btn';
+    closeButton.innerHTML = '<i class="fa fa-times"></i>';
+    closeButton.addEventListener('click', () => {
+        settingsOverlay.classList.remove('active');
+    });
+
+    settingsHeader.appendChild(settingsTitle);
+    settingsHeader.appendChild(closeButton);
+
+    // Settings content
+    const settingsContent = document.createElement('div');
+    settingsContent.className = 'settings-content';
+
+    // Display section
+    const displaySection = document.createElement('div');
+    displaySection.className = 'settings-section';
+
+    const displayTitle = document.createElement('h4');
+    displayTitle.className = 'settings-section-title';
+    displayTitle.textContent = 'Display Settings';
+    displaySection.appendChild(displayTitle);
+
+    // First day of the week
+    const startDayRow = createSettingsRow(
+        'First day of the week',
+        'Choose which day to display first in the calendar',
+        createStartDaySelector(userPreferences.startDay)
+    );
+
+    // Hide empty days
+    const hideEmptyRow = createSettingsRow(
+        'Hide empty days',
+        'Only show days with scheduled episodes',
+        createToggleSwitch('hide-empty-toggle', userPreferences.hideEmptyDays)
+    );
+
+    // Compact mode
+    const compactRow = createSettingsRow(
+        'Compact mode',
+        'Use a more compact layout to save space',
+        createToggleSwitch('compact-toggle', userPreferences.compactMode)
+    );
+
+    // Grid view
+    const gridRow = createSettingsRow(
+        'Grid view',
+        'Display anime as a grid of images (hover for details)',
+        createToggleSwitch('grid-toggle', userPreferences.gridMode)
+    );
+
+    // Show countdown instead of time
+    const countdownRow = createSettingsRow(
+        'Show countdown',
+        'Display remaining time instead of airing time',
+        createToggleSwitch('countdown-toggle', userPreferences.showCountdown)
+    );
+
+    // Show episode numbers
+    const episodeNumbersRow = createSettingsRow(
+        'Show episode numbers',
+        'Display episode numbers in the calendar',
+        createToggleSwitch('episode-numbers-toggle', userPreferences.showEpisodeNumbers)
+    );
+
+    // Timezone selection
+    const timezoneRow = createSettingsRow(
+        'Timezone',
+        'Select your timezone to adjust airing times',
+        createTimezoneSelector(userPreferences.timezone)
+    );
+
+    // Add rows to display section
+    displaySection.appendChild(startDayRow);
+    displaySection.appendChild(hideEmptyRow);
+    displaySection.appendChild(compactRow);
+    displaySection.appendChild(gridRow);
+    displaySection.appendChild(countdownRow);
+    displaySection.appendChild(episodeNumbersRow);
+    displaySection.appendChild(timezoneRow);
+
+    // Add sections to panel
+    settingsContent.appendChild(displaySection);
+
+    // Loading section
+    const loadingSection = document.createElement('div');
+    loadingSection.className = 'settings-loading';
+    loadingSection.innerHTML = `
+        <span class="settings-loading-spinner"></span>
+        <span>Updating calendar...</span>
+    `;
+
+    // Save button
+    const saveContainer = document.createElement('div');
+    saveContainer.className = 'settings-save-container';
+
+    const saveButton = document.createElement('button');
+    saveButton.className = 'settings-save-btn';
+    saveButton.innerHTML = '<i class="fa fa-save"></i> Save Settings';
+    saveButton.addEventListener('click', () => {
+        // Gather current values
+        const newStartDay = document.getElementById('start-day-select').value;
+        const newHideEmpty = document.getElementById('hide-empty-toggle').checked;
+        const newCompactMode = document.getElementById('compact-toggle').checked;
+        const newGridMode = document.getElementById('grid-toggle').checked;
+        const newShowCountdown = document.getElementById('countdown-toggle').checked;
+        const newShowEpisodeNumbers = document.getElementById('episode-numbers-toggle').checked;
+        const newTimezone = document.getElementById('timezone-select').value;
+
+        // Update preferences
+        userPreferences.startDay = newStartDay;
+        userPreferences.hideEmptyDays = newHideEmpty;
+        userPreferences.compactMode = newCompactMode;
+        userPreferences.gridMode = newGridMode;
+        userPreferences.showCountdown = newShowCountdown;
+        userPreferences.showEpisodeNumbers = newShowEpisodeNumbers;
+        userPreferences.timezone = newTimezone;
+
+        // Show loading indicator
+        loadingSection.classList.add('active');
+
+        // Save and update
+        saveUserPreferences();
+
+        // Show notification
+        showNotification('Settings applied! Refreshing page...');
+
+        // Refresh page after a short delay
+        setTimeout(() => {
+            window.location.reload(true);
+        }, 800);
+    });
+
+    saveContainer.appendChild(saveButton);
+
+    // Complete the panel
+    settingsPanel.appendChild(settingsHeader);
+    settingsPanel.appendChild(settingsContent);
+    settingsPanel.appendChild(loadingSection);
+    settingsPanel.appendChild(saveContainer);
+
+    // Add panel to overlay
+    settingsOverlay.appendChild(settingsPanel);
+
+    // Add overlay to document
+    document.body.appendChild(settingsOverlay);
+
+    // Activate overlay
+    setTimeout(() => {
+        settingsOverlay.classList.add('active');
+    }, 10);
+
+    // Close overlay when clicking outside the panel
+    settingsOverlay.addEventListener('click', (e) => {
+        if (e.target === settingsOverlay) {
+            settingsOverlay.classList.remove('active');
         }
     });
 }
 
 /**
- * Gets the episode number from the card
+ * Creates a settings row
+ * @param {string} label - The setting label
+ * @param {string} description - The setting description
+ * @param {HTMLElement} control - The control element
+ * @returns {HTMLElement} The row element
  */
-function getEpisodeNumber(card) {
-    try {
-        // Look for episode information in the card
-        const episodeText = card.textContent;
-        const episodeMatch = episodeText.match(/Ep\s*(\d+)/i) ||
-            episodeText.match(/Episode\s*(\d+)/i);
+function createSettingsRow(label, description, control) {
+    const row = document.createElement('div');
+    row.className = 'settings-row';
 
-        if (episodeMatch && episodeMatch[1]) {
-            return episodeMatch[1];
-        }
+    const labelContainer = document.createElement('div');
+    labelContainer.innerHTML = `
+        <div class="settings-label">${label}</div>
+        <div class="settings-description">${description}</div>
+    `;
 
-        return null;
-    } catch (err) {
-        return null;
-    }
+    row.appendChild(labelContainer);
+    row.appendChild(control);
+
+    return row;
 }
 
 /**
- * Formats time as HH:MM
+ * Creates a toggle switch
+ * @param {string} id - The input ID
+ * @param {boolean} checked - Whether the toggle is checked
+ * @returns {HTMLElement} The toggle switch
  */
-function formatTime(date) {
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
+function createToggleSwitch(id, checked) {
+    const toggleLabel = document.createElement('label');
+    toggleLabel.className = 'toggle-switch';
+    toggleLabel.innerHTML = `
+        <input type="checkbox" id="${id}" ${checked ? 'checked' : ''}>
+        <span class="slider"></span>
+    `;
+    return toggleLabel;
+}
+
+/**
+ * Creates a start day selector
+ * @param {string} currentValue - The current value
+ * @returns {HTMLElement} The select element
+ */
+function createStartDaySelector(currentValue) {
+    const select = document.createElement('select');
+    select.className = 'settings-select';
+    select.id = 'start-day-select';
+
+    // Add "Today" option
+    const todayOption = document.createElement('option');
+    todayOption.value = 'today';
+    todayOption.textContent = 'Today';
+    todayOption.selected = currentValue === 'today';
+    select.appendChild(todayOption);
+
+    // Add separator
+    const separator = document.createElement('option');
+    separator.disabled = true;
+    separator.value = '';
+    separator.innerHTML = '─────────────';
+    select.appendChild(separator);
+
+    // Add day options
+    DAYS_OF_WEEK.forEach((day, index) => {
+        const option = document.createElement('option');
+        option.value = index.toString();
+        option.textContent = day;
+        option.selected = currentValue === index.toString();
+        select.appendChild(option);
+    });
+
+    return select;
+}
+
+/**
+ * Creates a timezone selector
+ * @param {string} currentValue - The current value
+ * @returns {HTMLElement} The select element
+ */
+function createTimezoneSelector(currentValue) {
+    const select = document.createElement('select');
+    select.className = 'settings-select';
+    select.id = 'timezone-select';
+
+    // Add timezone options
+    TIMEZONE_OPTIONS.forEach(option => {
+        const optElement = document.createElement('option');
+        optElement.value = option.value;
+        optElement.textContent = option.text;
+        optElement.selected = currentValue === option.value;
+        select.appendChild(optElement);
+    });
+
+    return select;
 }
 
 /**
  * Show a notification
  * @param {string} message - The message to show
  * @param {string} type - The type of notification (success, error, loading)
+ * @returns {HTMLElement} The notification element
  */
 function showNotification(message, type = 'success') {
     // Remove any existing notifications
@@ -1064,334 +1471,6 @@ function showNotification(message, type = 'success') {
 }
 
 /**
- * Hide an existing notification
- * @param {HTMLElement} notification - The notification element to hide
- */
-function hideNotification(notification) {
-    if (!notification) return;
-
-    notification.classList.remove('active');
-
-    // Remove from DOM after transition
-    setTimeout(() => {
-        notification.remove();
-    }, 300);
-}
-
-/**
- * Load Font Awesome for icons
- */
-function loadFontAwesome() {
-    if (document.querySelector('link[href*="fontawesome"]')) {
-        log("Font Awesome already loaded");
-        return;
-    }
-
-    const fontAwesomeLink = document.createElement("link");
-    fontAwesomeLink.rel = "stylesheet";
-    fontAwesomeLink.href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css";
-    fontAwesomeLink.integrity = "sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==";
-    fontAwesomeLink.crossOrigin = "anonymous";
-    fontAwesomeLink.referrerPolicy = "no-referrer";
-
-    document.head.appendChild(fontAwesomeLink);
-    log("Font Awesome loaded");
-}
-
-/**
- * Creates and opens the settings overlay with new options
- */
-function createSettingsOverlay() {
-    // Check if overlay already exists
-    let settingsOverlay = document.querySelector('.settings-overlay');
-    if (settingsOverlay) {
-        settingsOverlay.classList.add('active');
-        return;
-    }
-
-    // Create overlay
-    settingsOverlay = document.createElement('div');
-    settingsOverlay.className = 'settings-overlay';
-
-    // Create settings panel
-    const settingsPanel = document.createElement('div');
-    settingsPanel.className = 'settings-panel';
-
-    // Panel header
-    const settingsHeader = document.createElement('div');
-    settingsHeader.className = 'settings-header';
-
-    const settingsTitle = document.createElement('h3');
-    settingsTitle.className = 'settings-title';
-    settingsTitle.textContent = 'Anilist Weekly Schedule Settings';
-
-    const closeButton = document.createElement('button');
-    closeButton.className = 'settings-close-btn';
-    closeButton.innerHTML = '<i class="fa fa-times"></i>';
-    closeButton.addEventListener('click', () => {
-        settingsOverlay.classList.remove('active');
-    });
-
-    settingsHeader.appendChild(settingsTitle);
-    settingsHeader.appendChild(closeButton);
-
-    // Settings content
-    const settingsContent = document.createElement('div');
-    settingsContent.className = 'settings-content';
-
-    // Display section
-    const displaySection = document.createElement('div');
-    displaySection.className = 'settings-section';
-
-    const displayTitle = document.createElement('h4');
-    displayTitle.className = 'settings-section-title';
-    displayTitle.textContent = 'Display Settings';
-    displaySection.appendChild(displayTitle);
-
-    // First day of the week
-    const startDayRow = document.createElement('div');
-    startDayRow.className = 'settings-row';
-
-    const startDayLabel = document.createElement('div');
-    startDayLabel.innerHTML = `
-    <div class="settings-label">First day of the week</div>
-    <div class="settings-description">Choose which day to display first in the calendar</div>
-  `;
-    // Create select element
-    const startDaySelect = document.createElement('select');
-    startDaySelect.className = 'settings-select';
-    startDaySelect.id = 'start-day-select';
-
-    // Populate with options including separator
-    createStartDaySelector(startDaySelect, userPreferences.startDay);
-
-    startDayRow.appendChild(startDayLabel);
-    startDayRow.appendChild(startDaySelect);
-
-    // Hide empty days
-    const hideEmptyRow = document.createElement('div');
-    hideEmptyRow.className = 'settings-row';
-
-    const hideEmptyLabel = document.createElement('div');
-    hideEmptyLabel.innerHTML = `
-    <div class="settings-label">Hide empty days</div>
-    <div class="settings-description">Only show days with scheduled episodes</div>
-  `;
-
-    const hideEmptyToggle = document.createElement('label');
-    hideEmptyToggle.className = 'toggle-switch';
-    hideEmptyToggle.innerHTML = `
-    <input type="checkbox" id="hide-empty-toggle" ${userPreferences.hideEmptyDays ? 'checked' : ''}>
-    <span class="slider"></span>
-  `;
-
-    hideEmptyRow.appendChild(hideEmptyLabel);
-    hideEmptyRow.appendChild(hideEmptyToggle);
-
-    // Compact mode
-    const compactRow = document.createElement('div');
-    compactRow.className = 'settings-row';
-
-    const compactLabel = document.createElement('div');
-    compactLabel.innerHTML = `
-    <div class="settings-label">Compact mode</div>
-    <div class="settings-description">Use a more compact layout to save space</div>
-  `;
-
-    const compactToggle = document.createElement('label');
-    compactToggle.className = 'toggle-switch';
-    compactToggle.innerHTML = `
-    <input type="checkbox" id="compact-toggle" ${userPreferences.compactMode ? 'checked' : ''}>
-    <span class="slider"></span>
-  `;
-
-    compactRow.appendChild(compactLabel);
-    compactRow.appendChild(compactToggle);
-
-    // Grid view
-    const gridRow = document.createElement('div');
-    gridRow.className = 'settings-row';
-
-    const gridLabel = document.createElement('div');
-    gridLabel.innerHTML = `
-    <div class="settings-label">Grid view</div>
-    <div class="settings-description">Display anime as a grid of images (hover for details)</div>
-  `;
-
-    const gridToggle = document.createElement('label');
-    gridToggle.className = 'toggle-switch';
-    gridToggle.innerHTML = `
-    <input type="checkbox" id="grid-toggle" ${userPreferences.gridMode ? 'checked' : ''}>
-    <span class="slider"></span>
-  `;
-
-    gridRow.appendChild(gridLabel);
-    gridRow.appendChild(gridToggle);
-
-    // Show countdown instead of time
-    const countdownRow = document.createElement('div');
-    countdownRow.className = 'settings-row';
-
-    const countdownLabel = document.createElement('div');
-    countdownLabel.innerHTML = `
-    <div class="settings-label">Show countdown</div>
-    <div class="settings-description">Display remaining time instead of airing time</div>
-  `;
-
-    const countdownToggle = document.createElement('label');
-    countdownToggle.className = 'toggle-switch';
-    countdownToggle.innerHTML = `
-    <input type="checkbox" id="countdown-toggle" ${userPreferences.showCountdown ? 'checked' : ''}>
-    <span class="slider"></span>
-  `;
-
-    countdownRow.appendChild(countdownLabel);
-    countdownRow.appendChild(countdownToggle);
-
-    // Show episode numbers
-    const episodeNumbersRow = document.createElement('div');
-    episodeNumbersRow.className = 'settings-row';
-
-    const episodeNumbersLabel = document.createElement('div');
-    episodeNumbersLabel.innerHTML = `
-    <div class="settings-label">Show episode numbers</div>
-    <div class="settings-description">Display episode numbers in the calendar</div>
-  `;
-
-    const episodeNumbersToggle = document.createElement('label');
-    episodeNumbersToggle.className = 'toggle-switch';
-    episodeNumbersToggle.innerHTML = `
-    <input type="checkbox" id="episode-numbers-toggle" ${userPreferences.showEpisodeNumbers ? 'checked' : ''}>
-    <span class="slider"></span>
-  `;
-
-    episodeNumbersRow.appendChild(episodeNumbersLabel);
-    episodeNumbersRow.appendChild(episodeNumbersToggle);
-
-    // Timezone section
-    const timezoneRow = document.createElement('div');
-    timezoneRow.className = 'settings-row';
-
-    const timezoneLabel = document.createElement('div');
-    timezoneLabel.innerHTML = `
-    <div class="settings-label">Timezone</div>
-    <div class="settings-description">Select your timezone to adjust airing times</div>
-  `;
-
-    const timezoneSelect = document.createElement('select');
-    timezoneSelect.className = 'settings-select';
-    timezoneSelect.id = 'timezone-select';
-
-    // Add timezone options
-    TIMEZONE_OPTIONS.forEach(option => {
-        const optElement = document.createElement('option');
-        optElement.value = option.value;
-        optElement.textContent = option.text;
-        optElement.selected = userPreferences.timezone === option.value;
-        timezoneSelect.appendChild(optElement);
-    });
-
-    timezoneRow.appendChild(timezoneLabel);
-    timezoneRow.appendChild(timezoneSelect);
-
-    // Add rows to display section
-    displaySection.appendChild(startDayRow);
-    displaySection.appendChild(hideEmptyRow);
-    displaySection.appendChild(compactRow);
-    displaySection.appendChild(gridRow);
-    displaySection.appendChild(countdownRow);
-    displaySection.appendChild(episodeNumbersRow);
-    displaySection.appendChild(timezoneRow);
-
-    // Add sections to panel
-    settingsContent.appendChild(displaySection);
-
-    // Loading section
-    const loadingSection = document.createElement('div');
-    loadingSection.className = 'settings-loading';
-    loadingSection.innerHTML = `
-    <span class="settings-loading-spinner"></span>
-    <span>Updating calendar...</span>
-  `;
-
-    // Save button
-    const saveContainer = document.createElement('div');
-    saveContainer.className = 'settings-save-container';
-
-    const saveButton = document.createElement('button');
-    saveButton.className = 'settings-save-btn';
-    saveButton.innerHTML = '<i class="fa fa-save"></i> Save Settings';
-    saveButton.addEventListener('click', () => {
-        // Gather current values
-        const newStartDay = document.getElementById('start-day-select').value;
-        const newHideEmpty = document.getElementById('hide-empty-toggle').checked;
-        const newCompactMode = document.getElementById('compact-toggle').checked;
-        const newGridMode = document.getElementById('grid-toggle').checked;
-        const newShowCountdown = document.getElementById('countdown-toggle').checked;
-        const newShowEpisodeNumbers = document.getElementById('episode-numbers-toggle').checked;
-        const newTimezone = document.getElementById('timezone-select').value;
-
-        // Update preferences
-        userPreferences.startDay = newStartDay;
-        userPreferences.hideEmptyDays = newHideEmpty;
-        userPreferences.compactMode = newCompactMode;
-        userPreferences.gridMode = newGridMode;
-        userPreferences.showCountdown = newShowCountdown;
-        userPreferences.showEpisodeNumbers = newShowEpisodeNumbers;
-        userPreferences.timezone = newTimezone;
-
-        // Show loading indicator
-        loadingSection.classList.add('active');
-
-        // Save and update
-        saveUserPreferences();
-
-        // Wait a moment to show loading effect before refreshing the page
-        setTimeout(() => {
-            // Show notification
-            showNotification('Settings applied! Refreshing page...');
-
-            // Hide loading indicator
-            loadingSection.classList.remove('active');
-
-            // Hide overlay
-            settingsOverlay.classList.remove('active');
-
-            // Force a complete page refresh after a short delay to allow the notification to be shown
-            setTimeout(() => {
-                window.location.reload(true); // true forces reload from server, not cache
-            }, 800);
-        }, 500);
-    });
-
-    saveContainer.appendChild(saveButton);
-
-    // Complete the panel
-    settingsPanel.appendChild(settingsHeader);
-    settingsPanel.appendChild(settingsContent);
-    settingsPanel.appendChild(loadingSection);
-    settingsPanel.appendChild(saveContainer);
-
-    // Add panel to overlay
-    settingsOverlay.appendChild(settingsPanel);
-
-    // Add overlay to document
-    document.body.appendChild(settingsOverlay);
-
-    // Activate overlay
-    setTimeout(() => {
-        settingsOverlay.classList.add('active');
-    }, 10);
-
-    // Close overlay when clicking outside the panel
-    settingsOverlay.addEventListener('click', (e) => {
-        if (e.target === settingsOverlay) {
-            settingsOverlay.classList.remove('active');
-        }
-    });
-}
-
-/**
  * Saves user preferences to storage
  */
 function saveUserPreferences() {
@@ -1416,6 +1495,7 @@ function saveUserPreferences() {
 
 /**
  * Loads user preferences from storage
+ * @returns {Promise} A promise that resolves when preferences are loaded
  */
 async function loadUserPreferences() {
     return new Promise((resolve) => {
@@ -1461,356 +1541,23 @@ async function loadUserPreferences() {
 }
 
 /**
- * Formats a countdown as a string
- * @param {number} days - Days
- * @param {number} hours - Hours
- * @param {number} minutes - Minutes
- * @returns {string} Formatted countdown
+ * Load Font Awesome for icons
  */
-function formatCountdown(days, hours, minutes) {
-    // Format as d:hh:mm or hh:mm
-    const formattedHours = hours.toString().padStart(2, '0');
-    const formattedMinutes = minutes.toString().padStart(2, '0');
-
-    if (days > 0) {
-        return `${days}:${formattedHours}:${formattedMinutes}`;
-    } else {
-        return `${formattedHours}:${formattedMinutes}`;
-    }
-}
-
-/**
- * Creates and populates the start day selector with a separator after "Today"
- */
-function createStartDaySelector(startDaySelect, currentValue) {
-    // Clear any existing options
-    startDaySelect.innerHTML = '';
-
-    // Add "Today" option
-    const todayOption = document.createElement('option');
-    todayOption.value = 'today';
-    todayOption.textContent = 'Today';
-    todayOption.selected = currentValue === 'today';
-    startDaySelect.appendChild(todayOption);
-
-    // Add separator after Today
-    const separator = document.createElement('option');
-    separator.disabled = true;
-    separator.className = 'day-separator';
-    separator.value = '';
-    separator.innerHTML = '─────────────';
-    startDaySelect.appendChild(separator);
-
-    // Add the day options
-    const dayOptions = [
-        { value: '0', text: 'Sunday' },
-        { value: '1', text: 'Monday' },
-        { value: '2', text: 'Tuesday' },
-        { value: '3', text: 'Wednesday' },
-        { value: '4', text: 'Thursday' },
-        { value: '5', text: 'Friday' },
-        { value: '6', text: 'Saturday' }
-    ];
-
-    dayOptions.forEach(option => {
-        const optElement = document.createElement('option');
-        optElement.value = option.value;
-        optElement.textContent = option.text;
-        optElement.selected = currentValue === option.value;
-        startDaySelect.appendChild(optElement);
-    });
-}
-
-/**
- * Gets the current browser timezone offset in hours
- * @returns {number} Timezone offset in hours (e.g., -7 for UTC-7)
- */
-function getBrowserTimezoneOffset() {
-    // Get minutes and convert to hours
-    const offsetMinutes = new Date().getTimezoneOffset();
-    // Convert to hours (note: getTimezoneOffset returns the opposite of what we need)
-    return -(offsetMinutes / 60);
-}
-
-/**
- * Gets the timezone offset in hours for the selected timezone
- * @returns {number} Timezone offset in hours
- */
-function getSelectedTimezoneOffset() {
-    if (userPreferences.timezone === 'auto') {
-        return getBrowserTimezoneOffset();
+function loadFontAwesome() {
+    if (document.querySelector('link[href*="fontawesome"]')) {
+        log("Font Awesome already loaded");
+        return;
     }
 
-    // Find the selected timezone in options
-    const timezone = TIMEZONE_OPTIONS.find(tz => tz.value === userPreferences.timezone);
-    return timezone ? timezone.offset : JAPAN_OFFSET; // Default to Japan if not found
-}
+    const fontAwesomeLink = document.createElement("link");
+    fontAwesomeLink.rel = "stylesheet";
+    fontAwesomeLink.href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css";
+    fontAwesomeLink.integrity = "sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==";
+    fontAwesomeLink.crossOrigin = "anonymous";
+    fontAwesomeLink.referrerPolicy = "no-referrer";
 
-/**
- * Gets a clean timezone name format for display
- * @returns {string} Formatted timezone name
- */
-function getTimezoneName() {
-    if (userPreferences.timezone === 'auto') {
-        const offset = getBrowserTimezoneOffset();
-        const sign = offset >= 0 ? '+' : '-';
-        const absOffset = Math.abs(offset);
-        const hours = Math.floor(absOffset);
-        const minutes = Math.round((absOffset - hours) * 60);
-
-        return `UTC${sign}${hours}${minutes > 0 ? `:${minutes}` : ''}`;
-    }
-
-    // Find the timezone in options and get just the UTC part
-    const timezone = TIMEZONE_OPTIONS.find(tz => tz.value === userPreferences.timezone);
-    if (timezone) {
-        // Extract just the UTC part before the pipe symbol
-        return timezone.text.split('|')[0].trim();
-    }
-
-    return 'UTC+9'; // Default to Japan timezone
-}
-
-/**
- * Calculates airing date based on countdown, adjusted for the user's timezone
- * This enhanced version tracks if the day changes due to timezone differences
- * @param {number} days Days until airing
- * @param {number} hours Hours until airing
- * @param {number} minutes Minutes until airing
- * @returns {object} Object containing adjusted date and day change information
- */
-function calculateAiringDateWithDayTracking(days, hours, minutes) {
-    const now = new Date();
-    const airingDate = new Date(now);
-
-    // Calculate basic airing date based on countdown (local time)
-    airingDate.setDate(now.getDate() + days);
-    airingDate.setHours(now.getHours() + hours);
-    airingDate.setMinutes(now.getMinutes() + minutes);
-
-    // Get the original day before any timezone adjustments
-    const originalDate = new Date(airingDate);
-    const originalDay = DAYS_OF_WEEK[originalDate.getDay()];
-
-    // Convert countdown-based time to Japan time (assumed origin timezone)
-    // This is needed because the countdown is shown in local time on Anilist
-    const userOffset = getBrowserTimezoneOffset();
-    const japanOffset = JAPAN_OFFSET;
-    const diffHours = japanOffset - userOffset;
-
-    // Original Japan time
-    airingDate.setHours(airingDate.getHours() + diffHours);
-
-    // Now convert from Japan time to user's selected timezone
-    const selectedOffset = getSelectedTimezoneOffset();
-    const tzDiffHours = selectedOffset - japanOffset;
-
-    // Apply timezone difference
-    airingDate.setHours(airingDate.getHours() + tzDiffHours);
-
-    // Check if the day changed
-    const newDay = DAYS_OF_WEEK[airingDate.getDay()];
-    const dayChanged = newDay !== originalDay;
-
-    return {
-        date: airingDate,
-        originalDay: originalDay,
-        dayChanged: dayChanged
-    };
-}
-
-/**
- * Extracts anime data from the DOM
- * FIXED: Improved episode data extraction for accurate episode formatting
- */
-function extractAnimeDataFromDOM(container) {
-    try {
-        log("Extracting anime data from DOM with timezone handling");
-
-        // Find all anime cards in the container
-        const animeCards = container.querySelectorAll('.media-preview-card');
-
-        log(`Found ${animeCards.length} anime cards`);
-
-        const animeData = [];
-
-        // Process each card
-        animeCards.forEach(card => {
-            try {
-                // Get anime ID from URL
-                const animeLink = card.querySelector('a[href^="/anime/"]');
-                if (!animeLink) return;
-
-                const animeId = animeLink.getAttribute('href').split('/anime/')[1].split('/')[0];
-
-                // Get anime title
-                const titleElement = card.querySelector('.content');
-                const title = titleElement ? titleElement.textContent.trim() : "Unknown Anime";
-
-                // Get cover image
-                const coverImg = card.querySelector('img') || card.querySelector('.cover');
-                let coverImage = '';
-
-                if (coverImg) {
-                    // Try to get the actual src
-                    coverImage = coverImg.getAttribute('src') ||
-                        coverImg.getAttribute('data-src') ||
-                        '';
-
-                    // If the image uses background-image style
-                    if (!coverImage) {
-                        const style = coverImg.getAttribute('style');
-                        if (style && style.includes('background-image')) {
-                            const match = style.match(/url\(['"]?(.*?)['"]?\)/);
-                            if (match && match[1]) {
-                                coverImage = match[1];
-                            }
-                        }
-                    }
-                }
-
-                // Get countdown info
-                const countdownElement = card.querySelector('.countdown');
-                let days = 0, hours = 0, minutes = 0;
-
-                if (countdownElement) {
-                    const text = countdownElement.textContent;
-
-                    // Parse days, hours, minutes
-                    const dMatch = text.match(/(\d+)d/);
-                    const hMatch = text.match(/(\d+)h/);
-                    const mMatch = text.match(/(\d+)m/);
-
-                    days = dMatch ? parseInt(dMatch[1]) : 0;
-                    hours = hMatch ? parseInt(hMatch[1]) : 0;
-                    minutes = mMatch ? parseInt(mMatch[1]) : 0;
-                }
-
-                // Get color (if available)
-                let color = '#3db4f2'; // Default blue
-                if (coverImg && coverImg.getAttribute('data-src-color')) {
-                    color = coverImg.getAttribute('data-src-color');
-                }
-
-                // Look for episode progress info directly in DOM
-                // Try to find the progress element with better accuracy
-                const progressElement = card.querySelector('.plus-progress.mobile');
-                let epString = "";
-
-                if (progressElement) {
-                    const progressText = progressElement.textContent.trim();
-                    // Parse out the episode info (Progress: x/y)
-                    epString = progressText.replace("Progress:", "").trim();
-                }
-
-                // Parse episode information from title and content
-                const episodeInfo = parseEpisodeInfo(title, card);
-
-                // Calculate airing time based on countdown with day tracking
-                const airingInfo = calculateAiringDateWithDayTracking(days, hours, minutes);
-                const airingDate = airingInfo.date;
-
-                animeData.push({
-                    id: animeId,
-                    title: title,
-                    cleanTitle: episodeInfo.cleanTitle,
-                    episodeInfo: episodeInfo.formatted,
-                    episodeProgressString: epString, // Add direct progress string
-                    coverImage: coverImage,
-                    airingDate: airingDate,
-                    formattedTime: formatTime(airingDate),
-                    days: days,
-                    hours: hours,
-                    minutes: minutes,
-                    color: color,
-                    episode: getEpisodeNumber(card) || "Next",
-                    originalDay: airingInfo.originalDay,
-                    dayChanged: airingInfo.dayChanged,
-                    watched: episodeInfo.watched,
-                    available: episodeInfo.available,
-                    total: episodeInfo.total,
-                    episodesBehind: episodeInfo.episodesBehind
-                });
-
-            } catch (cardErr) {
-                log("Error processing anime card", cardErr);
-            }
-        });
-
-        log("Extracted anime data with timezone handling", animeData);
-        return animeData;
-
-    } catch (err) {
-        log("Error extracting anime data from DOM", err);
-        return [];
-    }
-}
-
-/**
- * Enhanced processAnimeData function that accounts for timezone differences
- * and possible day changes when converting times
- */
-function processAnimeData(animeData) {
-    const schedule = {
-        Sunday: [],
-        Monday: [],
-        Tuesday: [],
-        Wednesday: [],
-        Thursday: [],
-        Friday: [],
-        Saturday: []
-    };
-
-    // Process each anime entry
-    for (const anime of animeData) {
-        // Get the timezone-adjusted day and track if it changed
-        const adjustedDay = DAYS_OF_WEEK[anime.airingDate.getDay()];
-
-        // Add to corresponding day
-        schedule[adjustedDay].push({
-            id: anime.id,
-            title: anime.title,
-            cleanTitle: anime.cleanTitle,
-            episodeInfo: anime.episodeInfo,
-            coverImage: anime.coverImage,
-            airingDate: anime.airingDate,
-            formattedTime: anime.formattedTime,
-            episode: anime.episode,
-            color: anime.color,
-            originalDay: anime.originalDay,
-            dayChanged: anime.dayChanged,
-            days: anime.days,
-            hours: anime.hours,
-            minutes: anime.minutes,
-            watched: anime.watched,
-            available: anime.available,
-            total: anime.total,
-            episodesBehind: anime.episodesBehind
-        });
-    }
-
-    // Sort each day's anime by airing time
-    for (const day in schedule) {
-        schedule[day].sort((a, b) => {
-            const timeA = a.formattedTime.split(':');
-            const timeB = b.formattedTime.split(':');
-
-            const hoursA = parseInt(timeA[0]);
-            const hoursB = parseInt(timeB[0]);
-
-            if (hoursA !== hoursB) {
-                return hoursA - hoursB;
-            }
-
-            const minutesA = parseInt(timeA[1]);
-            const minutesB = parseInt(timeB[1]);
-
-            return minutesA - minutesB;
-        });
-    }
-
-    log("Processed schedule data with timezone adjustments", schedule);
-    return schedule;
+    document.head.appendChild(fontAwesomeLink);
+    log("Font Awesome loaded");
 }
 
 // Initialize when the page is ready
