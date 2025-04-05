@@ -18,6 +18,18 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* Slide up animation for image overlay */
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Fade in animation for plus button */
+@keyframes fadeInButton {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
 /* Spin animation for loading indicators */
 @keyframes spin {
     0% { transform: rotate(0deg); }
@@ -335,6 +347,64 @@
     position: relative;
 }
 
+/* Anime image overlay - new feature */
+.anime-image-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to top,
+    rgba(0, 0, 0, 0.9) 0%,
+    rgba(0, 0, 0, 0.7) 40%,
+    rgba(0, 0, 0, 0.4) 70%,
+    rgba(0, 0, 0, 0) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: translateY(100%);
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    z-index: 5;
+    border-radius: 3px;
+}
+
+/* Show overlay on hover with animation */
+.anime-image:hover .anime-image-overlay {
+    opacity: 1;
+    transform: translateY(0);
+    animation: slideUp 0.3s ease forwards;
+}
+
+/* Increment button - new feature */
+.anime-increment-button {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #3db4f2;
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transform: scale(0.8);
+    transition: transform 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+    animation: fadeInButton 0.2s ease 0.2s forwards;
+}
+
+.anime-increment-button:hover {
+    background-color: #66c9ff;
+    transform: scale(1.1);
+}
+
+.anime-increment-button:active {
+    transform: scale(0.95);
+}
+
 /* Fallback for images that fail to load */
 .anime-image::after {
     content: "";
@@ -380,42 +450,6 @@
     white-space: nowrap;
 }
 
-/* Ultra-compact layout */
-.compact-content-container {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    margin: 0;
-    padding: 0;
-}
-
-.compact-title {
-    font-size: 11px;
-    font-weight: 500;
-    line-height: 1.1;
-    margin: 0 0 1px 0;
-    white-space: normal;
-    max-height: 2.2em;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-}
-
-.compact-ep {
-    font-size: 10px;
-    margin: 0;
-    padding: 0;
-    opacity: 0.8;
-    line-height: 1;
-}
-
-.compact-time {
-    font-size: 10px;
-    margin: 0;
-    padding: 0;
-    line-height: 1;
-}
-
 /* New layout for info row with time and episode */
 .anime-info-row {
     display: flex;
@@ -425,6 +459,7 @@
     color: #9fadbd;
     white-space: nowrap;
     margin-top: 2px;
+    justify-content: space-between;
 }
 
 /* Style for time when inline with episode */
@@ -433,9 +468,11 @@
     color: #3db4f2;
     font-weight: 500;
     font-style: italic;
-    order: 1; /* Ensure time comes first */
+    order: 2; /* Ensure time comes second */
     padding: 0;
     background: transparent;
+    min-width: 40px;
+    text-align: right;
 }
 
 /* Countdown style when inline */
@@ -443,12 +480,16 @@
     color: #66c9ff;
 }
 
-/* Smaller episode number */
+/* Episode number styling */
 .episode-number {
     font-size: 11px;
     color: #9fadbd;
-    order: 2;
+    order: 1; /* Episode number comes first */
     opacity: 0.85;
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Day adjusted (timezone) indicator */
@@ -575,6 +616,16 @@
     border-radius: 4px;
 }
 
+/* Special styling for grid view overlay */
+.anilist-weekly-calendar.grid-mode .anime-image-overlay {
+    background: linear-gradient(to top,
+    rgba(0, 0, 0, 0.9) 0%,
+    rgba(0, 0, 0, 0.7) 40%,
+    rgba(0, 0, 0, 0.5) 60%,
+    rgba(0, 0, 0, 0.3) 80%,
+    rgba(0, 0, 0, 0) 100%);
+}
+
 /* AniList-style grid view with hover modal */
 .anilist-weekly-calendar.grid-mode .anime-info {
     position: absolute;
@@ -616,7 +667,8 @@
     justify-content: center;
     margin-top: 4px;
     display: flex;
-    gap: 6px;
+    gap: 8px;
+    align-items: center;
 }
 
 .anilist-weekly-calendar.grid-mode .anime-time.inline-time {
@@ -625,11 +677,22 @@
     background: #3db4f2; /* AniList blue */
     padding: 2px 6px;
     border-radius: 3px;
+    min-width: 40px;
+    text-align: center;
 }
 
 .anilist-weekly-calendar.grid-mode .episode-number {
-    color: #ddd;
+    font-size: 10px;
+    color: #fff;
+    background: rgba(61, 180, 242, 0.3);
+    padding: 2px 6px;
+    border-radius: 3px;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
 }
 
 /* Make compact mode have no effect when grid mode is active */

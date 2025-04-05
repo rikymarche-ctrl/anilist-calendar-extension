@@ -9,7 +9,7 @@
  */
 
 // Configuration
-const DEBUG = true; // Set to true for debugging
+const DEBUG = false; // Set to false for production
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const ABBREVIATED_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const STORAGE_KEY_PREFIX = 'anilist_calendar_';
@@ -299,6 +299,90 @@ function replaceAiringSection(container, headerElement, skipHeader = false) {
 }
 
 /**
+ * Parses episode information from the anime title and content
+ * @param {string} title - The anime title that might contain episode information
+ * @param {Element} card - The anime card element that contains additional information
+ * @returns {Object} Parsed episode information
+ */
+function parseEpisodeInfo(title, card) {
+    // Initialize episode info
+    let episodeInfo = {
+        cleanTitle: title,
+        watched: 0,
+        available: 0,
+        total: 0,
+        episodesBehind: 0,
+        formatted: ''
+    };
+
+    try {
+        // Extract "episodes behind" information
+        const behindMatch = title.match(/(\d+)\s+episode(?:s)?\s+behind\s+(.+?)(?:\s+Progress:|$)/i);
+        if (behindMatch) {
+            episodeInfo.episodesBehind = parseInt(behindMatch[1]);
+            // Update clean title by removing the "episodes behind" part
+            episodeInfo.cleanTitle = episodeInfo.cleanTitle.replace(/\d+\s+episode(?:s)?\s+behind\s+/i, '');
+        }
+
+        // Extract progress information (x/y)
+        const progressMatch = title.match(/Progress:\s*(\d+)\/(\d+)/i);
+        if (progressMatch) {
+            episodeInfo.watched = parseInt(progressMatch[1]);
+            episodeInfo.total = parseInt(progressMatch[2]);
+
+            // Clean up title by removing the progress part
+            episodeInfo.cleanTitle = episodeInfo.cleanTitle
+                .replace(/Progress:\s*\d+\/\d+/i, '')
+                .replace(/\s+$/, ''); // Trim trailing spaces
+        }
+
+        // If we have a progress element in the card, use it (it's more reliable)
+        const progressElement = card.querySelector('.info');
+        if (progressElement) {
+            const progressText = progressElement.textContent.trim();
+            const progressCardMatch = progressText.match(/Progress:\s*(\d+)\/(\d+)/i);
+            if (progressCardMatch) {
+                episodeInfo.watched = parseInt(progressCardMatch[1]);
+                episodeInfo.total = parseInt(progressCardMatch[2]);
+            }
+        }
+
+        // Calculate available episodes
+        if (episodeInfo.episodesBehind > 0) {
+            episodeInfo.available = episodeInfo.watched + episodeInfo.episodesBehind;
+        } else {
+            episodeInfo.available = episodeInfo.watched;
+        }
+
+        // Clean title further - remove various patterns from title
+        episodeInfo.cleanTitle = episodeInfo.cleanTitle
+            .replace(/\s+Ep\s+\d+(?:\+)?/i, '') // Remove "Ep X" or "Ep X+"
+            .replace(/\s+Episode\s+\d+(?:\+)?/i, '') // Remove "Episode X" or "Episode X+"
+            .replace(/\s+\+\s*$/, '') // Remove "+" at the end of title
+            .replace(/\s+\+$/, '') // Remove trailing "+" without space
+            .trim();
+
+        // Format episode information
+        if (episodeInfo.total > 0) {
+            if (episodeInfo.available > episodeInfo.watched) {
+                // We have unwatched episodes
+                episodeInfo.formatted = `Ep ${episodeInfo.watched}/${episodeInfo.available}/${episodeInfo.total}`;
+            } else {
+                // We're caught up
+                episodeInfo.formatted = `Ep ${episodeInfo.watched}/${episodeInfo.total}`;
+            }
+        } else if (episodeInfo.watched > 0) {
+            // We only know how many episodes we've watched
+            episodeInfo.formatted = `Ep ${episodeInfo.watched}`;
+        }
+    } catch (err) {
+        log("Error parsing episode info", err);
+    }
+
+    return episodeInfo;
+}
+
+/**
  * Renders the calendar with the schedule data
  * @param {Object} schedule - The schedule data
  * @param {boolean} skipHeader - Whether to skip header creation (use external header)
@@ -416,14 +500,74 @@ function renderCalendar(schedule, skipHeader = false) {
                 const animeEntry = document.createElement('div');
                 animeEntry.className = 'anime-entry';
                 animeEntry.style.borderLeftColor = anime.color;
+                animeEntry.dataset.animeId = anime.id;
 
                 if (userPreferences.gridMode) {
                     animeEntry.style.borderBottomColor = anime.color;
                 }
 
-                // Create image element separately to handle errors
+                // Create image container with hover overlay
                 const animeImageDiv = document.createElement('div');
                 animeImageDiv.className = 'anime-image';
+
+                // Create overlay container
+                const imageOverlay = document.createElement('div');
+                imageOverlay.className = 'anime-image-overlay';
+
+                // Create plus button for incrementing episodes
+                const plusButton = document.createElement('button');
+                plusButton.className = 'anime-increment-button';
+                plusButton.innerHTML = '<i class="fa fa-plus"></i>';
+                plusButton.title = 'Mark next episode as watched';
+                plusButton.setAttribute('aria-label', 'Mark next episode as watched');
+
+                // Add event listener to increment episode
+                plusButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // Get the anime ID
+                    const animeId = animeEntry.dataset.animeId;
+
+                    // Find all elements related to this anime
+                    const progressElements = document.querySelectorAll(`[data-anime-id="${animeId}"] .episode-number`);
+
+                    // Increment episode counter for this anime
+                    // This would typically call an API to update the watched count
+                    // For now, just update the UI
+                    progressElements.forEach(element => {
+                        const text = element.textContent;
+                        const match = text.match(/Ep\s+(\d+)(?:\/(\d+))?(?:\/(\d+))?/i);
+                        if (match) {
+                            let watched = parseInt(match[1]) + 1;
+                            let available = match[2] ? parseInt(match[2]) : null;
+                            let total = match[3] ? parseInt(match[3]) : (match[2] ? parseInt(match[2]) : null);
+
+                            if (available && watched > available) {
+                                available = watched;
+                            }
+
+                            if (total) {
+                                if (available) {
+                                    element.textContent = `Ep ${watched}/${available}/${total}`;
+                                } else {
+                                    element.textContent = `Ep ${watched}/${total}`;
+                                }
+                            } else {
+                                element.textContent = `Ep ${watched}`;
+                            }
+                        }
+                    });
+
+                    // Show success message
+                    showNotification('Episode marked as watched!');
+                });
+
+                // Add plus button to overlay
+                imageOverlay.appendChild(plusButton);
+
+                // Add overlay to image container
+                animeImageDiv.appendChild(imageOverlay);
 
                 const animeImg = document.createElement('img');
                 animeImg.src = anime.coverImage;
@@ -459,109 +603,41 @@ function renderCalendar(schedule, skipHeader = false) {
                 const animeInfoDiv = document.createElement('div');
                 animeInfoDiv.className = 'anime-info';
 
-                // Parse the title to extract the real anime name and progress information
-                let realTitle = anime.title;
-                let watchedEpisodes = 0;
-                let availableEpisodes = 0;
-                let totalEpisodes = 0;
-                let isBehind = false;
-
-                // Parse the title looking for progress patterns
-                if (realTitle.includes("Progress:")) {
-                    // Example: "1 episode behind Anne Shirley Progress: 0/24"
-                    // Parse episode behind info
-                    if (realTitle.includes("episode behind")) {
-                        isBehind = true;
-                        // Extract the real title (middle part)
-                        const behindMatch = realTitle.match(/(\d+)\s+episode(s)?\s+behind\s+(.+?)\s+Progress:/i);
-                        if (behindMatch) {
-                            const behindCount = parseInt(behindMatch[1]);
-                            realTitle = behindMatch[3].trim();
-                            availableEpisodes = behindCount; // This is simplified, should add to watched
-                        }
-                    }
-
-                    // Extract progress info (0/24)
-                    const progressMatch = realTitle.match(/Progress:\s*(\d+)\/(\d+)/i);
-                    if (progressMatch) {
-                        watchedEpisodes = parseInt(progressMatch[1]);
-                        totalEpisodes = parseInt(progressMatch[2]);
-
-                        // Clean up the title by removing the progress part
-                        realTitle = realTitle.replace(/Progress:\s*\d+\/\d+/i, "").trim();
-
-                        // Also clean up any "episode behind" part
-                        realTitle = realTitle.replace(/\d+\s+episode(s)?\s+behind/i, "").trim();
-                    }
-
-                    // If we know watched and total, and "behind" flag, calculate available
-                    if (isBehind && watchedEpisodes > 0) {
-                        availableEpisodes = watchedEpisodes + 1; // Simplified; in reality get from Anilist
-                    } else if (watchedEpisodes === 0 && totalEpisodes > 0) {
-                        // If watched is 0, at least 1 episode is available
-                        availableEpisodes = 1;
-                    } else {
-                        availableEpisodes = watchedEpisodes; // Default if we can't determine
-                    }
-                }
-
-                // Update the title and episode display
                 // Add clean title
                 const titleDiv = document.createElement('div');
-                titleDiv.className = 'anime-title compact-title';
-                titleDiv.textContent = realTitle;
+                titleDiv.className = 'anime-title';
+                titleDiv.textContent = anime.cleanTitle || anime.title;
                 animeInfoDiv.appendChild(titleDiv);
 
-                // Add episode and time - optimized for space
-                const episodeDiv = document.createElement('div');
-                episodeDiv.className = 'anime-episode';
+                // Create a container for episode info and time
+                const episodeTimeContainer = document.createElement('div');
+                episodeTimeContainer.className = 'anime-info-row';
 
-                // Show episode number based on preference with the processed info
-                if (userPreferences.showEpisodeNumbers) {
+                // Add episode number if available and enabled
+                if (userPreferences.showEpisodeNumbers && anime.episodeInfo) {
                     const episodeText = document.createElement('span');
                     episodeText.className = 'episode-number';
-
-                    // If we determined that we're behind, show the indicator
-                    if (watchedEpisodes < availableEpisodes) {
-                        const indicator = document.createElement('span');
-                        indicator.className = 'behind-indicator';
-                        episodeText.appendChild(indicator);
-                    }
-
-                    // Format based on what we know
-                    if (totalEpisodes > 0) {
-                        // We know the total episodes
-                        if (watchedEpisodes < availableEpisodes) {
-                            // We're behind - show x/y format
-                            episodeText.appendChild(document.createTextNode(`Ep ${watchedEpisodes}/${availableEpisodes}`));
-                        } else {
-                            // We're caught up - just show current episode
-                            episodeText.appendChild(document.createTextNode(`Ep ${watchedEpisodes}`));
-                        }
-                    } else {
-                        // Fallback to original episode number if we couldn't parse
-                        episodeText.appendChild(document.createTextNode(`Ep ${anime.episode}`));
-                    }
-
-                    episodeDiv.appendChild(episodeText);
+                    episodeText.textContent = anime.episodeInfo;
+                    episodeTimeContainer.appendChild(episodeText);
+                } else if (userPreferences.showEpisodeNumbers && anime.episode) {
+                    // Fallback to simple episode number if no formatted info available
+                    const episodeText = document.createElement('span');
+                    episodeText.className = 'episode-number';
+                    episodeText.textContent = `Ep ${anime.episode}`;
+                    episodeTimeContainer.appendChild(episodeText);
                 }
 
-                // Add time on the right side with compact format
-                const timeWrapper = document.createElement('span');
-                timeWrapper.className = 'time-wrapper';
-                timeWrapper.appendChild(animeTimeDiv);
-                episodeDiv.appendChild(timeWrapper);
+                // Add the time
+                episodeTimeContainer.appendChild(animeTimeDiv);
 
-                animeInfoDiv.appendChild(episodeDiv);
-
-                animeInfoDiv.appendChild(episodeDiv);
+                // Add episode and time container to info div
+                animeInfoDiv.appendChild(episodeTimeContainer);
 
                 // Assemble the entry based on mode
                 if (userPreferences.gridMode) {
                     // For grid mode: image as background with info overlay
                     animeEntry.appendChild(animeImageDiv);
                     animeEntry.appendChild(animeInfoDiv);
-                    // Info is now all in animeInfoDiv with the new structure
                 } else {
                     // For standard and compact modes
                     if (!userPreferences.compactMode) {
@@ -1271,6 +1347,20 @@ function extractAnimeDataFromDOM(container) {
                     color = coverImg.getAttribute('data-src-color');
                 }
 
+                // Look for episode progress info directly in DOM
+                // Try to find the progress element with better accuracy
+                const progressElement = card.querySelector('.plus-progress.mobile');
+                let epString = "";
+
+                if (progressElement) {
+                    const progressText = progressElement.textContent.trim();
+                    // Parse out the episode info (Progress: x/y)
+                    epString = progressText.replace("Progress:", "").trim();
+                }
+
+                // Parse episode information from title and content
+                const episodeInfo = parseEpisodeInfo(title, card);
+
                 // Calculate airing time based on countdown with day tracking
                 const airingInfo = calculateAiringDateWithDayTracking(days, hours, minutes);
                 const airingDate = airingInfo.date;
@@ -1278,6 +1368,9 @@ function extractAnimeDataFromDOM(container) {
                 animeData.push({
                     id: animeId,
                     title: title,
+                    cleanTitle: episodeInfo.cleanTitle,
+                    episodeInfo: episodeInfo.formatted,
+                    episodeProgressString: epString, // Add direct progress string
                     coverImage: coverImage,
                     airingDate: airingDate,
                     formattedTime: formatTime(airingDate),
@@ -1287,7 +1380,10 @@ function extractAnimeDataFromDOM(container) {
                     color: color,
                     episode: getEpisodeNumber(card) || "Next",
                     originalDay: airingInfo.originalDay,
-                    dayChanged: airingInfo.dayChanged
+                    dayChanged: airingInfo.dayChanged,
+                    watched: episodeInfo.watched,
+                    available: episodeInfo.available,
+                    total: episodeInfo.total
                 });
 
             } catch (cardErr) {
@@ -1322,16 +1418,14 @@ function processAnimeData(animeData) {
     // Process each anime entry
     for (const anime of animeData) {
         // Get the timezone-adjusted day and track if it changed
-        const originalDay = DAYS_OF_WEEK[anime.airingDate.getDay()];
-
-        // Store original day information in the anime object
-        anime.originalDay = originalDay;
-        anime.dayChanged = false;
+        const adjustedDay = DAYS_OF_WEEK[anime.airingDate.getDay()];
 
         // Add to corresponding day
-        schedule[originalDay].push({
+        schedule[adjustedDay].push({
             id: anime.id,
             title: anime.title,
+            cleanTitle: anime.cleanTitle,
+            episodeInfo: anime.episodeInfo,
             coverImage: anime.coverImage,
             airingDate: anime.airingDate,
             formattedTime: anime.formattedTime,
