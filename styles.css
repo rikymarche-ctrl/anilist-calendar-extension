@@ -146,7 +146,8 @@
 /* Settings button in section header */
 .header-settings-btn {
     position: absolute;
-    right: 10px;
+    right: auto;
+    left: 10px;
     top: 50%;
     transform: translateY(-50%);
     background: transparent;
@@ -250,7 +251,7 @@
     padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px; /* Riduco leggermente lo spazio tra gli elementi */
     min-height: 100px;
     overflow-y: auto;
     overflow-x: hidden; /* Prevent horizontal overflow */
@@ -308,23 +309,25 @@
 .anime-entry {
     display: flex;
     align-items: center;
-    background: var(--color-foreground);
+    background: rgba(27, 44, 65, 0.4); /* Colore leggermente diverso ma sottile */
     border-radius: 4px;
     padding: 8px;
     position: relative;
     cursor: pointer;
-    transition: transform 0.2s ease, background 0.2s ease;
+    transition: all 0.2s ease;
     overflow: hidden;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     width: 100%; /* Take full width of parent */
     max-width: 100%; /* Ensure it doesn't exceed parent width */
     box-sizing: border-box; /* Include padding and border in width calculation */
+    margin-bottom: 6px; /* Add a bit of spacing between entries */
 }
 
-/* Hover effect */
+/* Hover effect - uso un colore leggermente più chiaro senza bordo */
 .anime-entry:hover {
-    transform: translateY(-2px);
-    background: var(--color-foreground-grey);
+    transform: translateY(-1px);
+    background: rgba(38, 57, 80, 0.6);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Anime image */
@@ -1065,5 +1068,4 @@ input:checked + .slider:before {
 .anilist-weekly-calendar.grid-mode .anime-image {
     width: 90px;
     height: 135px;
-}
 }

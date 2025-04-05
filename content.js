@@ -184,6 +184,8 @@ function findAndReplaceAiringSection() {
             settingsButton.className = 'calendar-settings-btn header-settings-btn';
             settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
             settingsButton.title = 'Open settings';
+            settingsButton.style.right = 'auto'; // Remove right positioning
+            settingsButton.style.left = '10px'; // Position on the left
             settingsButton.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -227,6 +229,8 @@ function findAndReplaceAiringSection() {
                 settingsButton.className = 'calendar-settings-btn header-settings-btn';
                 settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
                 settingsButton.title = 'Open settings';
+                settingsButton.style.right = 'auto'; // Remove right positioning
+                settingsButton.style.left = '10px'; // Position on the left
                 settingsButton.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
