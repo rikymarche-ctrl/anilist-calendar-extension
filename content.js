@@ -287,9 +287,18 @@ function findAndReplaceAiringSection() {
             const parentHeader = element.closest('.section-header') || element.parentNode;
             parentHeader.appendChild(settingsButton);
 
+            // Remove any margin or padding that might create unwanted space
+            if (parentHeader) {
+                parentHeader.style.marginBottom = "0";
+                parentHeader.style.paddingBottom = "6px";
+            }
+
             // Find the container
             const container = findAiringContainer(element);
             if (container) {
+                // Remove any margin that might create space
+                container.style.marginTop = "0";
+
                 replaceAiringSection(container, element, true); // Pass true to skip header creation
                 return true;
             }
@@ -304,24 +313,31 @@ function findAndReplaceAiringSection() {
                 if (titleElement) {
                     titleElement.innerHTML = `Weekly Schedule <span class="timezone-separator">|</span> <span class="timezone-info">${getTimezoneName()}</span>`;
                     titleElement.className = 'airing-replaced-header';
-
-                    // Add settings button with improved positioning
-                    const settingsButton = document.createElement('button');
-                    settingsButton.className = 'calendar-settings-btn header-settings-btn';
-                    settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
-                    settingsButton.title = 'Open settings';
-                    settingsButton.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        createSettingsOverlay();
-                    });
-
-                    // Add the settings button after the title
-                    header.appendChild(settingsButton);
                 }
+
+                // Add settings button with improved positioning
+                const settingsButton = document.createElement('button');
+                settingsButton.className = 'calendar-settings-btn header-settings-btn';
+                settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
+                settingsButton.title = 'Open settings';
+                settingsButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    createSettingsOverlay();
+                });
+
+                // Add the settings button after the title
+                header.appendChild(settingsButton);
+
+                // Remove any margin or padding that might create unwanted space
+                header.style.marginBottom = "0";
+                header.style.paddingBottom = "6px";
 
                 const container = findAiringContainer(header);
                 if (container) {
+                    // Remove any margin that might create space
+                    container.style.marginTop = "0";
+
                     replaceAiringSection(container, header, true); // Pass true to skip header creation
                     return true;
                 }
@@ -357,6 +373,7 @@ function replaceAiringSection(container, headerElement, skipHeader = false) {
         // Create calendar container with improved styling
         calendarContainer = document.createElement('div');
         calendarContainer.className = 'anilist-weekly-calendar';
+        calendarContainer.style.marginTop = "0"; // Remove margin directly
 
         // Apply compact mode class if needed
         if (userPreferences.compactMode) {
@@ -379,9 +396,14 @@ function replaceAiringSection(container, headerElement, skipHeader = false) {
             }
         }
 
-        // Add our calendar after the header
+        // Add our calendar after the header with no space
         if (sectionHeader && sectionHeader.parentNode === container) {
             container.insertBefore(calendarContainer, sectionHeader.nextSibling);
+
+            // Remove any margin or padding from the header and container
+            sectionHeader.style.marginBottom = "0";
+            sectionHeader.style.paddingBottom = "6px";
+            calendarContainer.style.marginTop = "0";
         } else {
             container.appendChild(calendarContainer);
         }
@@ -489,16 +511,23 @@ function parseEpisodeInfo(title, card) {
         available: 0,
         total: 0,
         episodesBehind: 0,
-        formatted: ''
+        formatted: '',
+        isUpcoming: false
     };
 
     try {
-        // Extract "episodes behind" information
+        // Extract "episodes behind" information - FIXED to ensure correct behind detection
         const behindMatch = title.match(/(\d+)\s+episode(?:s)?\s+behind\s+(.+?)(?:\s+Progress:|$)/i);
         if (behindMatch) {
             episodeInfo.episodesBehind = parseInt(behindMatch[1]);
             // Update clean title by removing the "episodes behind" part
             episodeInfo.cleanTitle = episodeInfo.cleanTitle.replace(/\d+\s+episode(?:s)?\s+behind\s+/i, '');
+
+            // FIX: If we detect "episodes behind", make sure available is set correctly
+            // This is critical for the correct episode format display
+            if (episodeInfo.watched > 0) {
+                episodeInfo.available = episodeInfo.watched + episodeInfo.episodesBehind;
+            }
         }
 
         // Extract progress information (x/y)
@@ -531,6 +560,21 @@ function parseEpisodeInfo(title, card) {
             episodeInfo.available = episodeInfo.watched;
         }
 
+        // Check for upcoming episode information
+        const upcomingEpMatch = title.match(/(?:Ep|Episode)\s+(\d+)/i);
+        const countdownMatch = card.querySelector('.countdown');
+
+        if (upcomingEpMatch && countdownMatch) {
+            // This is likely an upcoming episode
+            episodeInfo.isUpcoming = true;
+
+            // If we know the total episodes but not the upcoming episode number,
+            // then it's likely the next episode after what's watched
+            if (episodeInfo.watched > 0 && !episodeInfo.available) {
+                episodeInfo.available = episodeInfo.watched + 1;
+            }
+        }
+
         // Clean title further - remove various patterns from title
         episodeInfo.cleanTitle = episodeInfo.cleanTitle
             .replace(/\s+Ep\s+\d+(?:\+)?/i, '') // Remove "Ep X" or "Ep X+"
@@ -539,9 +583,12 @@ function parseEpisodeInfo(title, card) {
             .replace(/\s+\+$/, '') // Remove trailing "+" without space
             .trim();
 
-        // Format episode information
+        // Format episode information with improved consistency for upcoming episodes
         if (episodeInfo.total > 0) {
-            if (episodeInfo.available > episodeInfo.watched) {
+            if (episodeInfo.isUpcoming) {
+                // For upcoming episodes with known total, just show watched/total
+                episodeInfo.formatted = `Ep ${episodeInfo.watched}/${episodeInfo.total}`;
+            } else if (episodeInfo.available > episodeInfo.watched) {
                 // We have unwatched episodes
                 episodeInfo.formatted = `Ep ${episodeInfo.watched}/${episodeInfo.available}/${episodeInfo.total}`;
             } else {
@@ -551,6 +598,10 @@ function parseEpisodeInfo(title, card) {
         } else if (episodeInfo.watched > 0) {
             // We only know how many episodes we've watched
             episodeInfo.formatted = `Ep ${episodeInfo.watched}`;
+        } else if (episodeInfo.isUpcoming) {
+            // Upcoming episode but no watch data
+            const upcomingEp = upcomingEpMatch[1];
+            episodeInfo.formatted = `Next: Ep ${upcomingEp}`;
         }
     } catch (err) {
         log("Error parsing episode info", err);
@@ -644,7 +695,9 @@ function renderCalendar(schedule, skipHeader = false) {
     const calendarGrid = document.createElement('div');
     calendarGrid.className = `anilist-calendar-grid ${userPreferences.compactMode ? 'compact-mode' : ''}`;
 
-    orderedDays.forEach(day => {
+    // Only display the necessary days, not more (fix for empty column issue)
+    const daysToDisplay = orderedDays.length <= 7 ? orderedDays : orderedDays.slice(0, 7);
+    daysToDisplay.forEach(day => {
         const dayCol = document.createElement('div');
         dayCol.className = `anilist-calendar-day ${day === currentDayName ? 'current-day' : ''}`;
 
@@ -663,12 +716,7 @@ function renderCalendar(schedule, skipHeader = false) {
             schedule[day].forEach(anime => {
                 const animeEntry = document.createElement('div');
                 animeEntry.className = 'anime-entry';
-                animeEntry.style.borderLeftColor = anime.color;
                 animeEntry.dataset.animeId = anime.id;
-
-                if (userPreferences.gridMode) {
-                    animeEntry.style.borderBottomColor = anime.color;
-                }
 
                 const animeImageDiv = document.createElement('div');
                 animeImageDiv.className = 'anime-image';
@@ -782,27 +830,77 @@ function renderCalendar(schedule, skipHeader = false) {
                 const episodeTimeContainer = document.createElement('div');
                 episodeTimeContainer.className = 'anime-info-row';
 
-                if (userPreferences.showEpisodeNumbers && anime.episodeInfo) {
+                // Episode display - Fixed format as requested
+                if (userPreferences.showEpisodeNumbers) {
                     const episodeText = document.createElement('span');
                     episodeText.className = 'episode-number';
                     episodeText.dataset.watched = anime.watched || 0;
                     episodeText.dataset.available = anime.available || 0;
                     episodeText.dataset.total = anime.total || 0;
 
-                    // Add a red indicator if behind on episodes
-                    if (anime.available > anime.watched) {
+                    // Generate episode format based on the requested rules:
+                    // - Show red dot if behind on episodes
+                    // - Use x/y/z format where:
+                    //   x = episodes watched
+                    //   y = available episodes
+                    //   z = total episodes
+
+                    let isBehind = anime.available > anime.watched;
+                    let hasTotal = anime.total > 0;
+                    let displayText = '';
+
+                    // Add red indicator if behind
+                    if (isBehind) {
                         const indicator = document.createElement('span');
                         indicator.className = 'behind-indicator';
                         indicator.title = `${anime.available - anime.watched} episode(s) behind`;
                         episodeText.appendChild(indicator);
                     }
 
-                    episodeText.appendChild(document.createTextNode(anime.episodeInfo));
-                    episodeTimeContainer.appendChild(episodeText);
-                } else if (userPreferences.showEpisodeNumbers && anime.episode) {
-                    const episodeText = document.createElement('span');
-                    episodeText.className = 'episode-number';
-                    episodeText.textContent = `Ep ${anime.episode}`;
+                    // Format according to the updated rules
+                    if (anime.watched > 0) {
+                        if (hasTotal) {
+                            if (isBehind) {
+                                displayText = `Ep ${anime.watched}/${anime.available}/${anime.total}`;
+                            } else {
+                                displayText = `Ep ${anime.watched}/${anime.total}`;
+                            }
+                        } else {
+                            if (isBehind) {
+                                displayText = `Ep ${anime.watched}/${anime.available}`;
+                            } else {
+                                displayText = `Ep ${anime.watched}`;
+                            }
+                        }
+                    } else if (anime.episode && anime.episode !== "Next") {
+                        displayText = `Ep ${anime.episode}`;
+                    } else {
+                        displayText = `Ep 0`;
+                    }
+
+                    // Add basic episode text
+                    episodeText.appendChild(document.createTextNode(displayText));
+
+                    // Add the "next episode" information only in countdown mode
+                    if (userPreferences.showCountdown && anime.episode) {
+                        const nextEpisodeSpan = document.createElement('span');
+                        nextEpisodeSpan.className = 'next-episode';
+
+                        // The next episode is the watched + 1 or just the known episode number
+                        let nextEpNum = anime.episode;
+                        if (nextEpNum === "Next" && anime.watched > 0) {
+                            nextEpNum = (anime.watched + 1).toString();
+                        }
+
+                        if (nextEpNum !== "Next") {
+                            nextEpisodeSpan.textContent = ` Ep ${nextEpNum} in`;
+                        } else {
+                            nextEpisodeSpan.textContent = ` Next in`;
+                        }
+
+                        episodeText.appendChild(nextEpisodeSpan);
+                    }
+
                     episodeTimeContainer.appendChild(episodeText);
                 }
 
@@ -864,7 +962,7 @@ function updateEpisodeCountInUI(animeId, newProgress) {
 
             // Update displayed text
             if (total) {
-                element.textContent = available
+                element.textContent = available && available > watched
                     ? `Ep ${watched}/${available}/${total}`
                     : `Ep ${watched}/${total}`;
             } else {
@@ -1523,6 +1621,7 @@ function calculateAiringDateWithDayTracking(days, hours, minutes) {
 
 /**
  * Extracts anime data from the DOM
+ * FIXED: Improved episode data extraction for accurate episode formatting
  */
 function extractAnimeDataFromDOM(container) {
     try {
