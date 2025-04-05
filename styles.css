@@ -1,20 +1,30 @@
-/* Ensure all background colors are applied forcefully */
+/* Utilizziamo il colore di sfondo "grigiolino" tipico del sito invece del blu */
 :root {
-    --anilist-calendar-bg: #0B1622FF !important;
+    --site-background-color: #152232 !important; /* Colore grigiolino del sito */
 }
 
+/* Rimuoviamo le forzature del colore blu e usiamo il colore di sfondo del sito */
 body .anilist-weekly-calendar,
 body .anilist-calendar-grid,
 body .anilist-calendar-day,
 body .day-header,
 body .day-anime-list {
-    background-color: #0B1622FF !important;
-    background: #0B1622FF !important;
-}/* Day number display for current day */
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+/* Colore di sfondo naturale del sito */
+body .anilist-weekly-calendar {
+    background-color: transparent !important;
+}
+
+/* Day number display for current day */
 .anilist-calendar-day.current-day .day-number,
 .anilist-calendar-day.current-day .separator {
-    color: var(--color-blue); /* Stesso colore del giorno corrente */
-}/**
+    color: var(--color-blue); /* Same color as current day */
+}
+
+/**
  * Anilist Weekly Schedule Extension - Styles
  *
  * This stylesheet provides styling for the weekly calendar view
@@ -101,7 +111,7 @@ body .day-anime-list {
 .separator {
     display: inline;
     margin: 0 4px;
-    color: #9ca3af; /* Colore più chiaro */
+    color: #9ca3af; /* Lighter color */
 }
 
 /*------------------------------------------------------
@@ -112,14 +122,13 @@ body .day-anime-list {
 .anilist-weekly-calendar {
     width: 100%;
     max-width: 100%; /* Ensure it never exceeds container width */
-    background: #0B1622FF; /* Colore esatto specificato */
-    border-radius: 6px; /* Bordi leggermente più arrotondati */
+    border-radius: 6px; /* Slightly rounded corners */
     overflow: hidden;
     animation: fadeIn 0.3s ease-in-out;
     margin: 0 0 15px 0; /* Remove top margin completely */
     position: relative;
-    border: none; /* Rimuove il bordo esterno */
-    box-shadow: none; /* Rimuove l'ombra */
+    border: none; /* Remove outer border */
+    box-shadow: none; /* Remove shadow */
     box-sizing: border-box; /* Include padding and border in the width calculation */
 }
 
@@ -131,7 +140,7 @@ body .day-anime-list {
     padding: 12px 20px;
     background: transparent;
     color: var(--color-text-lighter);
-    border-bottom: 1px solid rgba(var(--color-border-rgb), 0.5); /* Bordo più sottile */
+    border-bottom: 1px solid rgba(var(--color-border-rgb), 0.5); /* Thinner border */
     position: relative;
 }
 
@@ -168,7 +177,7 @@ body .day-anime-list {
 .header-settings-btn {
     position: absolute;
     right: 0; /* Completely to the right */
-    top: calc(50% - 14px); /* Alzato di 14px rispetto al centro */
+    top: calc(50% - 14px); /* Raised 14px from center */
     transform: translateY(-50%);
     background: transparent;
     border: none;
@@ -180,9 +189,9 @@ body .day-anime-list {
     justify-content: center;
     cursor: pointer;
     color: var(--color-text-lighter);
-    transition: color 0.2s ease, opacity 0.3s ease 0.2s; /* Ritardo di 0.2s */
+    transition: color 0.2s ease, opacity 0.3s ease 0.2s; /* 0.2s delay */
     z-index: 10;
-    opacity: 0; /* Nascosto di default */
+    opacity: 0; /* Hidden by default */
 }
 
 .header-settings-btn i {
@@ -212,15 +221,14 @@ body .day-anime-list {
     grid-template-columns: repeat(7, 1fr); /* Equal width for 7 days */
     width: 100%;
     max-width: 100%; /* Ensure grid doesn't overflow */
-    border-bottom: none; /* Rimuove il bordo inferiore */
+    border-bottom: none; /* Remove bottom border */
     overflow-x: hidden; /* Prevent horizontal overflow */
     box-sizing: border-box; /* Include padding and border in width calculation */
 }
 
 /* Day column */
 .anilist-calendar-day {
-    border-right: none; /* Rimosse le righe verticali */
-    background: #0B1622FF; /* Colore esatto specificato */
+    border-right: none; /* Remove vertical lines */
     display: flex;
     flex-direction: column;
     position: relative;
@@ -237,22 +245,20 @@ body .day-anime-list {
 
 /* Current day styling */
 .anilist-calendar-day.current-day {
-    background: #0B1622FF; /* Colore esatto specificato */
+    /* Solo evidenziazione del testo */
 }
 
 /* Current day header styling */
 .anilist-calendar-day.current-day .day-header {
-    background: #0B1622FF; /* Colore esatto specificato */
     color: var(--color-blue);
 }
 
 /* Day header */
 .day-header {
     padding: 10px 15px;
-    background: #0B1622FF; /* Colore esatto specificato */
     font-weight: 600;
     text-align: center;
-    border-bottom: 1px solid rgba(var(--color-border-rgb), 0.5); /* Bordo più sottile */
+    border-bottom: 1px solid rgba(var(--color-border-rgb), 0.5); /* Thinner border */
     position: sticky;
     top: 0;
     z-index: 2;
@@ -273,7 +279,7 @@ body .day-anime-list {
 .day-number {
     display: inline;
     font-size: 14px;
-    color: #9ca3af; /* Colore più chiaro */
+    color: #9ca3af; /* Lighter color */
     margin-left: 5px;
 }
 
@@ -290,14 +296,14 @@ body .day-anime-list {
     flex-direction: column;
     gap: 6px; /* Slightly reduce space between elements */
     min-height: 150px; /* Increased minimum height */
-    height: 100%; /* Prende tutta l'altezza disponibile */
+    height: 100%; /* Take all available height */
     overflow-y: auto;
     overflow-x: hidden; /* Prevent horizontal overflow */
     scrollbar-width: thin;
     scrollbar-color: var(--color-blue) var(--color-background);
     width: 100%; /* Take full width of parent */
     box-sizing: border-box; /* Include padding in width calculation */
-    position: relative; /* Per posizionare correttamente "No episodes" */
+    position: relative; /* For proper positioning of "No episodes" */
 }
 
 /* Empty day message */
@@ -351,7 +357,7 @@ body .day-anime-list {
 /* Anime entry container - Full height image */
 .anime-entry {
     display: flex;
-    align-items: stretch; /* Cambiato da center a stretch per estendere l'immagine */
+    align-items: stretch; /* Changed from center to stretch to extend the image */
     background: rgba(21, 35, 46, 0.85);
     border-radius: 4px;
     padding: 0 !important; /* No padding at all */
@@ -364,46 +370,53 @@ body .day-anime-list {
     max-width: 100%;
     box-sizing: border-box;
     margin-bottom: 6px;
+    height: 65px; /* Increased standardized height for all entries */
 }
 
 /* Hover effect - use a slightly lighter color without border */
 .anime-entry:hover {
     transform: translateY(-1px);
-    background: rgba(30, 45, 60, 0.85); /* Background più chiaro per hover */
+    background: rgba(30, 45, 60, 0.85); /* Lighter background for hover */
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-/* Anime image hover effect - Full height */
+/* Anime image container - Full height with no padding, no border */
 .anime-entry .anime-image {
-    border: 2px solid transparent;
+    border: none;
     box-sizing: border-box;
-    width: 40px !important; /* Aumentata leggermente */
-    height: 100% !important; /* Occupa tutta l'altezza */
+    width: 45px !important; /* Width increased */
+    height: 100% !important; /* Takes full height */
     margin-right: 6px !important;
     flex-shrink: 0;
     overflow: hidden;
     display: flex;
     align-items: center;
-    border-radius: 3px 0 0 3px; /* Arrotonda solo gli angoli esterni */
     position: relative;
-    transition: border-color 0.2s ease;
+    padding: 0 !important;
+    border-radius: 0; /* No border radius */
 }
 
+/* Anime image - ensure it fills container with no gaps */
 .anime-entry .anime-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
 }
 
-.anime-entry:hover .anime-image:hover {
-    border: 2px solid var(--color-blue);
-}
-
-.anime-image img {
+/* Add blue highlight effect on hover */
+.anime-entry:hover .anime-image::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    border-radius: 3px;
+    border: 2px solid var(--color-blue);
+    box-sizing: border-box;
+    z-index: 2;
 }
 
 /* Hover overlay for anime image */
@@ -436,11 +449,11 @@ body .day-anime-list {
     justify-content: center;
     flex-grow: 1;
     min-width: 0;
-    max-width: calc(100% - 46px); /* Adjusted for larger image */
+    max-width: calc(100% - 51px); /* Adjusted for larger image */
     overflow: hidden;
     box-sizing: border-box;
     width: 100%;
-    padding: 8px 0 !important; /* Vertical padding only */
+    padding: 6px 0 !important; /* Reduced vertical padding to center content better */
     margin-left: 0 !important;
 }
 
@@ -449,10 +462,11 @@ body .day-anime-list {
     max-width: 100%;
 }
 
-/* Anime title - Multi-line */
+/* Anime title - Multi-line with increased spacing */
 .anime-title {
     font-weight: 600;
-    margin-bottom: 3px !important;
+    margin-bottom: 7px !important; /* Increased spacing below title */
+    margin-top: 2px !important; /* Added spacing above title */
     line-height: 1.2 !important;
     color: var(--color-text);
     overflow: hidden;
@@ -472,11 +486,11 @@ body .day-anime-list {
 .anime-info-row {
     display: flex;
     align-items: center;
-    gap: 6px; /* Ridotto gap tra episode number e time */
+    gap: 6px; /* Reduced gap between episode number and time */
     font-size: 12px;
     color: var(--color-text-lighter);
     white-space: nowrap;
-    margin-top: 1px !important; /* Ridotto */
+    margin-top: 1px !important; /* Reduced */
     justify-content: space-between;
     width: 100%; /* Full width to allow better spacing */
     padding-right: 0;
@@ -491,10 +505,10 @@ body .day-anime-list {
     order: 2;
     text-align: right;
     margin-left: auto;
-    padding-right: 10px !important; /* Padding aumentato a destra */
+    padding-right: 10px !important; /* Increased right padding */
     margin-right: 0;
-    white-space: nowrap; /* Evita di andare a capo */
-    min-width: 50px; /* Larghezza minima */
+    white-space: nowrap; /* Prevent wrapping */
+    min-width: 50px; /* Minimum width */
 }
 
 /* Countdown mode */
@@ -509,7 +523,7 @@ body .day-anime-list {
     color: var(--color-text-lighter);
     order: 1;
     opacity: 0.85;
-    max-width: calc(100% - 65px); /* Ulteriormente ridotto per dare più spazio al countdown */
+    max-width: calc(100% - 65px); /* Further reduced to give more space to countdown */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
