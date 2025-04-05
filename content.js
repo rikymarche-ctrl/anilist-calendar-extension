@@ -100,12 +100,11 @@ function initialize() {
             let element = e.target;
             while (element && element !== document.body) {
                 if (element.classList && (
-                    element.classList.contains('anilist-weekly-calendar') ||
                     element.classList.contains('anilist-calendar-grid') ||
                     element.classList.contains('anilist-calendar-day') ||
                     element.classList.contains('day-anime-list') ||
                     element.classList.contains('anime-entry') ||
-                    element.classList.contains('section-header')
+                    element.closest('.anilist-calendar-grid')
                 )) {
                     const settingsBtn = document.querySelector('.header-settings-btn');
                     if (settingsBtn) settingsBtn.style.opacity = '1';
@@ -116,13 +115,13 @@ function initialize() {
         });
 
         document.addEventListener('mouseout', function(e) {
-            // Controlla se stiamo uscendo dalla tabella del calendario
+            // Controlla se stiamo uscendo dalla griglia del calendario
             if (e.target && (
-                e.target.classList.contains('anilist-weekly-calendar') ||
-                e.target.closest('.anilist-weekly-calendar')
+                e.target.classList.contains('anilist-calendar-grid') ||
+                e.target.closest('.anilist-calendar-grid')
             )) {
-                // Controlliamo che il nuovo elemento non sia all'interno della tabella
-                if (!e.relatedTarget || !e.relatedTarget.closest('.anilist-weekly-calendar')) {
+                // Controlliamo che il nuovo elemento non sia all'interno della griglia
+                if (!e.relatedTarget || !e.relatedTarget.closest('.anilist-calendar-grid')) {
                     const settingsBtn = document.querySelector('.header-settings-btn');
                     if (settingsBtn) settingsBtn.style.opacity = '0';
                 }
@@ -1049,10 +1048,15 @@ function renderCalendar(schedule, skipHeader = false) {
         targetDate.setDate(currentDate.getDate() + daysToAdd);
         const dayNumber = targetDate.getDate(); // Numero del giorno
 
+        // Ottieni il nome del mese abbreviato
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthName = months[targetDate.getMonth()];
+
         dayHeader.innerHTML = `
             <span class="day-name">${day}</span>
-            <span class="day-number">${dayNumber}</span>
-            <span class="abbreviated-day">${ABBREVIATED_DAYS[DAYS_OF_WEEK.indexOf(day)]}</span>
+            <span class="separator">|</span>
+            <span class="day-number">${dayNumber} ${monthName}</span>
+            <span class="abbreviated-day" style="display:none">${ABBREVIATED_DAYS[DAYS_OF_WEEK.indexOf(day)]}</span>
         `;
         dayCol.appendChild(dayHeader);
 
@@ -1066,7 +1070,7 @@ function renderCalendar(schedule, skipHeader = false) {
                 createAnimeEntry(animeList, anime);
             });
         } else {
-            // Show "No episodes" message for empty days
+            // Creazione del container per "No episodes" per il posizionamento corretto
             const emptyDay = document.createElement('div');
             emptyDay.className = 'empty-day';
             emptyDay.textContent = 'No episodes';

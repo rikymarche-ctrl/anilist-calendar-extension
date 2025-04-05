@@ -81,6 +81,13 @@
     --color-blue-dim: rgba(96, 165, 250, 0.8);
 }
 
+/* Separator for day and date */
+.separator {
+    display: inline;
+    margin: 0 4px;
+    color: #9ca3af; /* Colore più chiaro */
+}
+
 /*------------------------------------------------------
  * CALENDAR CONTAINER
  *------------------------------------------------------*/
@@ -89,8 +96,8 @@
 .anilist-weekly-calendar {
     width: 100%;
     max-width: 100%; /* Ensure it never exceeds container width */
-    background: #152232; /* Colore di sfondo delle sezioni Anilist */
-    border-radius: 0; /* Rimuove bordi arrotondati */
+    background: #0B1622; /* Colore esatto delle div sottostanti come da screenshot */
+    border-radius: 6px; /* Bordi leggermente più arrotondati */
     overflow: hidden;
     animation: fadeIn 0.3s ease-in-out;
     margin: 0 0 15px 0; /* Remove top margin completely */
@@ -108,7 +115,7 @@
     padding: 12px 20px;
     background: transparent;
     color: var(--color-text-lighter);
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid rgba(var(--color-border-rgb), 0.5); /* Bordo più sottile */
     position: relative;
 }
 
@@ -145,7 +152,7 @@
 .header-settings-btn {
     position: absolute;
     right: 0; /* Completely to the right */
-    top: 50%;
+    top: calc(50% - 14px); /* Alzato di 14px rispetto al centro */
     transform: translateY(-50%);
     background: transparent;
     border: none;
@@ -157,7 +164,7 @@
     justify-content: center;
     cursor: pointer;
     color: var(--color-text-lighter);
-    transition: color 0.2s ease;
+    transition: color 0.2s ease, opacity 0.3s ease 0.2s; /* Ritardo di 0.2s */
     z-index: 10;
     opacity: 0; /* Nascosto di default */
 }
@@ -196,8 +203,8 @@
 
 /* Day column */
 .anilist-calendar-day {
-    border-right: 1px solid rgba(var(--color-border-rgb), 0.5); /* Bordo più sottile */
-    background: #152232; /* Colore di sfondo delle sezioni Anilist */
+    border-right: none; /* Rimosse le righe verticali */
+    background: #0B1622; /* Colore esatto delle div sottostanti */
     display: flex;
     flex-direction: column;
     position: relative;
@@ -214,19 +221,19 @@
 
 /* Current day styling */
 .anilist-calendar-day.current-day {
-    background: #152232; /* Colore di sfondo delle sezioni Anilist */
+    background: #0B1622; /* Colore esatto delle div sottostanti */
 }
 
 /* Current day header styling */
 .anilist-calendar-day.current-day .day-header {
-    background: #152232; /* Colore di sfondo delle sezioni Anilist */
+    background: #0B1622; /* Colore esatto delle div sottostanti */
     color: var(--color-blue);
 }
 
 /* Day header */
 .day-header {
     padding: 10px 15px;
-    background: #152232; /* Colore di sfondo delle sezioni Anilist */
+    background: #0B1622; /* Colore esatto delle div sottostanti */
     font-weight: 600;
     text-align: center;
     border-bottom: 1px solid rgba(var(--color-border-rgb), 0.5); /* Bordo più sottile */
@@ -235,22 +242,23 @@
     z-index: 2;
     color: var(--color-text);
     display: flex;
-    flex-direction: column;
     align-items: center;
+    justify-content: center;
 }
 
 /* Day name display */
 .day-name {
-    display: block;
+    display: inline;
     font-size: 15px;
+    margin-right: 5px;
 }
 
 /* Day number display */
 .day-number {
-    display: block;
-    font-size: 12px;
+    display: inline;
+    font-size: 14px;
     color: #9ca3af; /* Colore più chiaro */
-    margin-top: 2px;
+    margin-left: 5px;
 }
 
 /* Abbreviated day name (for mobile) */
@@ -265,7 +273,8 @@
     display: flex;
     flex-direction: column;
     gap: 6px; /* Slightly reduce space between elements */
-    min-height: 100px;
+    min-height: 150px; /* Increased minimum height */
+    height: 100%; /* Prende tutta l'altezza disponibile */
     overflow-y: auto;
     overflow-x: hidden; /* Prevent horizontal overflow */
     scrollbar-width: thin;
@@ -277,14 +286,17 @@
 
 /* Empty day message */
 .empty-day {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--color-text-lighter);
     font-style: italic;
     text-align: center;
-    height: 100px; /* Altezza fissa */
+    height: 120px;
     width: 100%;
+    padding: 20px 0;
+    margin: auto;
 }
 
 /*------------------------------------------------------
@@ -324,9 +336,9 @@
 .anime-entry {
     display: flex;
     align-items: center;
-    background: rgba(21, 31, 46, 0.8); /* Background più scuro per le card anime */
+    background: rgba(21, 35, 46, 0.85); /* Colore intermedio più chiaro */
     border-radius: 4px;
-    padding: 8px 2px 8px 8px; /* Riduce ulteriormente il padding a destra */
+    padding: 8px 0 8px 8px; /* Ridotto ulteriormente il padding a destra */
     position: relative;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -341,7 +353,7 @@
 /* Hover effect - use a slightly lighter color without border */
 .anime-entry:hover {
     transform: translateY(-1px);
-    background: rgba(33, 47, 65, 0.8); /* Background più chiaro per hover */
+    background: rgba(30, 45, 60, 0.85); /* Background più chiaro per hover */
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
@@ -393,11 +405,12 @@
     flex-direction: column;
     flex-grow: 1;
     min-width: 0;
-    max-width: calc(100% - 48px); /* Account for image width + margin when present */
+    max-width: calc(100% - 43px); /* Account for image width + reduced margin */
     overflow: hidden;
     box-sizing: border-box;
     width: 100%; /* Ensure full width to give more space to title and countdown */
     padding-right: 0; /* Nessun padding a destra */
+    margin-left: 5px; /* Margine ridotto a sinistra */
 }
 
 /* When image is hidden (compact mode), allow full width */
@@ -431,6 +444,7 @@
     justify-content: space-between;
     width: 100%; /* Full width to allow better spacing */
     padding-right: 0; /* No padding on right */
+    overflow: visible; /* Impedisce il taglio */
 }
 
 /* Anime time display */
@@ -441,8 +455,10 @@
     order: 2;
     text-align: right;
     margin-left: auto;
-    padding-right: 4px; /* Padding a destra per evitare che l'ultima cifra esca */
+    padding-right: 8px; /* Padding a destra aumentato */
     margin-right: 0;
+    white-space: nowrap; /* Evita di andare a capo */
+    min-width: 50px; /* Larghezza minima */
 }
 
 /* Countdown mode */
@@ -457,7 +473,7 @@
     color: var(--color-text-lighter);
     order: 1;
     opacity: 0.85;
-    max-width: 70%;
+    max-width: calc(100% - 60px); /* Ridotta larghezza per dare spazio al countdown */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
