@@ -52,6 +52,7 @@ let userPreferences = {
 let weeklySchedule = {};
 let isCalendarInitialized = false;
 let calendarContainer = null;
+let countdownInterval = null; // For real-time countdown updates
 
 /**
  * Logs debug messages to console
@@ -63,6 +64,99 @@ function log(message, data = null) {
         console.log(`[Anilist Calendar] ${message}`, data);
     } else {
         console.log(`[Anilist Calendar] ${message}`);
+    }
+}
+
+/**
+ * Updates the progress on AniList via API
+ * @param {string} animeId - The anime ID
+ * @param {number} progress - The new progress (episodes watched)
+ * @returns {Promise} A promise that resolves when the update is complete
+ */
+async function updateAniListProgress(animeId, progress) {
+    try {
+        // Check if we have an access token
+        const token = await getAniListToken();
+
+        if (!token) {
+            throw new Error('Not logged in to AniList');
+        }
+
+        // GraphQL mutation to update progress
+        const query = `
+            mutation ($mediaId: Int, $progress: Int) {
+                SaveMediaListEntry (mediaId: $mediaId, progress: $progress) {
+                    id
+                    progress
+                }
+            }
+        `;
+
+        const variables = {
+            mediaId: parseInt(animeId),
+            progress: progress
+        };
+
+        // Make the API request
+        const response = await fetch('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                query: query,
+                variables: variables
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.errors) {
+            throw new Error(data.errors[0].message);
+        }
+
+        return data.data.SaveMediaListEntry;
+    } catch (error) {
+        log('Error updating AniList progress', error);
+        throw error;
+    }
+}
+
+/**
+ * Gets the AniList access token from cookies or localStorage
+ * @returns {Promise<string|null>} The access token or null if not found
+ */
+async function getAniListToken() {
+    try {
+        // Try to get token from cookies first
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'access_token') {
+                return decodeURIComponent(value);
+            }
+        }
+
+        // If not in cookies, try localStorage
+        const token = localStorage.getItem('auth') || localStorage.getItem('access_token');
+        if (token) {
+            // If stored as JSON, parse it
+            try {
+                const parsed = JSON.parse(token);
+                return parsed.access_token || parsed.token || null;
+            } catch (e) {
+                // Not JSON, return as is
+                return token;
+            }
+        }
+
+        // Not found
+        return null;
+    } catch (error) {
+        log('Error getting AniList token', error);
+        return null;
     }
 }
 
@@ -81,6 +175,11 @@ function initialize() {
 
                 // Set up observer for future DOM changes
                 setupObserver();
+
+                // Start countdown timer if enabled
+                if (userPreferences.showCountdown) {
+                    startCountdownTimer();
+                }
             });
 
         // Set up error handler
@@ -185,7 +284,8 @@ function findAndReplaceAiringSection() {
             });
 
             // Add the settings button after the title
-            element.parentNode.appendChild(settingsButton);
+            const parentHeader = element.closest('.section-header') || element.parentNode;
+            parentHeader.appendChild(settingsButton);
 
             // Find the container
             const container = findAiringContainer(element);
@@ -287,8 +387,13 @@ function replaceAiringSection(container, headerElement, skipHeader = false) {
         }
 
         // Process data and render calendar with skipHeader option
-        const schedule = processAnimeData(animeData);
-        renderCalendar(schedule, skipHeader);
+        weeklySchedule = processAnimeData(animeData);
+        renderCalendar(weeklySchedule, skipHeader);
+
+        // Start the countdown timer if the countdown mode is enabled
+        if (userPreferences.showCountdown) {
+            startCountdownTimer();
+        }
 
         isCalendarInitialized = true;
         return true;
@@ -296,6 +401,78 @@ function replaceAiringSection(container, headerElement, skipHeader = false) {
         log("Error replacing section", err);
         return false;
     }
+}
+
+/**
+ * Updates the countdowns in real-time
+ */
+function startCountdownTimer() {
+    // Clear any existing interval
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+    }
+
+    // Set up a new interval to update countdowns every second
+    countdownInterval = setInterval(() => {
+        // Only update if countdown mode is enabled
+        if (!userPreferences.showCountdown) return;
+
+        // Find all countdown elements
+        const countdownElements = document.querySelectorAll('.anime-time.countdown-mode');
+
+        if (countdownElements.length === 0) return;
+
+        // Get current time for reference
+        const now = new Date();
+
+        // Update each countdown
+        countdownElements.forEach(element => {
+            // Find the anime entry this countdown belongs to
+            const animeEntry = element.closest('.anime-entry');
+            if (!animeEntry) return;
+
+            // Get the anime ID
+            const animeId = animeEntry.dataset.animeId;
+            if (!animeId) return;
+
+            // Find the corresponding anime data in our schedule
+            let animeData = null;
+
+            // Search through each day in the schedule
+            for (const day in weeklySchedule) {
+                const match = weeklySchedule[day].find(anime => anime.id === animeId);
+                if (match) {
+                    animeData = match;
+                    break;
+                }
+            }
+
+            if (!animeData) return;
+
+            // Calculate remaining time
+            const targetTime = new Date(animeData.airingDate);
+            const diff = targetTime - now;
+
+            if (diff <= 0) {
+                // Episode has aired
+                element.textContent = "Aired";
+                return;
+            }
+
+            // Calculate days, hours, minutes, seconds
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            // Update the text
+            if (days > 0) {
+                element.textContent = `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            } else {
+                element.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        });
+    }, 1000);
 }
 
 /**
@@ -404,13 +581,11 @@ function renderCalendar(schedule, skipHeader = false) {
     let orderedDays = [...DAYS_OF_WEEK];
 
     if (userPreferences.startDay === 'today') {
-        // Reorder days to start with today
         orderedDays = [
             ...DAYS_OF_WEEK.slice(currentDayIndex),
             ...DAYS_OF_WEEK.slice(0, currentDayIndex)
         ];
     } else if (!isNaN(userPreferences.startDay)) {
-        // Reorder days to start with user selected day
         const startDayIndex = parseInt(userPreferences.startDay);
         orderedDays = [
             ...DAYS_OF_WEEK.slice(startDayIndex),
@@ -424,42 +599,37 @@ function renderCalendar(schedule, skipHeader = false) {
             return schedule[day] && schedule[day].length > 0;
         });
 
-        // If no days have episodes, add the current day back
         if (orderedDays.length === 0) {
             orderedDays = [currentDayName];
         }
 
-        // Add class to container based on number of visible days for dynamic sizing
-        // First remove all previous day count classes
         for (let i = 1; i <= 7; i++) {
             calendarContainer.classList.remove(`days-count-${i}`);
         }
 
-        // Then add the appropriate one
         calendarContainer.classList.add(`days-count-${orderedDays.length}`);
     } else {
-        // If showing all days, make sure we have the days-count-7 class
-        calendarContainer.classList.remove('days-count-1', 'days-count-2', 'days-count-3', 'days-count-4', 'days-count-5', 'days-count-6');
+        calendarContainer.classList.remove(
+            'days-count-1', 'days-count-2', 'days-count-3',
+            'days-count-4', 'days-count-5', 'days-count-6'
+        );
         calendarContainer.classList.add('days-count-7');
     }
 
-    // Create header only if not skipped (when using external header)
+    // Create header if needed
     if (!skipHeader) {
-        // Create header with title and settings button
         const headerContainer = document.createElement('div');
         headerContainer.className = 'calendar-header';
 
-        // Create title with inline timezone
         const calendarTitle = document.createElement('h3');
         calendarTitle.className = 'calendar-title';
         calendarTitle.innerHTML = `Weekly Schedule <span class="timezone-separator">|</span> <span class="timezone-info">${getTimezoneName()}</span>`;
 
-        // Settings button with improved positioning
         const settingsButton = document.createElement('button');
         settingsButton.className = 'calendar-settings-btn';
         settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
         settingsButton.title = 'Open settings';
-        settingsButton.addEventListener('click', function(e) {
+        settingsButton.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
             createSettingsOverlay();
@@ -467,8 +637,6 @@ function renderCalendar(schedule, skipHeader = false) {
 
         headerContainer.appendChild(calendarTitle);
         headerContainer.appendChild(settingsButton);
-
-        // Add header container
         calendarContainer.appendChild(headerContainer);
     }
 
@@ -476,25 +644,21 @@ function renderCalendar(schedule, skipHeader = false) {
     const calendarGrid = document.createElement('div');
     calendarGrid.className = `anilist-calendar-grid ${userPreferences.compactMode ? 'compact-mode' : ''}`;
 
-    // Add days of the week in the determined order
     orderedDays.forEach(day => {
         const dayCol = document.createElement('div');
         dayCol.className = `anilist-calendar-day ${day === currentDayName ? 'current-day' : ''}`;
 
-        // Day header
         const dayHeader = document.createElement('div');
         dayHeader.className = 'day-header';
         dayHeader.innerHTML = `
-      <span class="day-name">${day}</span>
-      <span class="abbreviated-day">${ABBREVIATED_DAYS[DAYS_OF_WEEK.indexOf(day)]}</span>
-    `;
+            <span class="day-name">${day}</span>
+            <span class="abbreviated-day">${ABBREVIATED_DAYS[DAYS_OF_WEEK.indexOf(day)]}</span>
+        `;
         dayCol.appendChild(dayHeader);
 
-        // Day anime list
         const animeList = document.createElement('div');
         animeList.className = 'day-anime-list';
 
-        // Add anime entries for this day
         if (schedule[day] && schedule[day].length > 0) {
             schedule[day].forEach(anime => {
                 const animeEntry = document.createElement('div');
@@ -506,86 +670,95 @@ function renderCalendar(schedule, skipHeader = false) {
                     animeEntry.style.borderBottomColor = anime.color;
                 }
 
-                // Create image container with hover overlay
                 const animeImageDiv = document.createElement('div');
                 animeImageDiv.className = 'anime-image';
 
-                // Create overlay container
                 const imageOverlay = document.createElement('div');
                 imageOverlay.className = 'anime-image-overlay';
 
-                // Create plus button for incrementing episodes
                 const plusButton = document.createElement('button');
                 plusButton.className = 'anime-increment-button';
                 plusButton.innerHTML = '<i class="fa fa-plus"></i>';
                 plusButton.title = 'Mark next episode as watched';
                 plusButton.setAttribute('aria-label', 'Mark next episode as watched');
 
-                // Add event listener to increment episode
-                plusButton.addEventListener('click', function(e) {
+                plusButton.addEventListener('click', async function (e) {
                     e.preventDefault();
                     e.stopPropagation();
 
-                    // Get the anime ID
                     const animeId = animeEntry.dataset.animeId;
+                    if (!animeId) {
+                        showNotification('Error: Cannot find anime ID', 'error');
+                        return;
+                    }
 
-                    // Find all elements related to this anime
-                    const progressElements = document.querySelectorAll(`[data-anime-id="${animeId}"] .episode-number`);
+                    // Get current watched episode count
+                    const episodeElement = animeEntry.querySelector('.episode-number');
+                    if (!episodeElement) {
+                        showNotification('Error: Cannot find episode information', 'error');
+                        return;
+                    }
 
-                    // Increment episode counter for this anime
-                    // This would typically call an API to update the watched count
-                    // For now, just update the UI
-                    progressElements.forEach(element => {
-                        const text = element.textContent;
-                        const match = text.match(/Ep\s+(\d+)(?:\/(\d+))?(?:\/(\d+))?/i);
-                        if (match) {
-                            let watched = parseInt(match[1]) + 1;
-                            let available = match[2] ? parseInt(match[2]) : null;
-                            let total = match[3] ? parseInt(match[3]) : (match[2] ? parseInt(match[2]) : null);
+                    // Parse current progress
+                    const text = episodeElement.textContent;
+                    const match = text.match(/Ep\s+(\d+)(?:\/(\d+))?(?:\/(\d+))?/i);
 
-                            if (available && watched > available) {
-                                available = watched;
-                            }
+                    if (!match) {
+                        showNotification('Error: Cannot parse episode information', 'error');
+                        return;
+                    }
 
-                            if (total) {
-                                if (available) {
-                                    element.textContent = `Ep ${watched}/${available}/${total}`;
-                                } else {
-                                    element.textContent = `Ep ${watched}/${total}`;
-                                }
-                            } else {
-                                element.textContent = `Ep ${watched}`;
-                            }
+                    const currentProgress = parseInt(match[1]);
+                    const newProgress = currentProgress + 1;
+
+                    try {
+                        // Show loading indicator
+                        showNotification('Updating...', 'loading');
+
+                        // Call the AniList API to update progress
+                        const result = await updateAniListProgress(animeId, newProgress);
+
+                        if (result) {
+                            // Update all instances of this anime in the UI
+                            updateEpisodeCountInUI(animeId, newProgress);
+
+                            // Show success notification
+                            const titleElement = animeEntry.querySelector('.anime-title');
+                            const title = titleElement ? titleElement.textContent.trim() : 'this anime';
+                            showNotification(`Updated "${title}" to episode ${newProgress}`, 'success');
                         }
-                    });
-
-                    // Show success message
-                    showNotification('Episode marked as watched!');
+                    } catch (error) {
+                        // Show error notification
+                        showNotification(`Error: ${error.message}`, 'error');
+                        console.error('Error updating progress:', error);
+                    }
                 });
 
-                // Add plus button to overlay
                 imageOverlay.appendChild(plusButton);
-
-                // Add overlay to image container
                 animeImageDiv.appendChild(imageOverlay);
 
                 const animeImg = document.createElement('img');
                 animeImg.src = anime.coverImage;
                 animeImg.alt = anime.title;
                 animeImg.loading = 'lazy';
-
-                // Error handling for image loading
                 animeImg.addEventListener('error', () => {
                     animeImageDiv.classList.add('error');
+
+                    // Retry loading the image after a short delay
+                    setTimeout(() => {
+                        if (animeImg.src) {
+                            const originalSrc = animeImg.src;
+                            animeImg.src = '';
+                            animeImg.src = originalSrc + '?retry=' + new Date().getTime();
+                        }
+                    }, 1000);
                 });
 
                 animeImageDiv.appendChild(animeImg);
 
-                // Create time/countdown element based on user preference
                 const animeTimeDiv = document.createElement('div');
                 animeTimeDiv.className = 'anime-time inline-time';
 
-                // Show countdown or time based on preference
                 if (userPreferences.showCountdown) {
                     animeTimeDiv.textContent = formatCountdown(anime.days, anime.hours, anime.minutes);
                     animeTimeDiv.classList.add('countdown-mode');
@@ -593,61 +766,59 @@ function renderCalendar(schedule, skipHeader = false) {
                     animeTimeDiv.textContent = anime.formattedTime;
                 }
 
-                // If this time was adjusted across day boundaries, add a tooltip
                 if (anime.dayChanged) {
                     animeTimeDiv.title = `Originally aired on ${anime.originalDay}`;
                     animeTimeDiv.classList.add('day-adjusted');
                 }
 
-                // Create info element
                 const animeInfoDiv = document.createElement('div');
                 animeInfoDiv.className = 'anime-info';
 
-                // Add clean title
                 const titleDiv = document.createElement('div');
                 titleDiv.className = 'anime-title';
                 titleDiv.textContent = anime.cleanTitle || anime.title;
                 animeInfoDiv.appendChild(titleDiv);
 
-                // Create a container for episode info and time
                 const episodeTimeContainer = document.createElement('div');
                 episodeTimeContainer.className = 'anime-info-row';
 
-                // Add episode number if available and enabled
                 if (userPreferences.showEpisodeNumbers && anime.episodeInfo) {
                     const episodeText = document.createElement('span');
                     episodeText.className = 'episode-number';
-                    episodeText.textContent = anime.episodeInfo;
+                    episodeText.dataset.watched = anime.watched || 0;
+                    episodeText.dataset.available = anime.available || 0;
+                    episodeText.dataset.total = anime.total || 0;
+
+                    // Add a red indicator if behind on episodes
+                    if (anime.available > anime.watched) {
+                        const indicator = document.createElement('span');
+                        indicator.className = 'behind-indicator';
+                        indicator.title = `${anime.available - anime.watched} episode(s) behind`;
+                        episodeText.appendChild(indicator);
+                    }
+
+                    episodeText.appendChild(document.createTextNode(anime.episodeInfo));
                     episodeTimeContainer.appendChild(episodeText);
                 } else if (userPreferences.showEpisodeNumbers && anime.episode) {
-                    // Fallback to simple episode number if no formatted info available
                     const episodeText = document.createElement('span');
                     episodeText.className = 'episode-number';
                     episodeText.textContent = `Ep ${anime.episode}`;
                     episodeTimeContainer.appendChild(episodeText);
                 }
 
-                // Add the time
                 episodeTimeContainer.appendChild(animeTimeDiv);
-
-                // Add episode and time container to info div
                 animeInfoDiv.appendChild(episodeTimeContainer);
 
-                // Assemble the entry based on mode
                 if (userPreferences.gridMode) {
-                    // For grid mode: image as background with info overlay
                     animeEntry.appendChild(animeImageDiv);
                     animeEntry.appendChild(animeInfoDiv);
                 } else {
-                    // For standard and compact modes
                     if (!userPreferences.compactMode) {
-                        // Standard mode: show image
                         animeEntry.appendChild(animeImageDiv);
                     }
                     animeEntry.appendChild(animeInfoDiv);
                 }
 
-                // Make clickable to anime page
                 animeEntry.addEventListener('click', () => {
                     window.location.href = `https://anilist.co/anime/${anime.id}`;
                 });
@@ -655,7 +826,6 @@ function renderCalendar(schedule, skipHeader = false) {
                 animeList.appendChild(animeEntry);
             });
         } else {
-            // No anime airing on this day
             const emptyDay = document.createElement('div');
             emptyDay.className = 'empty-day';
             emptyDay.textContent = 'No episodes';
@@ -666,8 +836,53 @@ function renderCalendar(schedule, skipHeader = false) {
         calendarGrid.appendChild(dayCol);
     });
 
-    // Add calendar grid
     calendarContainer.appendChild(calendarGrid);
+}
+
+/**
+ * Updates episode counts in the UI for a specific anime
+ * @param {string} animeId - The anime ID
+ * @param {number} newProgress - The new progress count
+ */
+function updateEpisodeCountInUI(animeId, newProgress) {
+    // Find all episode number elements for this anime
+    const progressElements = document.querySelectorAll(`[data-anime-id="${animeId}"] .episode-number`);
+
+    progressElements.forEach(element => {
+        const text = element.textContent;
+        const match = text.match(/Ep\s+(\d+)(?:\/(\d+))?(?:\/(\d+))?/i);
+
+        if (match) {
+            let watched = newProgress;
+            let available = match[2] ? parseInt(match[2]) : null;
+            let total = match[3] ? parseInt(match[3]) : (match[2] ? parseInt(match[2]) : null);
+
+            // If new progress is greater than available, update available
+            if (available && watched > available) {
+                available = watched;
+            }
+
+            // Update displayed text
+            if (total) {
+                element.textContent = available
+                    ? `Ep ${watched}/${available}/${total}`
+                    : `Ep ${watched}/${total}`;
+            } else {
+                element.textContent = `Ep ${watched}`;
+            }
+
+            // Update data attributes
+            element.dataset.watched = watched;
+            if (available) element.dataset.available = available;
+            if (total) element.dataset.total = total;
+
+            // Remove behind indicator if caught up
+            if (available && watched >= available) {
+                const indicator = element.querySelector('.behind-indicator');
+                if (indicator) indicator.remove();
+            }
+        }
+    });
 }
 
 /**
@@ -701,8 +916,10 @@ function formatTime(date) {
 
 /**
  * Show a notification
+ * @param {string} message - The message to show
+ * @param {string} type - The type of notification (success, error, loading)
  */
-function showNotification(message) {
+function showNotification(message, type = 'success') {
     // Remove any existing notifications
     const existingNotifications = document.querySelectorAll('.settings-notification');
     existingNotifications.forEach(notification => notification.remove());
@@ -710,10 +927,20 @@ function showNotification(message) {
     // Create new notification
     const notification = document.createElement('div');
     notification.className = 'settings-notification';
-    notification.innerHTML = `
-    <i class="fa fa-check-circle"></i>
-    <span>${message}</span>
-  `;
+
+    let icon = '<i class="fa fa-check-circle"></i>';
+    let className = '';
+
+    if (type === 'error') {
+        icon = '<i class="fa fa-exclamation-circle"></i>';
+        className = 'error';
+    } else if (type === 'loading') {
+        icon = '<i class="fa fa-spinner fa-spin"></i>';
+        className = 'loading';
+    }
+
+    notification.className = `settings-notification ${className}`;
+    notification.innerHTML = `${icon}<span>${message}</span>`;
 
     // Add to DOM
     document.body.appendChild(notification);
@@ -722,16 +949,35 @@ function showNotification(message) {
     setTimeout(() => {
         notification.classList.add('active');
 
-        // Hide after 3 seconds
-        setTimeout(() => {
-            notification.classList.remove('active');
-
-            // Remove from DOM after transition
+        // Hide after 3 seconds for success/error notifications
+        if (type !== 'loading') {
             setTimeout(() => {
-                notification.remove();
-            }, 300);
-        }, 3000);
+                notification.classList.remove('active');
+
+                // Remove from DOM after transition
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
     }, 10);
+
+    return notification;
+}
+
+/**
+ * Hide an existing notification
+ * @param {HTMLElement} notification - The notification element to hide
+ */
+function hideNotification(notification) {
+    if (!notification) return;
+
+    notification.classList.remove('active');
+
+    // Remove from DOM after transition
+    setTimeout(() => {
+        notification.remove();
+    }, 300);
 }
 
 /**
@@ -1383,7 +1629,8 @@ function extractAnimeDataFromDOM(container) {
                     dayChanged: airingInfo.dayChanged,
                     watched: episodeInfo.watched,
                     available: episodeInfo.available,
-                    total: episodeInfo.total
+                    total: episodeInfo.total,
+                    episodesBehind: episodeInfo.episodesBehind
                 });
 
             } catch (cardErr) {
@@ -1435,7 +1682,11 @@ function processAnimeData(animeData) {
             dayChanged: anime.dayChanged,
             days: anime.days,
             hours: anime.hours,
-            minutes: anime.minutes
+            minutes: anime.minutes,
+            watched: anime.watched,
+            available: anime.available,
+            total: anime.total,
+            episodesBehind: anime.episodesBehind
         });
     }
 

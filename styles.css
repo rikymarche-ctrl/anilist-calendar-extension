@@ -86,9 +86,9 @@
     color: #9fadbd; /* AniList text color */
 }
 
-/* Settings button */
+/* Settings button with improved positioning and no delay */
 .calendar-settings-btn {
-    background: transparent; /* Removed background square */
+    background: transparent;
     border: none;
     border-radius: 4px;
     width: 32px;
@@ -97,31 +97,39 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: #3db4f2; /* AniList blue */
-    transition: color 0.2s ease;
+    color: #9fadbd; /* Default grey color */
+    transition: color 0.2s ease; /* Faster color transition */
     position: absolute;
-    right: 10px; /* Moved to the right edge with small margin */
+    right: 10px;
     top: 50%;
     transform: translateY(-50%);
     z-index: 10;
+    opacity: 0; /* Hidden by default */
+}
+
+/* Show on hover of parent with faster transition */
+.section-header:hover .calendar-settings-btn,
+.calendar-header:hover .calendar-settings-btn,
+.anilist-weekly-calendar:hover .calendar-settings-btn {
+    opacity: 1;
+    transition: opacity 0.15s ease; /* Faster fade in */
 }
 
 .calendar-settings-btn:hover {
-    color: #66c9ff; /* Lighter blue on hover */
-    background: transparent; /* Keep transparent even on hover */
+    color: #3db4f2; /* Blue on hover */
 }
 
 .calendar-settings-btn:active {
     transform: translateY(-50%) scale(0.95);
 }
 
-/* Position the settings button in the external header */
+/* Position the settings button in the external header with improved hover area */
 .header-settings-btn {
     position: absolute;
-    right: 10px; /* Moved to the right edge with small margin */
+    right: 10px;
     top: 50%;
     transform: translateY(-50%);
-    background: transparent; /* No background */
+    background: transparent;
     border: none;
     border-radius: 4px;
     width: 32px;
@@ -130,18 +138,25 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: #3db4f2; /* AniList blue */
-    transition: color 0.2s ease;
+    color: #9fadbd; /* Default grey color */
+    transition: color 0.2s ease, opacity 0.15s ease; /* Faster transitions */
     z-index: 10;
+    opacity: 0; /* Hidden by default */
+}
+
+/* Expanded hover area for the settings button */
+.section-header {
+    position: relative;
+    padding: 20px 50px 20px 20px; /* Add padding to the right to accommodate the button */
+}
+
+/* Show on hover of parent */
+.section-header:hover .header-settings-btn {
+    opacity: 1;
 }
 
 .header-settings-btn:hover {
-    color: #66c9ff; /* Lighter blue on hover */
-    background: transparent; /* Keep transparent even on hover */
-}
-
-.header-settings-btn:active {
-    transform: translateY(-50%) scale(0.95);
+    color: #3db4f2; /* Blue on hover */
 }
 
 /* Calendar grid */
@@ -151,6 +166,9 @@
     width: 100%;
     flex-wrap: wrap;
     overflow-x: hidden;
+    /* Add symmetrical padding */
+    padding-left: 10px;
+    padding-right: 10px;
 }
 
 /*------------------------------------------------------
@@ -164,11 +182,13 @@
     max-width: 14.28%;
     width: 14.28%;
     border-right: 1px solid rgba(255, 255, 255, 0.05);
+    border-left: 1px solid rgba(255, 255, 255, 0.05); /* Add left border for symmetry */
     display: flex;
     flex-direction: column;
     position: relative;
     background: transparent; /* Match AniList */
     box-sizing: border-box;
+    margin: 0 -0.5px; /* Adjust to prevent double borders */
 }
 
 /* Ensure dynamic sizing works with all combinations of options */
@@ -355,16 +375,17 @@
     width: 100%;
     height: 100%;
     background: linear-gradient(to top,
-    rgba(0, 0, 0, 0.9) 0%,
-    rgba(0, 0, 0, 0.7) 40%,
-    rgba(0, 0, 0, 0.4) 70%,
+    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.8) 30%,
+    rgba(0, 0, 0, 0.5) 60%,
+    rgba(0, 0, 0, 0.2) 80%,
     rgba(0, 0, 0, 0) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
     transform: translateY(100%);
-    transition: transform 0.3s ease, opacity 0.3s ease;
+    transition: transform 0.2s ease, opacity 0.2s ease; /* Faster transitions */
     z-index: 5;
     border-radius: 3px;
 }
@@ -373,32 +394,29 @@
 .anime-image:hover .anime-image-overlay {
     opacity: 1;
     transform: translateY(0);
-    animation: slideUp 0.3s ease forwards;
+    animation: slideUp 0.2s ease forwards; /* Faster animation */
 }
 
-/* Increment button - new feature */
+/* Increment button - new feature - simplified version */
 .anime-increment-button {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background-color: #3db4f2;
+    background-color: transparent;
     color: white;
     border: none;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    font-size: 22px;
     opacity: 0;
     transform: scale(0.8);
-    transition: transform 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
-    animation: fadeInButton 0.2s ease 0.2s forwards;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    animation: fadeInButton 0.15s ease 0.1s forwards; /* Faster animation with shorter delay */
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
 }
 
 .anime-increment-button:hover {
-    background-color: #66c9ff;
-    transform: scale(1.1);
+    transform: scale(1.2);
+    color: #66c9ff;
 }
 
 .anime-increment-button:active {
@@ -475,9 +493,10 @@
     text-align: right;
 }
 
-/* Countdown style when inline */
+/* Countdown style when inline - use a more vibrant, attention-grabbing color */
 .anime-time.inline-time.countdown-mode {
-    color: #66c9ff;
+    color: #ff9e3f; /* More vibrant amber/orange color for countdown */
+    font-weight: 600; /* Make it stand out more */
 }
 
 /* Episode number styling */
@@ -490,6 +509,20 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+}
+
+/* Indicator for episodes behind - Improved visibility */
+.behind-indicator {
+    width: 8px; /* Slightly larger */
+    height: 8px; /* Slightly larger */
+    border-radius: 50%;
+    background-color: #ff4f4f; /* Brighter red for better visibility */
+    display: inline-block;
+    margin-right: 6px; /* More spacing */
+    flex-shrink: 0;
+    animation: pulse 1.5s infinite; /* Faster pulsing animation */
 }
 
 /* Day adjusted (timezone) indicator */
@@ -681,6 +714,12 @@
     text-align: center;
 }
 
+/* Use a different background color for countdown mode in grid view */
+.anilist-weekly-calendar.grid-mode .anime-time.inline-time.countdown-mode {
+    background: #ff9e3f; /* Match the new countdown color */
+    color: #fff;
+}
+
 .anilist-weekly-calendar.grid-mode .episode-number {
     font-size: 10px;
     color: #fff;
@@ -733,7 +772,6 @@
 /* Position the section header with the button */
 .section-header {
     position: relative;
-    padding-right: 40px; /* Make space for the button */
 }
 
 /* Timezone display in header */
@@ -1061,13 +1099,13 @@ input:checked + .slider:before {
     margin-right: 10px;
 }
 
-/* Notification styles */
+/* Notification styles - enhanced with different types */
 .settings-notification {
     position: fixed;
     bottom: 20px;
     left: 50%;
-    transform: translateX(-50%);
-    background-color: #3db4f2; /* AniList blue */
+    transform: translateX(-50%) translateY(20px);
+    background-color: #3db4f2; /* AniList blue for success */
     color: white;
     padding: 10px 20px;
     border-radius: 4px;
@@ -1079,12 +1117,28 @@ input:checked + .slider:before {
     gap: 10px;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
 }
 
 .settings-notification.active {
     opacity: 1;
     visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Error notification */
+.settings-notification.error {
+    background-color: #ff4f4f; /* Red for errors */
+}
+
+/* Loading notification */
+.settings-notification.loading {
+    background-color: #ff9e3f; /* Amber/orange for loading */
+}
+
+/* Spinner animation for loading notification */
+.settings-notification.loading i {
+    animation: spin 1s linear infinite;
 }
 
 /*------------------------------------------------------
