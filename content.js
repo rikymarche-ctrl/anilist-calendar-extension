@@ -74,6 +74,30 @@ function initialize() {
     log("Initializing extension");
 
     try {
+        // Approccio estremamente aggressivo per lo sfondo
+        const styleForceBackground = document.createElement('style');
+        styleForceBackground.id = "anilist-calendar-force-background";
+        styleForceBackground.innerHTML = `
+            html body .anilist-weekly-calendar,
+            html body .anilist-calendar-grid,
+            html body .anilist-calendar-day,
+            html body .day-header,
+            html body .day-anime-list {
+                background-color: #0B1622FF !important;
+                background: #0B1622FF !important;
+                background-image: none !important;
+            }
+        `;
+        document.head.appendChild(styleForceBackground);
+
+        // Imposta un intervallo per assicurarsi che lo stile venga sempre applicato
+        setInterval(() => {
+            const calendarElements = document.querySelectorAll('.anilist-weekly-calendar, .anilist-calendar-grid, .anilist-calendar-day, .day-header, .day-anime-list');
+            calendarElements.forEach(el => {
+                el.setAttribute('style', el.getAttribute('style') + '; background-color: #0B1622FF !important; background: #0B1622FF !important;');
+            });
+        }, 500);
+
         // Load user preferences
         loadUserPreferences()
             .then(() => {
@@ -220,10 +244,13 @@ function findAndReplaceAiringSection() {
             settingsButton.className = 'calendar-settings-btn header-settings-btn';
             settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
             settingsButton.title = 'Open settings';
+            settingsButton.style.position = 'absolute';
             settingsButton.style.left = 'auto'; // Reset left positioning
             settingsButton.style.right = '0'; // Position all the way to the right
             settingsButton.style.width = '28px'; // Smaller button
             settingsButton.style.height = '28px'; // Smaller button
+            settingsButton.style.top = '50%'; // Manteniamo al centro
+            settingsButton.style.transform = 'translateY(-50%)'; // Centra verticalmente
             settingsButton.innerHTML = '<i class="fa fa-cog" style="font-size: 14px;"></i>'; // Smaller icon
             settingsButton.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -268,10 +295,13 @@ function findAndReplaceAiringSection() {
                 settingsButton.className = 'calendar-settings-btn header-settings-btn';
                 settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
                 settingsButton.title = 'Open settings';
+                settingsButton.style.position = 'absolute';
                 settingsButton.style.left = 'auto'; // Reset left positioning
                 settingsButton.style.right = '0'; // Position all the way to the right
                 settingsButton.style.width = '28px'; // Smaller button
                 settingsButton.style.height = '28px'; // Smaller button
+                settingsButton.style.top = '50%'; // Manteniamo al centro
+                settingsButton.style.transform = 'translateY(-50%)'; // Centra verticalmente
                 settingsButton.innerHTML = '<i class="fa fa-cog" style="font-size: 14px;"></i>'; // Smaller icon
                 settingsButton.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -326,6 +356,7 @@ function replaceAiringSection(container, headerElement, skipHeader = false) {
         // Create calendar container with improved styling
         calendarContainer = document.createElement('div');
         calendarContainer.className = 'anilist-weekly-calendar';
+        calendarContainer.style.backgroundColor = '#0B1622FF'; // Forza il colore direttamente
 
         // Apply compact mode class if needed
         if (userPreferences.compactMode) {
@@ -1023,6 +1054,7 @@ function renderCalendar(schedule, skipHeader = false) {
     calendarGrid.className = 'anilist-calendar-grid';
     calendarGrid.style.width = '100%'; // Force 100% width
     calendarGrid.style.maxWidth = '100%'; // Ensure it doesn't overflow
+    calendarGrid.style.backgroundColor = '#0B1622FF'; // Forza il colore direttamente
 
     if (userPreferences.compactMode) {
         calendarGrid.classList.add('compact-mode');
@@ -1035,10 +1067,12 @@ function renderCalendar(schedule, skipHeader = false) {
     daysToShow.forEach(day => {
         const dayCol = document.createElement('div');
         dayCol.className = `anilist-calendar-day ${day === currentDayName ? 'current-day' : ''}`;
+        dayCol.style.backgroundColor = '#0B1622FF'; // Forza il colore direttamente
 
         // Create day header
         const dayHeader = document.createElement('div');
         dayHeader.className = 'day-header';
+        dayHeader.style.backgroundColor = '#0B1622FF'; // Forza il colore direttamente
 
         // Calcola la data corrente del giorno della settimana
         const currentDate = new Date();
@@ -1065,6 +1099,7 @@ function renderCalendar(schedule, skipHeader = false) {
         // Create anime list for this day
         const animeList = document.createElement('div');
         animeList.className = 'day-anime-list';
+        animeList.style.backgroundColor = '#0B1622FF'; // Forza il colore direttamente
 
         if (schedule[day] && schedule[day].length > 0) {
             // Create entries for each anime
@@ -1097,19 +1132,31 @@ function createAnimeEntry(container, anime) {
     const entry = document.createElement('div');
     entry.className = 'anime-entry';
     entry.dataset.animeId = anime.id;
+    entry.style.backgroundColor = 'rgba(21, 35, 46, 0.85)';
+    entry.style.padding = '0';
+    entry.style.alignItems = 'stretch';
 
     // Make the entry clickable to go to the anime page
     entry.addEventListener('click', () => {
         window.location.href = `/anime/${anime.id}`;
     });
 
-    // Create cover image
+    // Create cover image - full height
     const imageContainer = document.createElement('div');
     imageContainer.className = 'anime-image';
+    imageContainer.style.width = '40px';
+    imageContainer.style.height = '100%';
+    imageContainer.style.marginRight = '6px';
+    imageContainer.style.borderRadius = '3px 0 0 3px';
+    imageContainer.style.display = 'flex';
+    imageContainer.style.alignItems = 'center';
 
     const coverImg = document.createElement('img');
     coverImg.src = anime.coverImage || '/images/default_cover.png';
     coverImg.alt = anime.cleanTitle;
+    coverImg.style.width = '100%';
+    coverImg.style.height = '100%';
+    coverImg.style.objectFit = 'cover';
     coverImg.onerror = function() {
         this.parentNode.classList.add('error');
     };
@@ -1120,23 +1167,36 @@ function createAnimeEntry(container, anime) {
     // Create info container
     const infoContainer = document.createElement('div');
     infoContainer.className = 'anime-info';
+    infoContainer.style.padding = '8px 0';
+    infoContainer.style.display = 'flex';
+    infoContainer.style.flexDirection = 'column';
+    infoContainer.style.justifyContent = 'center';
+    infoContainer.style.marginLeft = '0';
 
-    // Title
+    // Title - multiline with ellipsis
     const title = document.createElement('div');
     title.className = 'anime-title';
     title.textContent = anime.cleanTitle;
+    title.style.whiteSpace = 'normal';
+    title.style.display = '-webkit-box';
+    title.style.webkitLineClamp = '2';
+    title.style.webkitBoxOrient = 'vertical';
+    title.style.maxHeight = '2.4em';
     infoContainer.appendChild(title);
 
     // Info row (episodes and time)
     const infoRow = document.createElement('div');
     infoRow.className = 'anime-info-row';
+    infoRow.style.marginTop = '1px';
+    infoRow.style.gap = '6px';
 
-    // Episode number - using directly the original text from Anilist
+    // Episode number
     if (userPreferences.showEpisodeNumbers) {
         const episodeNumber = document.createElement('div');
         episodeNumber.className = 'episode-number';
+        episodeNumber.style.marginLeft = '0';
+        episodeNumber.style.paddingLeft = '0';
 
-        // Add 'behind' indicator if needed (red dot)
         if (anime.episodesBehind > 0) {
             const behindIndicator = document.createElement('span');
             behindIndicator.className = 'behind-indicator';
@@ -1144,11 +1204,9 @@ function createAnimeEntry(container, anime) {
             episodeNumber.appendChild(behindIndicator);
         }
 
-        // Use original progress text directly from Anilist
         if (anime.episodeProgressString) {
             episodeNumber.appendChild(document.createTextNode('Ep ' + anime.episodeProgressString));
         } else {
-            // Fallback to calculated format
             episodeNumber.appendChild(document.createTextNode('Ep ' + anime.episodeInfo));
         }
 
@@ -1158,6 +1216,8 @@ function createAnimeEntry(container, anime) {
     // Time or countdown
     const timeDisplay = document.createElement('div');
     timeDisplay.className = 'anime-time';
+    timeDisplay.style.paddingRight = '10px';
+
     if (userPreferences.showCountdown) {
         timeDisplay.classList.add('countdown-mode');
 
@@ -1183,7 +1243,6 @@ function createAnimeEntry(container, anime) {
         timeDisplay.textContent = anime.formattedTime;
     }
 
-    // Add day-adjusted indicator if the day changed due to timezone
     if (anime.dayChanged) {
         timeDisplay.classList.add('day-adjusted');
         timeDisplay.title = `Originally scheduled on ${anime.originalDay}`;
@@ -1193,7 +1252,6 @@ function createAnimeEntry(container, anime) {
     infoContainer.appendChild(infoRow);
     entry.appendChild(infoContainer);
 
-    // Add to container
     container.appendChild(entry);
 }
 
