@@ -1,160 +1,84 @@
-/* Utilizziamo il colore di sfondo del sito come richiesto */
-:root {
-    --site-background-color: #151f2e !important; /* Colore del sito Anilist */
-}
-
-/* Forziamo il colore corretto e usiamo il colore di sfondo impostato */
-body .anilist-weekly-calendar,
-body .anilist-calendar-grid,
-body .anilist-calendar-day,
-body .day-header,
-body .day-anime-list {
-    background-color: #151f2e !important;
-    background: #151f2e !important;
-    background-image: none !important;
-    color: white !important;
-}
-
-/* Colore di sfondo naturale del sito */
-body .anilist-weekly-calendar {
-    background-color: #151f2e !important;
-}
-
-/* Adjust text colors for better visibility */
-.day-name, .day-number {
-    color: white !important;
-}
-
-/* Make separator more visible */
-.separator {
-    color: rgba(255, 255, 255, 0.7) !important;
-}
-
-/* Day number display for current day */
-.anilist-calendar-day.current-day .day-number,
-.anilist-calendar-day.current-day .separator {
-    color: white; /* Light color for current day */
-}
-
-/**
+/*
  * Anilist Weekly Schedule Extension - Styles
  *
  * This stylesheet provides styling for the weekly calendar view
  * that replaces the Airing section on Anilist.
- *
- * Author: ExAstra
- * GitHub: https://github.com/rikymarche-ctrl/anilist-weekly-schedule
  */
 
-/*------------------------------------------------------
- * ANIMATIONS & KEYFRAMES
- *------------------------------------------------------*/
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
+/* Theme variables */
+.anilist-weekly-calendar {
+    --cal-text: #e5e7eb;
+    --cal-text-light: #9ca3af;
+    --cal-background: #0B1622;
+    --cal-foreground: #152232;
+    --cal-border: rgba(125, 125, 125, 0.2);
+    --cal-blue: #3db4f2;
+    --cal-blue-dim: rgba(61, 180, 242, 0.8);
+    --cal-anime-bg: rgba(30, 42, 56, 0.8);
+    --cal-anime-hover: rgba(40, 55, 70, 0.8);
 }
 
-@keyframes slideUp {
-    from { transform: translateY(100%); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+/* Light theme overrides */
+.site-theme-light .anilist-weekly-calendar,
+[data-theme='light'] .anilist-weekly-calendar {
+    --cal-text: #1f2937;
+    --cal-text-light: #6b7280;
+    --cal-background: #f9fafb;
+    --cal-foreground: #ffffff;
+    --cal-anime-bg: rgba(240, 240, 245, 0.9);
+    --cal-anime-hover: rgba(230, 230, 240, 0.9);
 }
 
-@keyframes fadeInButton {
-    from { opacity: 0; transform: scale(0.8); }
-    to { opacity: 1; transform: scale(1); }
+/* Apply theme variables */
+.anilist-weekly-calendar,
+.anilist-calendar-grid,
+.anilist-calendar-day,
+.day-header,
+.day-anime-list {
+    background-color: var(--cal-background);
+    color: var(--cal-text);
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.day-name, .day-number {
+    color: var(--cal-text);
 }
 
-@keyframes pulse {
-    0% { opacity: 0.6; }
-    50% { opacity: 1; }
-    100% { opacity: 0.6; }
-}
-
-/* Animation for blue border */
-@keyframes pulse-border {
-    0% { border-color: rgba(61, 180, 242, 0.7); }
-    50% { border-color: rgba(61, 180, 242, 1); }
-    100% { border-color: rgba(61, 180, 242, 0.7); }
-}
-
-/* Shimmer animation for loading */
-@keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-}
-
-/*------------------------------------------------------
- * BASIC THEME VARIABLES & DEFAULTS
- *------------------------------------------------------*/
-
-/* Default theme variables */
-:root {
-    --color-text: #1f2937;
-    --color-text-lighter: #6b7280;
-    --color-background: #f9fafb;
-    --color-foreground: #ffffff;
-    --color-foreground-grey: #f3f4f6;
-    --color-border: #e5e7eb;
-    --color-border-rgb: 229, 231, 235;
-    --color-blue: #3db4f2;
-    --color-blue-dim: rgba(61, 180, 242, 0.8);
-}
-
-/* Dark theme variables */
-.site-theme-dark, [data-theme='dark'] {
-    --color-text: #e5e7eb;
-    --color-text-lighter: #9ca3af;
-    --color-background: #0B1622;
-    --color-foreground: #152232;
-    --color-foreground-grey: #1A2C3D;
-    --color-border: #2c3e50;
-    --color-border-rgb: 44, 62, 80;
-    --color-blue: #3db4f2;
-    --color-blue-dim: rgba(61, 180, 242, 0.8);
-}
-
-/* High Contrast theme variables */
-.site-theme-contrast, [data-theme='contrast'] {
-    --color-text: #ffffff;
-    --color-text-lighter: #d1d5db;
-    --color-background: #000000;
-    --color-foreground: #111827;
-    --color-foreground-grey: #1f2937;
-    --color-border: #4b5563;
-    --color-border-rgb: 75, 85, 99;
-    --color-blue: #60a5fa;
-    --color-blue-dim: rgba(96, 165, 250, 0.8);
-}
-
-/* Separator for day and date */
 .separator {
-    display: inline;
-    margin: 0 4px;
-    color: #9ca3af; /* Lighter color */
+    color: var(--cal-text-light);
 }
+
+/* Current day styling */
+.anilist-calendar-day.current-day .day-number,
+.anilist-calendar-day.current-day .separator,
+.anilist-calendar-day.current-day .day-name {
+    color: var(--cal-blue);
+}
+
+/*------------------------------------------------------
+ * ANIMATIONS
+ *------------------------------------------------------*/
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes fadeInButton { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+@keyframes click-feedback { 0% { transform: scale(1); } 50% { transform: scale(0.98); box-shadow: 0 0 8px rgba(61, 180, 242, 0.35); } 100% { transform: scale(1); } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
 /*------------------------------------------------------
  * CALENDAR CONTAINER
  *------------------------------------------------------*/
-
-/* Main calendar container */
 .anilist-weekly-calendar {
     width: 100%;
-    max-width: 100%; /* Ensure it never exceeds container width */
-    border-radius: 6px; /* Slightly rounded corners */
+    max-width: 100%;
+    border-radius: 6px;
     overflow: hidden;
     animation: fadeIn 0.3s ease-in-out;
-    margin: 0 0 15px 0; /* Remove top margin completely */
+    margin: 0 0 15px 0;
     position: relative;
-    border: none; /* Remove outer border */
-    box-shadow: none; /* Remove shadow */
-    box-sizing: border-box; /* Include padding and border in the width calculation */
+    border: none;
+    box-shadow: none;
+    box-sizing: border-box;
 }
 
 /* Calendar header */
@@ -164,8 +88,8 @@ body .anilist-weekly-calendar {
     align-items: center;
     padding: 12px 20px;
     background: transparent;
-    color: var(--color-text-lighter);
-    border-bottom: 1px solid rgba(var(--color-border-rgb), 0.5); /* Thinner border */
+    color: var(--cal-text-light);
+    border-bottom: 1px solid var(--cal-border);
     position: relative;
 }
 
@@ -179,51 +103,41 @@ body .anilist-weekly-calendar {
     margin: 0;
     font-size: 16px;
     font-weight: 600;
-    color: var(--color-text-lighter);
+    color: var(--cal-text-light);
 }
 
-/* Settings button */
-.calendar-settings-btn {
+/* Settings buttons */
+.calendar-settings-btn, .header-settings-btn {
     background: transparent;
     border: none;
     border-radius: 4px;
-    width: 32px;
-    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: var(--color-text-lighter);
-    transition: color 0.2s ease, opacity 0.15s ease;
+    color: var(--cal-text-light);
+    transition: opacity 0.05s ease;
     opacity: 0;
 }
 
-/* Settings button in section header */
+.calendar-settings-btn {
+    width: 32px;
+    height: 32px;
+}
+
 .header-settings-btn {
     position: absolute;
-    right: 0; /* Completely to the right */
-    top: calc(50% - 14px); /* Raised 14px from center */
-    transform: translateY(-50%);
-    background: transparent;
-    border: none;
-    border-radius: 4px;
-    width: 28px; /* Reduced from 32px */
-    height: 28px; /* Reduced from 32px */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--color-text-lighter);
-    transition: color 0.2s ease, opacity 0.3s ease 0.2s; /* 0.2s delay */
+    right: 0;
+    margin-top: -5px !important;
+    width: 28px;
+    height: 28px;
     z-index: 10;
-    opacity: 0; /* Hidden by default */
 }
 
 .header-settings-btn i {
-    font-size: 14px; /* Reduced from 16px (default size) */
+    font-size: 14px;
 }
 
-/* Show settings buttons on hover */
 .section-header:hover .header-settings-btn,
 .calendar-header:hover .calendar-settings-btn,
 .anilist-weekly-calendar:hover .calendar-settings-btn,
@@ -231,59 +145,91 @@ body .anilist-weekly-calendar {
     opacity: 1;
 }
 
-.calendar-settings-btn:hover,
-.header-settings-btn:hover {
-    color: var(--color-blue);
+/* Base background fix */
+.anilist-weekly-calendar,
+.anilist-calendar-grid,
+.anilist-calendar-day,
+.day-header,
+.day-anime-list {
+    background-color: #0B1622 !important;
+    color: var(--cal-text) !important;
+}
+
+/* Light theme background */
+.site-theme-light .anilist-weekly-calendar,
+.site-theme-light .anilist-calendar-grid,
+.site-theme-light .anilist-calendar-day,
+.site-theme-light .day-header,
+.site-theme-light .day-anime-list,
+[data-theme='light'] .anilist-weekly-calendar,
+[data-theme='light'] .anilist-calendar-grid,
+[data-theme='light'] .anilist-calendar-day,
+[data-theme='light'] .day-header,
+[data-theme='light'] .day-anime-list {
+    background-color: #f9fafb !important;
+}
+
+/* Anime entry styling - dark theme */
+.site-theme-dark .anilist-weekly-calendar .anime-entry,
+[data-theme='dark'] .anilist-weekly-calendar .anime-entry,
+.anilist-weekly-calendar .anime-entry {
+    background-color: rgba(26, 42, 56, 0.9);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.site-theme-dark .anilist-weekly-calendar .anime-entry:hover,
+[data-theme='dark'] .anilist-weekly-calendar .anime-entry:hover,
+.anilist-weekly-calendar .anime-entry:hover {
+    background-color: rgba(36, 52, 66, 0.9);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* Anime entry styling - light theme */
+.site-theme-light .anilist-weekly-calendar .anime-entry,
+[data-theme='light'] .anilist-weekly-calendar .anime-entry {
+    background-color: rgba(235, 240, 245, 0.95);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.site-theme-light .anilist-weekly-calendar .anime-entry:hover,
+[data-theme='light'] .anilist-weekly-calendar .anime-entry:hover {
+    background-color: rgba(225, 230, 240, 0.95);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 /*------------------------------------------------------
  * CALENDAR GRID LAYOUT
  *------------------------------------------------------*/
-
-/* Calendar grid container */
 .anilist-calendar-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr); /* Equal width for 7 days */
+    grid-template-columns: repeat(7, 1fr);
     width: 100%;
-    max-width: 100%; /* Ensure grid doesn't overflow */
-    border-bottom: none; /* Remove bottom border */
-    overflow-x: hidden; /* Prevent horizontal overflow */
-    box-sizing: border-box; /* Include padding and border in width calculation */
+    max-width: 100%;
+    border-bottom: none;
+    overflow-x: hidden;
+    box-sizing: border-box;
 }
 
-/* Day column */
 .anilist-calendar-day {
-    border-right: none; /* Remove vertical lines */
+    border-right: none;
     display: flex;
     flex-direction: column;
     position: relative;
-    min-width: 0; /* Allow column to shrink below min-content width */
-    max-width: 100%; /* Ensure column doesn't exceed container width */
-    overflow: hidden; /* Hide overflow content */
-    box-sizing: border-box; /* Include padding and border in width calculation */
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
-/* Remove right border from last day column */
 .anilist-calendar-day:last-child {
     border-right: none;
 }
 
-/* Current day styling */
-.anilist-calendar-day.current-day {
-    /* Solo evidenziazione del testo */
-}
-
-/* Current day header styling */
-.anilist-calendar-day.current-day .day-header {
-    color: var(--color-blue);
-}
-
-/* Day header */
 .day-header {
     padding: 10px 15px;
     font-weight: 600;
     text-align: center;
-    border-bottom: 1px solid rgba(var(--color-border-rgb), 0.5); /* Thinner border */
+    border-bottom: 1px solid rgba(var(--color-border-rgb), 0.5);
     position: sticky;
     top: 0;
     z-index: 2;
@@ -293,51 +239,46 @@ body .anilist-weekly-calendar {
     justify-content: center;
 }
 
-/* Day name display */
 .day-name {
     display: inline;
     font-size: 15px;
     margin-right: 5px;
 }
 
-/* Day number display */
 .day-number {
     display: inline;
     font-size: 14px;
-    color: #9ca3af; /* Lighter color */
+    color: var(--color-text-light);
     margin-left: 5px;
 }
 
-/* Abbreviated day name (for mobile) */
 .abbreviated-day {
     display: none;
     font-size: 14px;
 }
 
-/* Day anime list container */
 .day-anime-list {
     padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 6px; /* Slightly reduce space between elements */
-    min-height: 150px; /* Increased minimum height */
-    height: 100%; /* Take all available height */
+    gap: 6px;
+    min-height: 150px;
+    height: 100%;
     overflow-y: auto;
-    overflow-x: hidden; /* Prevent horizontal overflow */
+    overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: var(--color-blue) var(--color-background);
-    width: 100%; /* Take full width of parent */
-    box-sizing: border-box; /* Include padding in width calculation */
-    position: relative; /* For proper positioning of "No episodes" */
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
 }
 
-/* Empty day message */
 .empty-day {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-text-lighter);
+    color: var(--color-text-light);
     font-style: italic;
     text-align: center;
     height: 120px;
@@ -349,68 +290,50 @@ body .anilist-weekly-calendar {
 /*------------------------------------------------------
  * DYNAMIC DAY COLUMN COUNT
  *------------------------------------------------------*/
-
-/* Ensure the grid adjusts properly when showing fewer than 7 days */
-.anilist-weekly-calendar.days-count-1 .anilist-calendar-grid {
-    grid-template-columns: 1fr;
-}
-
-.anilist-weekly-calendar.days-count-2 .anilist-calendar-grid {
-    grid-template-columns: repeat(2, 1fr);
-}
-
-.anilist-weekly-calendar.days-count-3 .anilist-calendar-grid {
-    grid-template-columns: repeat(3, 1fr);
-}
-
-.anilist-weekly-calendar.days-count-4 .anilist-calendar-grid {
-    grid-template-columns: repeat(4, 1fr);
-}
-
-.anilist-weekly-calendar.days-count-5 .anilist-calendar-grid {
-    grid-template-columns: repeat(5, 1fr);
-}
-
-.anilist-weekly-calendar.days-count-6 .anilist-calendar-grid {
-    grid-template-columns: repeat(6, 1fr);
-}
+.anilist-weekly-calendar.days-count-1 .anilist-calendar-grid { grid-template-columns: 1fr; }
+.anilist-weekly-calendar.days-count-2 .anilist-calendar-grid { grid-template-columns: repeat(2, 1fr); }
+.anilist-weekly-calendar.days-count-3 .anilist-calendar-grid { grid-template-columns: repeat(3, 1fr); }
+.anilist-weekly-calendar.days-count-4 .anilist-calendar-grid { grid-template-columns: repeat(4, 1fr); }
+.anilist-weekly-calendar.days-count-5 .anilist-calendar-grid { grid-template-columns: repeat(5, 1fr); }
+.anilist-weekly-calendar.days-count-6 .anilist-calendar-grid { grid-template-columns: repeat(6, 1fr); }
 
 /*------------------------------------------------------
  * ANIME ENTRIES
  *------------------------------------------------------*/
-
-/* Anime entry container - Full height image */
 .anime-entry {
     display: flex;
-    align-items: stretch; /* Changed from center to stretch to extend the image */
-    background: rgba(21, 35, 46, 0.85);
+    align-items: stretch;
+    background: var(--cal-anime-bg);
     border-radius: 4px;
-    padding: 0 !important; /* No padding at all */
+    padding: 0 !important;
     position: relative;
     cursor: pointer;
     transition: all 0.2s ease;
     overflow: hidden;
-    box-shadow: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
     margin-bottom: 6px;
-    height: 65px; /* Increased standardized height for all entries */
+    height: 65px;
 }
 
-/* Hover effect - use a slightly lighter color without border */
 .anime-entry:hover {
     transform: translateY(-1px);
-    background: rgba(30, 45, 60, 0.85); /* Lighter background for hover */
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    background: var(--cal-anime-hover);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
-/* Anime image container - Full height with no padding, no border */
+.anime-entry:active {
+    transform: scale(0.99);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
 .anime-entry .anime-image {
     border: none;
     box-sizing: border-box;
-    width: 45px !important; /* Width increased */
-    height: 100% !important; /* Takes full height */
+    width: 45px !important;
+    height: 100% !important;
     margin-right: 6px !important;
     flex-shrink: 0;
     overflow: hidden;
@@ -418,11 +341,10 @@ body .anilist-weekly-calendar {
     align-items: center;
     position: relative;
     padding: 0 !important;
-    border-radius: 0; /* No border radius */
-    transition: transform 0.1s ease; /* Add transition for push effect */
+    border-radius: 0;
+    transition: transform 0.1s ease;
 }
 
-/* Anime image - ensure it fills container with no gaps */
 .anime-entry .anime-image img {
     width: 100%;
     height: 100%;
@@ -430,84 +352,60 @@ body .anilist-weekly-calendar {
     border-radius: 0;
     padding: 0;
     margin: 0;
-    background-color: #152232; /* Match the site's background color */
+    background-color: rgba(0, 0, 0, 0.2);
     z-index: 1;
 }
 
-/* Add blue highlight effect on hover with improved z-index */
-.anime-entry:hover .anime-image::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border: 2px solid var(--color-blue);
-    box-sizing: border-box;
-    z-index: 3;
-}
-
-/* Rimuoviamo lo pseudo-elemento after poiché ora usiamo un elemento reale */
-.anime-image::after {
-    content: none;
-}
-
-/* Anime info container - Two-row layout */
 .anime-info {
     display: flex;
     flex-direction: column;
     justify-content: center;
     flex-grow: 1;
     min-width: 0;
-    max-width: calc(100% - 51px); /* Adjusted for larger image */
+    max-width: calc(100% - 51px);
     overflow: hidden;
     box-sizing: border-box;
     width: 100%;
-    padding: 6px 0 !important; /* Reduced vertical padding to center content better */
+    padding: 6px 0 !important;
     margin-left: 0 !important;
 }
 
-/* When image is hidden (compact mode), allow full width */
 .anilist-weekly-calendar.compact-mode:not(.grid-mode) .anime-info {
     max-width: 100%;
 }
 
-/* Anime title - Multi-line with increased spacing */
 .anime-title {
     font-weight: 600;
-    margin-bottom: 7px !important; /* Increased spacing below title */
-    margin-top: 2px !important; /* Added spacing above title */
+    margin-bottom: 7px !important;
+    margin-top: 2px !important;
     line-height: 1.2 !important;
     color: var(--color-text);
     overflow: hidden;
     text-overflow: ellipsis;
-    /* Support for multi-line titles with ellipsis */
-    white-space: normal !important; /* Allow wrapping */
+    white-space: normal !important;
     display: -webkit-box !important;
-    -webkit-line-clamp: 2 !important; /* Limit to 2 lines */
+    -webkit-line-clamp: 2 !important;
     -webkit-box-orient: vertical !important;
-    max-height: 2.4em !important; /* 2 * lineHeight */
+    max-height: 2.4em !important;
     font-size: 13px;
     max-width: 100%;
     padding: 0 !important;
 }
 
-/* Anime info row */
 .anime-info-row {
     display: flex;
     align-items: center;
-    gap: 6px; /* Reduced gap between episode number and time */
+    gap: 6px;
     font-size: 12px;
-    color: var(--color-text-lighter);
+    color: var(--color-text-light);
     white-space: nowrap;
-    margin-top: 1px !important; /* Reduced */
+    margin-top: 1px !important;
     justify-content: space-between;
-    width: 100%; /* Full width to allow better spacing */
+    width: 100%;
     padding-right: 0;
     overflow: visible;
 }
 
-/* Anime time display */
 .anime-time {
     font-size: 12px;
     color: var(--color-blue);
@@ -515,25 +413,23 @@ body .anilist-weekly-calendar {
     order: 2;
     text-align: right;
     margin-left: auto;
-    padding-right: 10px !important; /* Increased right padding */
+    padding-right: 10px !important;
     margin-right: 0;
-    white-space: nowrap; /* Prevent wrapping */
-    min-width: 50px; /* Minimum width */
+    white-space: nowrap;
+    min-width: 50px;
 }
 
-/* Countdown mode */
 .anime-time.countdown-mode {
     color: #a3b8cc;
     font-weight: 500;
 }
 
-/* Episode number display */
 .episode-number {
     font-size: 11px;
-    color: var(--color-text-lighter);
+    color: var(--color-text-light);
     order: 1;
     opacity: 0.85;
-    max-width: calc(100% - 65px); /* Further reduced to give more space to countdown */
+    max-width: calc(100% - 65px);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -543,7 +439,6 @@ body .anilist-weekly-calendar {
     padding-left: 0 !important;
 }
 
-/* Indicator for episodes behind */
 .behind-indicator {
     width: 8px;
     height: 8px;
@@ -555,14 +450,12 @@ body .anilist-weekly-calendar {
     animation: pulse 1.5s infinite;
 }
 
-/* Next episode label */
 .next-episode {
-    color: var(--color-text-lighter);
+    color: var(--color-text-light);
     font-style: italic;
     opacity: 0.8;
 }
 
-/* Day adjusted indicator for timezone changes */
 .anime-time.day-adjusted::after {
     content: "*";
     display: inline-block;
@@ -575,8 +468,6 @@ body .anilist-weekly-calendar {
 /*------------------------------------------------------
  * COMPACT MODE
  *------------------------------------------------------*/
-
-/* Apply compact mode */
 .anilist-weekly-calendar.compact-mode .day-header {
     padding: 8px 10px;
 }
@@ -594,7 +485,6 @@ body .anilist-weekly-calendar {
     padding: 5px 8px;
 }
 
-/* Hide images in compact mode (except grid mode) */
 .anilist-weekly-calendar.compact-mode:not(.grid-mode) .anime-image {
     display: none !important;
 }
@@ -615,8 +505,6 @@ body .anilist-weekly-calendar {
 /*------------------------------------------------------
  * GRID MODE
  *------------------------------------------------------*/
-
-/* Grid mode layout */
 .anilist-weekly-calendar.grid-mode .day-anime-list {
     display: flex;
     flex-direction: row;
@@ -643,7 +531,6 @@ body .anilist-weekly-calendar {
     border-radius: 4px;
 }
 
-/* Hover info overlay for grid mode */
 .anilist-weekly-calendar.grid-mode .anime-info {
     position: absolute;
     bottom: 0;
@@ -698,9 +585,7 @@ body .anilist-weekly-calendar {
     max-width: 80px;
 }
 
-/* Fix grid mode in compact mode */
 .anilist-weekly-calendar.compact-mode.grid-mode .anime-entry {
-    flex-direction: column;
     width: 100px;
     height: 150px;
 }
@@ -714,8 +599,6 @@ body .anilist-weekly-calendar {
 /*------------------------------------------------------
  * HEADER & TIMEZONE DISPLAY
  *------------------------------------------------------*/
-
-/* Header styling */
 .airing-replaced-header {
     display: inline-block;
     margin: 0;
@@ -732,15 +615,14 @@ body .anilist-weekly-calendar {
     padding: 12px 20px;
 }
 
-/* Timezone display */
 .timezone-separator {
-    color: var(--color-text-lighter);
+    color: var(--color-text-light);
     margin: 0 8px;
     font-weight: normal;
 }
 
 .timezone-info {
-    color: var(--color-text-lighter);
+    color: var(--color-text-light);
     font-weight: normal;
     font-size: 0.9em;
 }
@@ -748,8 +630,6 @@ body .anilist-weekly-calendar {
 /*------------------------------------------------------
  * SETTINGS OVERLAY
  *------------------------------------------------------*/
-
-/* Settings overlay */
 .settings-overlay {
     position: fixed;
     top: 0;
@@ -771,7 +651,6 @@ body .anilist-weekly-calendar {
     visibility: visible;
 }
 
-/* Settings panel */
 .settings-panel {
     width: 90%;
     max-width: 500px;
@@ -785,7 +664,6 @@ body .anilist-weekly-calendar {
     border: 1px solid var(--color-border);
 }
 
-/* Settings header */
 .settings-header {
     display: flex;
     justify-content: space-between;
@@ -815,7 +693,6 @@ body .anilist-weekly-calendar {
     justify-content: center;
 }
 
-/* Settings section */
 .settings-section {
     margin-bottom: 20px;
     background: var(--color-foreground);
@@ -830,7 +707,6 @@ body .anilist-weekly-calendar {
     color: var(--color-blue);
 }
 
-/* Settings rows */
 .settings-row {
     display: flex;
     justify-content: space-between;
@@ -854,11 +730,10 @@ body .anilist-weekly-calendar {
 
 .settings-description {
     font-size: 13px;
-    color: var(--color-text-lighter);
+    color: var(--color-text-light);
     margin-top: 4px;
 }
 
-/* Settings controls */
 .settings-select {
     padding: 8px 12px;
     border-radius: 4px;
@@ -868,7 +743,6 @@ body .anilist-weekly-calendar {
     min-width: 140px;
 }
 
-/* Toggle switch */
 .toggle-switch {
     position: relative;
     display: inline-block;
@@ -918,7 +792,6 @@ input:checked + .slider:before {
     transform: translateX(24px);
 }
 
-/* Save button */
 .settings-save-container {
     margin-top: 25px;
     display: flex;
@@ -944,7 +817,6 @@ input:checked + .slider:before {
     background-color: var(--color-blue-dim);
 }
 
-/* Loading and notifications */
 .settings-loading {
     display: none;
     margin: 20px 0;
@@ -1004,38 +876,24 @@ input:checked + .slider:before {
 /*------------------------------------------------------
  * RESPONSIVE ADJUSTMENTS
  *------------------------------------------------------*/
-
-/* Tablet and smaller screens */
 @media screen and (max-width: 1000px) {
-    /* On tablets, we show all days compressed */
     .anilist-calendar-grid {
         grid-template-columns: repeat(7, minmax(0, 1fr));
         max-width: 100%;
     }
 
-    /* Make sure all day columns fit */
     .anilist-weekly-calendar.days-count-5 .anilist-calendar-grid,
     .anilist-weekly-calendar.days-count-6 .anilist-calendar-grid,
     .anilist-weekly-calendar.days-count-7 .anilist-calendar-grid {
         grid-template-columns: repeat(7, minmax(0, 1fr));
     }
 
-    /* Smaller content to fit narrower columns */
-    .day-anime-list {
-        padding: 6px;
-        gap: 6px;
-    }
-
-    .anime-entry {
+    .day-anime-list, .anime-entry {
         padding: 6px;
     }
 
     .day-name {
         font-size: 13px;
-    }
-
-    .anime-entry {
-        padding: 6px;
     }
 
     .anime-image {
@@ -1052,9 +910,7 @@ input:checked + .slider:before {
     }
 }
 
-/* Mobile screens */
 @media screen and (max-width: 768px) {
-    /* We'll keep all days visible but make them adaptable */
     .anilist-calendar-grid {
         grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
         grid-auto-flow: column;
@@ -1064,7 +920,6 @@ input:checked + .slider:before {
         scroll-snap-type: x mandatory;
     }
 
-    /* Keep all days visible in a scrollable container */
     .anilist-weekly-calendar.days-count-4 .anilist-calendar-grid,
     .anilist-weekly-calendar.days-count-5 .anilist-calendar-grid,
     .anilist-weekly-calendar.days-count-6 .anilist-calendar-grid,
@@ -1074,7 +929,6 @@ input:checked + .slider:before {
         overflow-x: auto;
     }
 
-    /* Add scroll snap to each day column */
     .anilist-calendar-day {
         scroll-snap-align: start;
         min-width: 120px;
@@ -1097,11 +951,7 @@ input:checked + .slider:before {
         font-size: 11px;
     }
 
-    .anime-info-row {
-        font-size: 10px;
-    }
-
-    .episode-number {
+    .anime-info-row, .episode-number {
         font-size: 10px;
     }
 
@@ -1113,14 +963,12 @@ input:checked + .slider:before {
         font-size: 0.8em;
     }
 
-    /* Settings panel adjustments */
     .settings-row {
         flex-direction: column;
         align-items: flex-start;
     }
 
-    .settings-select,
-    .toggle-switch {
+    .settings-select, .toggle-switch {
         margin-top: 10px;
         width: 100%;
     }
@@ -1131,21 +979,18 @@ input:checked + .slider:before {
     }
 }
 
-/* Small mobile screens */
 @media screen and (max-width: 600px) {
-    /* For very small screens, use horizontal scroll */
     .anilist-calendar-grid {
         display: grid;
-        grid-template-columns: repeat(7, 220px); /* Fixed width columns */
+        grid-template-columns: repeat(7, 220px);
         grid-auto-flow: column;
         overflow-x: auto;
         overflow-y: hidden;
         scroll-snap-type: x mandatory;
-        padding-bottom: 5px; /* Space for scrollbar */
+        padding-bottom: 5px;
         scrollbar-width: thin;
     }
 
-    /* All the day count variants use the same scroll layout */
     .anilist-weekly-calendar.days-count-3 .anilist-calendar-grid,
     .anilist-weekly-calendar.days-count-4 .anilist-calendar-grid,
     .anilist-weekly-calendar.days-count-5 .anilist-calendar-grid,
@@ -1154,20 +999,17 @@ input:checked + .slider:before {
         grid-template-columns: repeat(7, 220px);
     }
 
-    /* Each day takes full width and snaps when scrolling */
     .anilist-calendar-day {
         width: 220px;
         min-width: 220px;
         scroll-snap-align: start;
     }
 
-    /* Current day needs to be extra visible */
     .anilist-calendar-day.current-day {
         border-left: 3px solid var(--color-blue);
         border-right: 3px solid var(--color-blue);
     }
 
-    /* More compact entries */
     .anime-entry {
         padding: 5px 6px;
     }
@@ -1194,25 +1036,29 @@ input:checked + .slider:before {
     height: 135px;
 }
 
-/* Plus button styling and animation */
-.anime-plus-button {
+.plus-button {
     transition: all 0.2s ease-out;
 }
 
-.anime-plus-button:hover {
-    background-color: rgba(61, 180, 242, 0.4) !important;
+.plus-button:hover {
+    background-color: rgba(61, 180, 242, 0.7) !important;
 }
 
-.anime-plus-button:active {
+.plus-button:active {
     transform: scale(0.9);
 }
 
-/* Blue highlight border animation */
-.blue-border-overlay {
-    animation: pulse-border 1.5s infinite;
+.anime-image {
+    position: relative;
+    overflow: hidden;
 }
 
-/* Default image style */
+.anime-image.loading {
+    background: linear-gradient(90deg, rgba(21, 34, 50, 0.5) 25%, rgba(26, 44, 61, 0.5) 50%, rgba(21, 34, 50, 0.5) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
 .anime-image.error::before {
     content: "";
     position: absolute;
@@ -1220,42 +1066,56 @@ input:checked + .slider:before {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: #1A1A2E;
+    background-color: rgba(26, 26, 46, 0.5);
     z-index: 1;
 }
 
-.anime-image.error::after {
-    content: "×";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 24px;
-    color: #9CA3AF;
-    z-index: 2;
-}
-
-/* Hover effect improvements */
 .anime-entry:hover .anime-image {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
 }
 
-/* Add blue highlight when clicking the entry */
-.anime-entry:active {
-    border-color: rgba(61, 180, 242, 0.8);
+.anime-title,
+.day-name,
+.day-number,
+.separator,
+.anime-info-row,
+.episode-number,
+.anime-time {
+    color: inherit;
 }
 
-/* Improved loading indicators */
-.anime-image.loading::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, #152232 25%, #1A2C3D 50%, #152232 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-    z-index: 1;
+.anime-title {
+    color: var(--cal-text);
+}
+
+.anime-time {
+    color: var(--cal-blue);
+}
+
+.episode-number,
+.day-number,
+.separator {
+    color: var(--cal-text-light);
+}
+
+.settings-panel {
+    background-color: var(--cal-background);
+    color: var(--cal-text);
+    border: 1px solid var(--cal-border);
+}
+
+.settings-section {
+    background: var(--cal-foreground);
+}
+
+.settings-row {
+    background: var(--cal-background);
+}
+
+.settings-overlay {
+    background-color: rgba(0, 0, 0, 0.85);
+}
+
+.anime-plus-button:hover {
+    background-color: rgba(61, 180, 242, 0.4) !important;
 }
