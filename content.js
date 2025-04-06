@@ -1343,8 +1343,8 @@ function createAnimeEntry(container, anime) {
             if (days > 0) {
                 timeDisplay.textContent = `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
             } else {
-                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-                timeDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                // Non mostriamo i secondi
+                timeDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
             }
         }
     } else {
@@ -1423,13 +1423,13 @@ function startCountdownTimer() {
             const days = Math.floor(diff / (1000 * 60 * 60 * 24));
             const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
             // Update the text
             if (days > 0) {
                 element.textContent = `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
             } else {
-                element.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                // Non mostriamo i secondi, solo ore e minuti
+                element.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
             }
         });
     }, 1000);
@@ -1448,10 +1448,14 @@ function createSettingsOverlay() {
     // Create overlay container
     const overlayContainer = document.createElement('div');
     overlayContainer.className = 'settings-overlay';
+    overlayContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
 
     // Create settings panel
     const settingsPanel = document.createElement('div');
     settingsPanel.className = 'settings-panel';
+    settingsPanel.style.backgroundColor = '#0B1622';
+    settingsPanel.style.border = '1px solid rgba(100, 100, 100, 0.4)';
+    settingsPanel.style.boxShadow = '0 5px 20px rgba(0, 0, 0, 0.5)';
 
     // Add header
     const header = document.createElement('div');
@@ -1478,6 +1482,8 @@ function createSettingsOverlay() {
     // Add settings sections
     const displaySection = document.createElement('div');
     displaySection.className = 'settings-section';
+    displaySection.style.backgroundColor = '#152232';
+    displaySection.style.border = '1px solid rgba(70, 70, 80, 0.3)';
 
     const displayTitle = document.createElement('h4');
     displayTitle.className = 'settings-section-title';
@@ -1627,6 +1633,8 @@ function createSettingsOverlay() {
 function createSettingRow(label, description, control) {
     const row = document.createElement('div');
     row.className = 'settings-row';
+    row.style.backgroundColor = '#0B1622';
+    row.style.borderBottom = '1px solid rgba(70, 70, 80, 0.3)';
 
     const labelContainer = document.createElement('div');
 
