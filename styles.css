@@ -1,27 +1,39 @@
-/* Utilizziamo il colore di sfondo "grigiolino" tipico del sito invece del blu */
+/* Utilizziamo il colore di sfondo del sito come richiesto */
 :root {
-    --site-background-color: #152232 !important; /* Colore grigiolino del sito */
+    --site-background-color: #151f2e !important; /* Colore del sito Anilist */
 }
 
-/* Rimuoviamo le forzature del colore blu e usiamo il colore di sfondo del sito */
+/* Forziamo il colore corretto e usiamo il colore di sfondo impostato */
 body .anilist-weekly-calendar,
 body .anilist-calendar-grid,
 body .anilist-calendar-day,
 body .day-header,
 body .day-anime-list {
-    background-color: transparent !important;
+    background-color: #151f2e !important;
+    background: #151f2e !important;
     background-image: none !important;
+    color: white !important;
 }
 
 /* Colore di sfondo naturale del sito */
 body .anilist-weekly-calendar {
-    background-color: transparent !important;
+    background-color: #151f2e !important;
+}
+
+/* Adjust text colors for better visibility */
+.day-name, .day-number {
+    color: white !important;
+}
+
+/* Make separator more visible */
+.separator {
+    color: rgba(255, 255, 255, 0.7) !important;
 }
 
 /* Day number display for current day */
 .anilist-calendar-day.current-day .day-number,
 .anilist-calendar-day.current-day .separator {
-    color: var(--color-blue); /* Same color as current day */
+    color: white; /* Light color for current day */
 }
 
 /**
@@ -62,6 +74,19 @@ body .anilist-weekly-calendar {
     0% { opacity: 0.6; }
     50% { opacity: 1; }
     100% { opacity: 0.6; }
+}
+
+/* Animation for blue border */
+@keyframes pulse-border {
+    0% { border-color: rgba(61, 180, 242, 0.7); }
+    50% { border-color: rgba(61, 180, 242, 1); }
+    100% { border-color: rgba(61, 180, 242, 0.7); }
+}
+
+/* Shimmer animation for loading */
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
 }
 
 /*------------------------------------------------------
@@ -394,6 +419,7 @@ body .anilist-weekly-calendar {
     position: relative;
     padding: 0 !important;
     border-radius: 0; /* No border radius */
+    transition: transform 0.1s ease; /* Add transition for push effect */
 }
 
 /* Anime image - ensure it fills container with no gaps */
@@ -404,9 +430,11 @@ body .anilist-weekly-calendar {
     border-radius: 0;
     padding: 0;
     margin: 0;
+    background-color: #152232; /* Match the site's background color */
+    z-index: 1;
 }
 
-/* Add blue highlight effect on hover */
+/* Add blue highlight effect on hover with improved z-index */
 .anime-entry:hover .anime-image::before {
     content: "";
     position: absolute;
@@ -416,7 +444,7 @@ body .anilist-weekly-calendar {
     height: 100%;
     border: 2px solid var(--color-blue);
     box-sizing: border-box;
-    z-index: 2;
+    z-index: 3;
 }
 
 /* Rimuoviamo lo pseudo-elemento after poiché ora usiamo un elemento reale */
@@ -1164,4 +1192,70 @@ input:checked + .slider:before {
 .anilist-weekly-calendar.grid-mode .anime-image {
     width: 90px;
     height: 135px;
+}
+
+/* Plus button styling and animation */
+.anime-plus-button {
+    transition: all 0.2s ease-out;
+}
+
+.anime-plus-button:hover {
+    background-color: rgba(61, 180, 242, 0.4) !important;
+}
+
+.anime-plus-button:active {
+    transform: scale(0.9);
+}
+
+/* Blue highlight border animation */
+.blue-border-overlay {
+    animation: pulse-border 1.5s infinite;
+}
+
+/* Default image style */
+.anime-image.error::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #1A1A2E;
+    z-index: 1;
+}
+
+.anime-image.error::after {
+    content: "×";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: #9CA3AF;
+    z-index: 2;
+}
+
+/* Hover effect improvements */
+.anime-entry:hover .anime-image {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Add blue highlight when clicking the entry */
+.anime-entry:active {
+    border-color: rgba(61, 180, 242, 0.8);
+}
+
+/* Improved loading indicators */
+.anime-image.loading::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #152232 25%, #1A2C3D 50%, #152232 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    z-index: 1;
 }

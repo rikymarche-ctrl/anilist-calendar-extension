@@ -14,6 +14,9 @@ const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 const ABBREVIATED_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const STORAGE_KEY_PREFIX = 'anilist_calendar_';
 
+// Anilist GraphQL endpoint
+const ANILIST_API_URL = 'https://graphql.anilist.co';
+
 // Timezone Configuration
 // Common timezone options with UTC offsets - listed by popularity in anime community
 const TIMEZONE_OPTIONS = [
@@ -68,35 +71,125 @@ function log(message, data = null) {
 }
 
 /**
+ * Preloads FontAwesome icons to ensure they're available
+ */
+function preloadFontAwesomeIcons() {
+    // Create a hidden div to force icon font loading
+    const preloadDiv = document.createElement('div');
+    preloadDiv.style.position = 'absolute';
+    preloadDiv.style.top = '-9999px';
+    preloadDiv.style.left = '-9999px';
+    preloadDiv.style.visibility = 'hidden';
+
+    // Add some common icons we'll use
+    preloadDiv.innerHTML = `
+        <i class="fa fa-plus"></i>
+        <i class="fa fa-check"></i>
+        <i class="fa fa-cog"></i>
+        <i class="fa fa-spinner fa-spin"></i>
+    `;
+
+    document.body.appendChild(preloadDiv);
+
+    // Remove after a delay to ensure they're loaded
+    setTimeout(() => {
+        document.body.removeChild(preloadDiv);
+    }, 2000);
+}
+
+/**
+ * Apply extension enhancements including site background color
+ */
+function applyExtensionEnhancements() {
+    // Apply site background color force
+    const styleForceBackground = document.createElement('style');
+    styleForceBackground.id = "anilist-calendar-force-background";
+    styleForceBackground.innerHTML = `
+        html body .anilist-weekly-calendar,
+        html body .anilist-calendar-grid,
+        html body .anilist-calendar-day,
+        html body .day-header,
+        html body .day-anime-list {
+            background-color: #151f2e !important;
+            background: #151f2e !important;
+            background-image: none !important;
+            color: white !important;
+        }
+        
+        html body .day-name, 
+        html body .day-number {
+            color: white !important;
+        }
+        
+        html body .separator {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+        
+        /* Migliore gestione del bordo blu */
+        .anime-entry:hover .anime-image::before {
+            z-index: 3;
+        }
+        
+        .blue-border-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid #3db4f2;
+            box-sizing: border-box;
+            z-index: 3;
+            pointer-events: none;
+        }
+    `;
+    document.head.appendChild(styleForceBackground);
+
+    // Create default image for error states
+    createDefaultImage();
+}
+
+/**
+ * Creates and preloads a default image for error states
+ */
+function createDefaultImage() {
+    // Create a default cover image for use when loading fails
+    const defaultImageData = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="100" height="150" viewBox="0 0 100 150">
+            <rect width="100" height="150" fill="#1A1A2E"/>
+            <text x="50" y="75" font-family="Arial" font-size="16" fill="#9CA3AF" text-anchor="middle">No Image</text>
+        </svg>
+    `;
+
+    // Convert the SVG to a data URL
+    const defaultImageUrl = 'data:image/svg+xml;base64,' + btoa(defaultImageData);
+
+    // Create the image and add it to extension storage
+    const defaultImage = new Image();
+    defaultImage.src = defaultImageUrl;
+
+    // Store it in extension storage if needed
+    try {
+        chrome.storage.local.set({ 'default_cover_image': defaultImageUrl });
+    } catch (e) {
+        // Fallback for when chrome.storage is not available
+        window.defaultCoverImage = defaultImageUrl;
+    }
+
+    return defaultImageUrl;
+}
+
+/**
  * Main initialization function
  */
 function initialize() {
     log("Initializing extension");
 
     try {
-        // Extremely aggressive approach for background
-        const styleForceBackground = document.createElement('style');
-        styleForceBackground.id = "anilist-calendar-force-background";
-        styleForceBackground.innerHTML = `
-            html body .anilist-weekly-calendar,
-            html body .anilist-calendar-grid,
-            html body .anilist-calendar-day,
-            html body .day-header,
-            html body .day-anime-list {
-                background-color: #0B1622FF !important;
-                background: #0B1622FF !important;
-                background-image: none !important;
-            }
-        `;
-        document.head.appendChild(styleForceBackground);
+        // Apply our custom enhancements
+        applyExtensionEnhancements();
 
-        // Set an interval to ensure style is always applied
-        setInterval(() => {
-            const calendarElements = document.querySelectorAll('.anilist-weekly-calendar, .anilist-calendar-grid, .anilist-calendar-day, .day-header, .day-anime-list');
-            calendarElements.forEach(el => {
-                el.setAttribute('style', el.getAttribute('style') + '; background-color: #0B1622FF !important; background: #0B1622FF !important;');
-            });
-        }, 500);
+        // Preload FontAwesome icons
+        preloadFontAwesomeIcons();
 
         // Load user preferences
         loadUserPreferences()
@@ -181,6 +274,224 @@ function setupObserver() {
     });
 
     log("Observer set up");
+}
+
+/**
+ * Get the authentication token from localStorage
+ * @returns {string|null} The authentication token or null if not found
+ */
+function getAuthToken() {
+    // Anilist stores auth tokens in localStorage
+    const tokenKey = Object.keys(localStorage).find(key => key.startsWith('auth'));
+    if (!tokenKey) return null;
+
+    try {
+        const tokenData = JSON.parse(localStorage.getItem(tokenKey));
+        return tokenData.accessToken;
+    } catch (err) {
+        console.error('Error parsing auth token:', err);
+        return null;
+    }
+}
+
+/**
+ * Update progress (increment episode count) via Anilist API
+ * @param {string} mediaId - The anime ID
+ * @param {number} progress - The new progress value
+ * @returns {Promise<Object>} The API response
+ */
+async function updateAnimeProgress(mediaId, progress) {
+    const token = getAuthToken();
+    if (!token) {
+        showNotification('Please log in to Anilist to update progress', 'error');
+        return null;
+    }
+
+    // GraphQL mutation to update progress
+    const mutation = `
+        mutation ($mediaId: Int, $progress: Int) {
+            SaveMediaListEntry (mediaId: $mediaId, progress: $progress) {
+                id
+                progress
+                status
+            }
+        }
+    `;
+
+    // Variables for the mutation
+    const variables = {
+        mediaId: parseInt(mediaId),
+        progress: progress
+    };
+
+    try {
+        // Show loading notification
+        const notification = showNotification('Updating episode progress...', 'loading');
+
+        // Make the API request
+        const response = await fetch(ANILIST_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                query: mutation,
+                variables: variables
+            })
+        });
+
+        const result = await response.json();
+
+        // Check for errors
+        if (result.errors) {
+            throw new Error(result.errors[0].message);
+        }
+
+        // Remove loading notification and show success
+        if (notification) notification.remove();
+        showNotification(`Episode ${progress} marked as watched!`, 'success');
+
+        return result.data.SaveMediaListEntry;
+    } catch (error) {
+        console.error('Error updating progress:', error);
+        showNotification(`Error: ${error.message}`, 'error');
+        return null;
+    }
+}
+
+/**
+ * Handle the plus button click event
+ * @param {Event} e - The click event
+ * @param {Object} animeData - The anime data
+ */
+function handlePlusButtonClick(e, animeData) {
+    e.stopPropagation(); // Prevent the click from bubbling to the entry
+
+    if (!animeData || !animeData.id) {
+        console.error('No anime data available for this entry');
+        return;
+    }
+
+    // Log the anime data for debugging
+    console.log('Incrementing episode for:', animeData);
+
+    // Calculate the new progress value (current + 1)
+    const newProgress = (animeData.watched || 0) + 1;
+
+    // Update the progress via API
+    updateAnimeProgress(animeData.id, newProgress)
+        .then(result => {
+            if (result) {
+                // If API call was successful, update the UI
+                // Find all instances of this anime in the schedule and update them
+                updateAnimeEntryInUI(animeData.id, result.progress);
+            }
+        });
+}
+
+/**
+ * Update anime entries in UI after successful API call
+ * @param {string} animeId - The anime ID
+ * @param {number} newProgress - The new progress value
+ */
+function updateAnimeEntryInUI(animeId, newProgress) {
+    // Find all anime entries with this ID
+    const entries = document.querySelectorAll(`.anime-entry[data-anime-id="${animeId}"]`);
+
+    entries.forEach(entry => {
+        // Update the episode number display
+        const episodeNumber = entry.querySelector('.episode-number');
+        if (episodeNumber) {
+            // Extract the existing string and update just the progress number
+            const text = episodeNumber.textContent;
+            const matches = text.match(/Ep\s+(\d+)(?:\/(\d+)(?:\/(\d+))?)?/);
+
+            if (matches) {
+                let newText = `Ep ${newProgress}`;
+
+                // If we have available/total info, preserve it
+                if (matches[2]) newText += `/${matches[2]}`;
+                if (matches[3]) newText += `/${matches[3]}`;
+
+                // If there's a behind indicator, keep it
+                const behindIndicator = episodeNumber.querySelector('.behind-indicator');
+                if (behindIndicator) {
+                    behindIndicator.remove(); // Remove it since we've caught up
+                }
+
+                episodeNumber.textContent = newText;
+            }
+        }
+
+        // Update the stored data
+        const animeData = getAnimeDataFromEntry(entry);
+        if (animeData) {
+            animeData.watched = newProgress;
+            // If we've caught up, zero out the behind count
+            if (animeData.episodesBehind > 0 && animeData.watched >= animeData.available) {
+                animeData.episodesBehind = 0;
+            }
+            entry.dataset.animeData = JSON.stringify(animeData);
+        }
+    });
+
+    // Update our schedule data structure if it exists
+    if (window.weeklySchedule) {
+        // Look through each day in the schedule
+        for (const day in window.weeklySchedule) {
+            // Find matching anime
+            const animeIndex = window.weeklySchedule[day].findIndex(anime => anime.id === animeId);
+            if (animeIndex !== -1) {
+                // Update watched count
+                window.weeklySchedule[day][animeIndex].watched = newProgress;
+                // If we've caught up, zero out the behind count
+                if (window.weeklySchedule[day][animeIndex].episodesBehind > 0 &&
+                    newProgress >= window.weeklySchedule[day][animeIndex].available) {
+                    window.weeklySchedule[day][animeIndex].episodesBehind = 0;
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Extract anime data from a DOM element
+ * @param {HTMLElement} entry - The anime entry element
+ * @returns {Object|null} The anime data or null if not found
+ */
+function getAnimeDataFromEntry(entry) {
+    try {
+        // First try to get from data attribute
+        if (entry.dataset.animeData) {
+            return JSON.parse(entry.dataset.animeData);
+        }
+
+        // Otherwise extract what we can from the DOM
+        const animeId = entry.dataset.animeId;
+        if (!animeId) return null;
+
+        const title = entry.querySelector('.anime-title')?.textContent || '';
+        const episodeNumber = entry.querySelector('.episode-number')?.textContent || '';
+        const matches = episodeNumber.match(/Ep\s+(\d+)(?:\/(\d+)(?:\/(\d+))?)?/);
+
+        const watched = matches ? parseInt(matches[1]) : 0;
+        const available = matches && matches[2] ? parseInt(matches[2]) : watched;
+        const total = matches && matches[3] ? parseInt(matches[3]) : 0;
+
+        return {
+            id: animeId,
+            title: title,
+            watched: watched,
+            available: available,
+            total: total,
+            episodesBehind: available - watched
+        };
+    } catch (err) {
+        console.error('Error extracting anime data:', err);
+        return null;
+    }
 }
 
 /**
@@ -1118,7 +1429,7 @@ function renderCalendar(schedule, skipHeader = false) {
 }
 
 /**
- * Creates an anime entry element
+ * Creates an anime entry element with improved + button functionality
  * @param {HTMLElement} container - The container element
  * @param {Object} anime - The anime data
  */
@@ -1127,6 +1438,7 @@ function createAnimeEntry(container, anime) {
     const entry = document.createElement('div');
     entry.className = 'anime-entry';
     entry.dataset.animeId = anime.id;
+    entry.dataset.animeData = JSON.stringify(anime); // Store anime data for access by + button
     entry.style.backgroundColor = 'rgba(21, 35, 46, 0.85)';
     entry.style.padding = '0';
     entry.style.alignItems = 'stretch';
@@ -1149,45 +1461,117 @@ function createAnimeEntry(container, anime) {
     imageContainer.style.padding = '0';
     imageContainer.style.border = 'none';
     imageContainer.style.position = 'relative';
+    imageContainer.style.transition = 'transform 0.1s ease'; // Add transition for push effect
 
-    // Creiamo un pulsante "+" reale invece di usare ::after
+    // Create the + button with improved styling and animation
     const plusButton = document.createElement('div');
     plusButton.className = 'anime-plus-button';
-    plusButton.innerHTML = '+';
+    plusButton.innerHTML = '<i class="fa fa-plus"></i>'; // Use FontAwesome for cleaner plus sign
     plusButton.style.position = 'absolute';
     plusButton.style.top = '0';
     plusButton.style.left = '0';
     plusButton.style.width = '100%';
     plusButton.style.height = '100%';
-    plusButton.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+    plusButton.style.backgroundColor = 'rgba(0, 0, 0, 0.7)'; // Darker background for better visibility
     plusButton.style.color = 'white';
     plusButton.style.fontSize = '24px';
     plusButton.style.display = 'flex';
     plusButton.style.alignItems = 'center';
     plusButton.style.justifyContent = 'center';
     plusButton.style.opacity = '0';
-    plusButton.style.transition = 'opacity 0.3s ease';
+    plusButton.style.transition = 'opacity 0.3s ease, transform 0.1s ease'; // Add transform to transition
     plusButton.style.cursor = 'pointer';
     plusButton.style.zIndex = '5';
 
-    // Aggiungi listener al pulsante
+    // Add listener to the plus button for API call
     plusButton.addEventListener('click', (e) => {
-        e.stopPropagation(); // Impedisce che il click arrivi all'entry genitore
-        console.log("Ciao"); // Stampa "Ciao" nella console
+        // Add push animation
+        imageContainer.style.transform = 'scale(0.95)'; // Slightly scale down
+
+        // Get overlay element for blue border effect
+        const existingOverlay = imageContainer.querySelector('.blue-border-overlay');
+        let blueOverlay;
+
+        // Create one if it doesn't exist
+        if (!existingOverlay) {
+            blueOverlay = document.createElement('div');
+            blueOverlay.className = 'blue-border-overlay';
+            blueOverlay.style.opacity = '0';
+            blueOverlay.style.transition = 'opacity 0.2s ease';
+            imageContainer.appendChild(blueOverlay);
+        } else {
+            blueOverlay = existingOverlay;
+        }
+
+        // Show the blue border
+        blueOverlay.style.opacity = '1';
+
+        // Reset the scale after the animation
+        setTimeout(() => {
+            imageContainer.style.transform = 'scale(1)';
+        }, 100);
+
+        // Hide the border after a while
+        setTimeout(() => {
+            blueOverlay.style.opacity = '0';
+        }, 800);
+
+        // Call the API function to update the progress
+        handlePlusButtonClick(e, anime);
     });
 
-    // Mostra/nascondi pulsante al passaggio del mouse
+    // Show/hide button and blue border on mouse enter/leave
     entry.addEventListener('mouseenter', () => {
         plusButton.style.opacity = '1';
     });
 
     entry.addEventListener('mouseleave', () => {
         plusButton.style.opacity = '0';
+
+        // Hide the blue border if present
+        const blueOverlay = imageContainer.querySelector('.blue-border-overlay');
+        if (blueOverlay) {
+            blueOverlay.style.opacity = '0';
+        }
     });
 
     imageContainer.appendChild(plusButton);
 
+    // Create the image with improved error handling
     const coverImg = document.createElement('img');
+
+    // Function to handle image loading errors
+    const handleImageError = () => {
+        // Try with a different image format first (.jpg instead of .png or vice versa)
+        if (coverImg.src.endsWith('.jpg') || coverImg.src.endsWith('.jpeg')) {
+            // Try PNG instead
+            const newSrc = coverImg.src.replace(/\.(jpg|jpeg)$/, '.png');
+            if (newSrc !== coverImg.src) {
+                coverImg.src = newSrc;
+                return; // Give the new source a chance
+            }
+        } else if (coverImg.src.endsWith('.png')) {
+            // Try JPG instead
+            const newSrc = coverImg.src.replace(/\.png$/, '.jpg');
+            if (newSrc !== coverImg.src) {
+                coverImg.src = newSrc;
+                return; // Give the new source a chance
+            }
+        }
+
+        // If still failing, try the same URL without cache
+        if (!coverImg.src.includes('?nocache=')) {
+            coverImg.src = `${coverImg.src}?nocache=${Date.now()}`;
+            return;
+        }
+
+        // As a last resort, use a default image
+        coverImg.src = chrome.runtime.getURL('icons/default_cover.png');
+        imageContainer.classList.add('error');
+        console.warn(`Failed to load image for ${anime.title}`, anime.coverImage);
+    };
+
+    // Set up image properties
     coverImg.src = anime.coverImage || '/images/default_cover.png';
     coverImg.alt = anime.cleanTitle;
     coverImg.style.width = '100%';
@@ -1196,9 +1580,11 @@ function createAnimeEntry(container, anime) {
     coverImg.style.padding = '0';
     coverImg.style.margin = '0';
     coverImg.style.borderRadius = '0';
-    coverImg.onerror = function() {
-        this.parentNode.classList.add('error');
-    };
+    coverImg.style.position = 'relative';
+    coverImg.style.zIndex = '1';
+
+    // Add error handling
+    coverImg.onerror = handleImageError;
 
     imageContainer.appendChild(coverImg);
     entry.appendChild(imageContainer);
