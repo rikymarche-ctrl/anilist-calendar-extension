@@ -1551,11 +1551,18 @@ function createSettingsOverlay() {
     const timezoneSelect = document.createElement('select');
     timezoneSelect.id = 'timezone';
     timezoneSelect.className = 'settings-select';
+    timezoneSelect.style.backgroundColor = '#1A2632';
+    timezoneSelect.style.color = 'white';
+    timezoneSelect.style.border = '1px solid #2c3e50';
+    timezoneSelect.style.textAlign = 'center';
 
     TIMEZONE_OPTIONS.forEach(tz => {
         const option = document.createElement('option');
         option.value = tz.value;
         option.textContent = tz.text;
+        option.style.backgroundColor = '#151f2e';
+        option.style.padding = '8px';
+        option.style.textAlign = 'center';
         timezoneSelect.appendChild(option);
     });
 
@@ -1577,6 +1584,8 @@ function createSettingsOverlay() {
     const saveButton = document.createElement('button');
     saveButton.className = 'settings-save-btn';
     saveButton.innerHTML = '<i class="fa fa-save"></i> Save Changes';
+    saveButton.style.backgroundColor = '#3db4f2';
+    saveButton.style.color = 'white';
     saveButton.addEventListener('click', () => {
         // Update preferences from form values
         userPreferences.startDay = document.getElementById('start-day').value;
@@ -1662,11 +1671,26 @@ function createSelect(id, options, selectedValue) {
     const select = document.createElement('select');
     select.id = id;
     select.className = 'settings-select';
+    select.style.backgroundColor = '#1A2632';
+    select.style.color = 'white';
+    select.style.border = '1px solid #2c3e50';
+    select.style.textAlign = 'center';
 
-    options.forEach(option => {
+    options.forEach((option, index) => {
         const optionElement = document.createElement('option');
         optionElement.value = option.value;
         optionElement.textContent = option.text;
+        optionElement.style.backgroundColor = '#151f2e';
+        optionElement.style.padding = '8px';
+        optionElement.style.textAlign = 'center';
+
+        // Aggiungi un bordo inferiore all'opzione "Today" per separare
+        if (index === 0 && id === 'start-day' && option.value === 'today') {
+            optionElement.style.borderBottom = '1px solid #3b5574';
+            optionElement.style.paddingBottom = '8px';
+            optionElement.style.marginBottom = '4px';
+        }
+
         select.appendChild(optionElement);
     });
 
@@ -1688,6 +1712,12 @@ function createToggle(id, checked) {
 
     const slider = document.createElement('span');
     slider.className = 'slider';
+    slider.style.backgroundColor = checked ? '#3db4f2' : '#2c3e50';
+
+    // Update slider color when toggled
+    input.addEventListener('change', function() {
+        slider.style.backgroundColor = this.checked ? '#3db4f2' : '#2c3e50';
+    });
 
     toggle.appendChild(input);
     toggle.appendChild(slider);

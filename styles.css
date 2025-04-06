@@ -378,6 +378,7 @@
     width: 100%;
     padding: 6px 0 !important;
     margin-left: 0 !important;
+    transform: none !important;
 }
 
 .anilist-weekly-calendar.compact-mode:not(.grid-mode) .anime-info {
@@ -400,6 +401,7 @@
     font-size: 13px;
     max-width: 100%;
     padding: 0 !important;
+    transform: none !important;
 }
 
 .anime-info-row {
@@ -851,7 +853,7 @@ input:checked + .slider:before {
 
 .settings-notification {
     position: fixed;
-    top: 110px;
+    top: 85px;
     left: 50%;
     transform: translateX(-50%) translateY(20px);
     background-color: #66C03A;
