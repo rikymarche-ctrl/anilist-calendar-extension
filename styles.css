@@ -434,11 +434,6 @@
     min-width: 50px;
 }
 
-.anime-time.countdown-mode {
-    color: #a3b8cc;
-    font-weight: 500;
-}
-
 .episode-number {
     font-size: 11px;
     color: var(--color-text-light);
@@ -481,8 +476,19 @@
 }
 
 /*------------------------------------------------------
- * COMPACT MODE
+ * LAYOUT MODES
  *------------------------------------------------------*/
+/* Standard Mode (default) */
+.anilist-weekly-calendar.standard-mode .anime-entry {
+    height: 65px;
+}
+
+.anilist-weekly-calendar.standard-mode .anime-image {
+    width: 45px;
+    height: 100%;
+}
+
+/* Compact Mode */
 .anilist-weekly-calendar.compact-mode .day-header {
     padding: 8px 10px;
 }
@@ -496,30 +502,30 @@
     gap: 6px;
 }
 
-.anilist-weekly-calendar.compact-mode:not(.grid-mode) .anime-entry {
+.anilist-weekly-calendar.compact-mode .anime-entry {
     padding: 4px 8px !important;
     height: auto !important;
     min-height: 50px !important;
 }
 
-.anilist-weekly-calendar.compact-mode:not(.grid-mode) .anime-image {
+.anilist-weekly-calendar.compact-mode .anime-image {
     display: none !important;
 }
 
-.anilist-weekly-calendar.compact-mode:not(.grid-mode) .anime-info {
+.anilist-weekly-calendar.compact-mode .anime-info {
     width: 100% !important;
     max-width: 100%;
     padding: 8px !important;
 }
 
-.anilist-weekly-calendar.compact-mode:not(.grid-mode) .anime-title {
+.anilist-weekly-calendar.compact-mode .anime-title {
     font-size: 12px;
     margin-bottom: 6px;
     text-align: left;
     padding-left: 2px !important;
 }
 
-.anilist-weekly-calendar.compact-mode:not(.grid-mode) .anime-info-row {
+.anilist-weekly-calendar.compact-mode .anime-info-row {
     font-size: 11px;
     justify-content: space-between !important;
     width: 100%;
@@ -527,17 +533,48 @@
     display: flex !important;
 }
 
-.anilist-weekly-calendar.compact-mode:not(.grid-mode) .episode-number {
+.anilist-weekly-calendar.compact-mode .episode-number {
     margin-right: auto !important;
     text-align: left !important;
     padding-left: 2px !important;
     margin-left: 0 !important;
 }
 
-.anilist-weekly-calendar.compact-mode:not(.grid-mode) .anime-time {
+.anilist-weekly-calendar.compact-mode .anime-time {
     margin-left: auto !important;
     text-align: right !important;
     padding-right: 2px !important;
+}
+
+/* Extended Mode (Gallery) */
+.anilist-weekly-calendar.extended-mode .day-anime-list {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    padding: 10px;
+}
+
+.anilist-weekly-calendar.extended-mode .anime-entry {
+    flex-direction: column;
+    width: 100px;
+    height: 150px;
+    padding: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--color-background);
+}
+
+.anilist-weekly-calendar.extended-mode .anime-image {
+    width: 100px;
+    height: 150px;
+    margin: 0;
+    border-radius: 4px;
+}
+
+.anilist-weekly-calendar.extended-mode .anime-info {
+    display: none;
 }
 
 /*------------------------------------------------------

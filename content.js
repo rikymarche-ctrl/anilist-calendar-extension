@@ -38,12 +38,11 @@ const TIMEZONE_OPTIONS = [
 let userPreferences = {
     startDay: 'today',                 // 'today' or index 0-6 (Sunday-Saturday)
     hideEmptyDays: false,              // Hide days without episodes
-    compactMode: false,                // Use compact layout
-    gridMode: false,                   // Use grid layout (images only with hover info)
+    layoutMode: 'standard',            // Layout mode: 'compact', 'standard', 'extended'
     timezone: 'jst',                   // Timezone preference
-    showCountdown: false,              // Show countdown instead of time
-    showEpisodeNumbers: true,          // Show episode numbers
-    showCountdownReleaseDate: true     // Show countdown or release date
+    timeFormat: 'release',             // Time format: 'release' or 'countdown'
+    showTime: true,                    // Show time information
+    showEpisodeNumbers: true           // Show episode numbers
 };
 
 // Global variables
@@ -493,9 +492,8 @@ function replaceAiringSection(container, headerElement, skipHeader = false) {
         calendarContainer = document.createElement('div');
         calendarContainer.className = 'anilist-weekly-calendar';
 
-        // Apply mode classes if needed
-        if (userPreferences.compactMode) calendarContainer.classList.add('compact-mode');
-        if (userPreferences.gridMode) calendarContainer.classList.add('grid-mode');
+        // Apply layout mode class
+        calendarContainer.classList.add(`${userPreferences.layoutMode}-mode`);
 
         // Find the section header
         const sectionHeader = headerElement.closest('.section-header');
@@ -519,8 +517,8 @@ function replaceAiringSection(container, headerElement, skipHeader = false) {
         weeklySchedule = processAnimeData(animeData);
         renderCalendar(weeklySchedule, skipHeader);
 
-        // Start the countdown timer if the countdown mode is enabled
-        if (userPreferences.showCountdown) {
+        // Start the countdown timer if needed
+        if (userPreferences.timeFormat === 'countdown') {
             startCountdownTimer();
         }
 
@@ -1486,7 +1484,7 @@ function createSettingsOverlay() {
     header.appendChild(closeButton);
     settingsPanel.appendChild(header);
 
-    // Add settings sections
+    // Display Settings section
     const displaySection = document.createElement('div');
     displaySection.className = 'settings-section';
     displaySection.style.backgroundColor = '#152232';
@@ -1522,37 +1520,36 @@ function createSettingsOverlay() {
     );
     displaySection.appendChild(hideEmptyDaysRow);
 
-    // Compact mode setting
-    const compactModeRow = createSettingRow(
-        'Compact mode',
-        'Use a more compact layout to save space',
-        createToggle('compact-mode', userPreferences.compactMode)
+    // Layout mode setting
+    const layoutModeRow = createSettingRow(
+        'Layout style',
+        'Choose how anime entries are displayed',
+        createSelect('layout-mode', [
+            { value: 'standard', text: 'Standard' },
+            { value: 'compact', text: 'Compact' },
+            { value: 'extended', text: 'Gallery' }
+        ], userPreferences.layoutMode)
     );
-    displaySection.appendChild(compactModeRow);
+    displaySection.appendChild(layoutModeRow);
 
-    // Grid mode setting
-    const gridModeRow = createSettingRow(
-        'Grid view',
-        'Display anime as a grid of images (hover for details)',
-        createToggle('grid-mode', userPreferences.gridMode)
+    // Time format setting
+    const timeFormatRow = createSettingRow(
+        'Time format',
+        'Choose between countdown or release time',
+        createSelect('time-format', [
+            { value: 'release', text: 'Release Time' },
+            { value: 'countdown', text: 'Countdown' }
+        ], userPreferences.timeFormat)
     );
-    displaySection.appendChild(gridModeRow);
+    displaySection.appendChild(timeFormatRow);
 
-    // Show countdown setting
-    const showCountdownRow = createSettingRow(
-        'Show countdown',
-        'Display remaining time instead of airing time',
-        createToggle('show-countdown', userPreferences.showCountdown)
+    // Show time setting
+    const showTimeRow = createSettingRow(
+        'Show time',
+        'Display time information for each anime',
+        createToggle('show-time', userPreferences.showTime)
     );
-    displaySection.appendChild(showCountdownRow);
-
-    // Show countdown/release date setting
-    const showCountdownReleaseDateRow = createSettingRow(
-        'Show time/date',
-        'Display release time or countdown for each anime',
-        createToggle('show-countdown-release-date', userPreferences.showCountdownReleaseDate)
-    );
-    displaySection.appendChild(showCountdownReleaseDateRow);
+    displaySection.appendChild(showTimeRow);
 
     // Show episode numbers setting
     const showEpisodeNumbersRow = createSettingRow(
@@ -2133,11 +2130,10 @@ async function loadUserPreferences() {
             chrome.storage.sync.get([
                 `${CONFIG.storageKeyPrefix}start_day`,
                 `${CONFIG.storageKeyPrefix}hide_empty_days`,
-                `${CONFIG.storageKeyPrefix}compact_mode`,
-                `${CONFIG.storageKeyPrefix}grid_mode`,
-                `${CONFIG.storageKeyPrefix}show_countdown`,
+                `${CONFIG.storageKeyPrefix}layout_mode`,
+                `${CONFIG.storageKeyPrefix}time_format`,
+                `${CONFIG.storageKeyPrefix}show_time`,
                 `${CONFIG.storageKeyPrefix}show_episode_numbers`,
-                `${CONFIG.storageKeyPrefix}show_countdown_release_date`,
                 `${CONFIG.storageKeyPrefix}timezone`
             ], function(result) {
                 if (result[`${CONFIG.storageKeyPrefix}start_day`] !== undefined) {
@@ -2146,24 +2142,33 @@ async function loadUserPreferences() {
                 if (result[`${CONFIG.storageKeyPrefix}hide_empty_days`] !== undefined) {
                     userPreferences.hideEmptyDays = result[`${CONFIG.storageKeyPrefix}hide_empty_days`];
                 }
-                if (result[`${CONFIG.storageKeyPrefix}compact_mode`] !== undefined) {
-                    userPreferences.compactMode = result[`${CONFIG.storageKeyPrefix}compact_mode`];
+                if (result[`${CONFIG.storageKeyPrefix}layout_mode`] !== undefined) {
+                    userPreferences.layoutMode = result[`${CONFIG.storageKeyPrefix}layout_mode`];
                 }
-                if (result[`${CONFIG.storageKeyPrefix}grid_mode`] !== undefined) {
-                    userPreferences.gridMode = result[`${CONFIG.storageKeyPrefix}grid_mode`];
+                if (result[`${CONFIG.storageKeyPrefix}time_format`] !== undefined) {
+                    userPreferences.timeFormat = result[`${CONFIG.storageKeyPrefix}time_format`];
                 }
-                if (result[`${CONFIG.storageKeyPrefix}show_countdown`] !== undefined) {
-                    userPreferences.showCountdown = result[`${CONFIG.storageKeyPrefix}show_countdown`];
+                if (result[`${CONFIG.storageKeyPrefix}show_time`] !== undefined) {
+                    userPreferences.showTime = result[`${CONFIG.storageKeyPrefix}show_time`];
                 }
                 if (result[`${CONFIG.storageKeyPrefix}show_episode_numbers`] !== undefined) {
                     userPreferences.showEpisodeNumbers = result[`${CONFIG.storageKeyPrefix}show_episode_numbers`];
                 }
-                if (result[`${CONFIG.storageKeyPrefix}show_countdown_release_date`] !== undefined) {
-                    userPreferences.showCountdownReleaseDate = result[`${CONFIG.storageKeyPrefix}show_countdown_release_date`];
-                }
                 if (result[`${CONFIG.storageKeyPrefix}timezone`] !== undefined) {
                     userPreferences.timezone = result[`${CONFIG.storageKeyPrefix}timezone`];
                 }
+
+                // Backward compatibility
+                if (result[`${CONFIG.storageKeyPrefix}compact_mode`] === true) {
+                    userPreferences.layoutMode = 'compact';
+                } else if (result[`${CONFIG.storageKeyPrefix}grid_mode`] === true) {
+                    userPreferences.layoutMode = 'extended';
+                }
+
+                if (result[`${CONFIG.storageKeyPrefix}show_countdown`] === true) {
+                    userPreferences.timeFormat = 'countdown';
+                }
+
                 log("Loaded user preferences", userPreferences);
                 resolve();
             });
@@ -2182,11 +2187,10 @@ function saveUserPreferences() {
         const data = {
             [`${CONFIG.storageKeyPrefix}start_day`]: userPreferences.startDay,
             [`${CONFIG.storageKeyPrefix}hide_empty_days`]: userPreferences.hideEmptyDays,
-            [`${CONFIG.storageKeyPrefix}compact_mode`]: userPreferences.compactMode,
-            [`${CONFIG.storageKeyPrefix}grid_mode`]: userPreferences.gridMode,
-            [`${CONFIG.storageKeyPrefix}show_countdown`]: userPreferences.showCountdown,
+            [`${CONFIG.storageKeyPrefix}layout_mode`]: userPreferences.layoutMode,
+            [`${CONFIG.storageKeyPrefix}time_format`]: userPreferences.timeFormat,
+            [`${CONFIG.storageKeyPrefix}show_time`]: userPreferences.showTime,
             [`${CONFIG.storageKeyPrefix}show_episode_numbers`]: userPreferences.showEpisodeNumbers,
-            [`${CONFIG.storageKeyPrefix}show_countdown_release_date`]: userPreferences.showCountdownReleaseDate,
             [`${CONFIG.storageKeyPrefix}timezone`]: userPreferences.timezone
         };
 
