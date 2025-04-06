@@ -1148,6 +1148,44 @@ function createAnimeEntry(container, anime) {
     imageContainer.style.alignItems = 'center';
     imageContainer.style.padding = '0';
     imageContainer.style.border = 'none';
+    imageContainer.style.position = 'relative';
+
+    // Creiamo un pulsante "+" reale invece di usare ::after
+    const plusButton = document.createElement('div');
+    plusButton.className = 'anime-plus-button';
+    plusButton.innerHTML = '+';
+    plusButton.style.position = 'absolute';
+    plusButton.style.top = '0';
+    plusButton.style.left = '0';
+    plusButton.style.width = '100%';
+    plusButton.style.height = '100%';
+    plusButton.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+    plusButton.style.color = 'white';
+    plusButton.style.fontSize = '24px';
+    plusButton.style.display = 'flex';
+    plusButton.style.alignItems = 'center';
+    plusButton.style.justifyContent = 'center';
+    plusButton.style.opacity = '0';
+    plusButton.style.transition = 'opacity 0.3s ease';
+    plusButton.style.cursor = 'pointer';
+    plusButton.style.zIndex = '5';
+
+    // Aggiungi listener al pulsante
+    plusButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // Impedisce che il click arrivi all'entry genitore
+        console.log("Ciao"); // Stampa "Ciao" nella console
+    });
+
+    // Mostra/nascondi pulsante al passaggio del mouse
+    entry.addEventListener('mouseenter', () => {
+        plusButton.style.opacity = '1';
+    });
+
+    entry.addEventListener('mouseleave', () => {
+        plusButton.style.opacity = '0';
+    });
+
+    imageContainer.appendChild(plusButton);
 
     const coverImg = document.createElement('img');
     coverImg.src = anime.coverImage || '/images/default_cover.png';
