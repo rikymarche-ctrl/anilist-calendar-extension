@@ -851,7 +851,7 @@ input:checked + .slider:before {
 
 .settings-notification {
     position: fixed;
-    top: 160px;
+    top: 135px;
     left: 50%;
     transform: translateX(-50%) translateY(20px);
     background-color: #66C03A;
@@ -1046,7 +1046,6 @@ input:checked + .slider:before {
     height: 135px;
 }
 
-/* Modified plus button styling to keep dark background on hover */
 .plus-button {
     position: absolute;
     top: 0;
@@ -1066,7 +1065,7 @@ input:checked + .slider:before {
 .plus-button i {
     font-size: 24px;
     color: white;
-    transition: color 0.2s ease;
+    transition: color 0.2s ease, transform 0.15s ease;
 }
 
 .plus-button:hover i {
@@ -1077,8 +1076,9 @@ input:checked + .slider:before {
     opacity: 1;
 }
 
-.plus-button:active {
-    transform: scale(0.9);
+/* Nuova animazione solo per l'icona */
+.plus-button:active i {
+    transform: scale(0.85) translate(-1px, 1px);
 }
 
 .anime-image {

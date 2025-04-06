@@ -412,8 +412,6 @@ function createSettingsButton() {
     settingsButton.style.width = '28px';
     settingsButton.style.height = '28px';
     settingsButton.style.marginTop = '-6px';
-    settingsButton.style.position = 'absolute';
-    settingsButton.style.right = '0';
     settingsButton.style.display = 'flex';
     settingsButton.style.alignItems = 'center';
     settingsButton.style.justifyContent = 'center';
@@ -426,15 +424,10 @@ function createSettingsButton() {
         e.stopPropagation();
 
         try {
-            // First try to use chrome API to open options page
-            if (chrome && chrome.runtime && chrome.runtime.openOptionsPage) {
-                chrome.runtime.openOptionsPage();
-            } else {
-                // Fallback: create settings overlay directly
-                createSettingsOverlay();
-            }
+            // Instead of trying to use chrome.runtime API, just show the overlay
+            createSettingsOverlay();
         } catch (err) {
-            // If chrome API fails, show settings overlay
+            // Fallback
             createSettingsOverlay();
         }
     });
@@ -1880,7 +1873,9 @@ async function updateAnimeProgress(mediaId, progress) {
     // Continue with the API call in background
     const token = getAuthToken();
     if (!token) {
-        console.warn('No auth token found, but UI already updated');
+        if (CONFIG.debug) {
+            console.log('No auth token found, but UI already updated');
+        }
         return { progress: progress, id: mediaId, status: 'CURRENT' };
     }
 
