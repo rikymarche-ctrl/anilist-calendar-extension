@@ -411,7 +411,7 @@ function createSettingsButton() {
     settingsButton.style.right = '0';
     settingsButton.style.width = '28px';
     settingsButton.style.height = '28px';
-    settingsButton.style.marginTop = '-9px';
+    settingsButton.style.marginTop = '-6px';
     settingsButton.style.position = 'absolute';
     settingsButton.style.right = '0';
     settingsButton.style.display = 'flex';
@@ -1705,9 +1705,6 @@ function showNotification(message, type = 'success') {
     // Create new notification with top positioning
     const notification = document.createElement('div');
     notification.className = 'settings-notification';
-    notification.style.top = '20px';
-    notification.style.bottom = 'auto';
-    notification.style.transform = 'translateX(-50%) translateY(0)';
 
     let icon = '<i class="fa fa-check-circle"></i>';
     let className = '';

@@ -128,7 +128,7 @@
 .header-settings-btn {
     position: absolute;
     right: 0;
-    margin-top: -9px !important;
+    margin-top: -6px !important;
     width: 28px;
     height: 28px;
     z-index: 10;
@@ -851,7 +851,7 @@ input:checked + .slider:before {
 
 .settings-notification {
     position: fixed;
-    top: 110px;
+    top: 160px;
     left: 50%;
     transform: translateX(-50%) translateY(20px);
     background-color: #66C03A;
