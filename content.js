@@ -1681,8 +1681,9 @@ function createSelect(id, options, selectedValue) {
         optionElement.value = option.value;
         optionElement.textContent = option.text;
         optionElement.style.backgroundColor = '#151f2e';
-        optionElement.style.padding = '8px';
         optionElement.style.textAlign = 'center';
+        optionElement.style.padding = '8px 0';
+        optionElement.style.margin = '0';
 
         // Aggiungi un bordo inferiore all'opzione "Today" per separare
         if (index === 0 && id === 'start-day' && option.value === 'today') {
