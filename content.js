@@ -222,36 +222,68 @@ function initialize() {
  */
 function initSettingsButtonEvents() {
     document.addEventListener('mouseover', function(e) {
-        // Find if we're hovering any calendar element
+        // Find if we're hovering any calendar element or header
         let element = e.target;
+        let isRelevantElement = false;
+
         while (element && element !== document.body) {
+            // Only respond to hovering over the calendar container or its direct section header
             if (element.classList && (
                 element.classList.contains('anilist-weekly-calendar') ||
-                element.classList.contains('section-header') ||
-                element.closest('.anilist-weekly-calendar')
+                (element.classList.contains('section-header') && element.querySelector('.airing-replaced-header'))
             )) {
-                const settingsBtn = document.querySelector('.header-settings-btn');
-                if (settingsBtn) settingsBtn.style.opacity = '1';
+                isRelevantElement = true;
                 break;
             }
             element = element.parentElement;
         }
+
+        if (isRelevantElement) {
+            const settingsBtn = document.querySelector('.header-settings-btn');
+            if (settingsBtn) {
+                settingsBtn.style.opacity = '1';
+            }
+        }
     });
 
     document.addEventListener('mouseout', function(e) {
-        // Check if we're leaving the calendar table
-        if (e.target && (
-            e.target.classList.contains('anilist-weekly-calendar') ||
-            e.target.closest('.anilist-weekly-calendar') ||
-            e.target.classList.contains('section-header') ||
-            e.target.closest('.section-header')
-        )) {
-            // Check that the new element is not within the table or header
-            if (!e.relatedTarget ||
-                (!e.relatedTarget.closest('.anilist-weekly-calendar') &&
-                    !e.relatedTarget.closest('.section-header'))) {
+        // Only handle mouseout for relevant elements
+        let isRelevantElement = false;
+        let fromElement = e.target;
+
+        while (fromElement && fromElement !== document.body) {
+            if (fromElement.classList && (
+                fromElement.classList.contains('anilist-weekly-calendar') ||
+                (fromElement.classList.contains('section-header') && fromElement.querySelector('.airing-replaced-header'))
+            )) {
+                isRelevantElement = true;
+                break;
+            }
+            fromElement = fromElement.parentElement;
+        }
+
+        // Check that we're not moving to another relevant element
+        if (isRelevantElement) {
+            let toElement = e.relatedTarget;
+            let isMovingToRelevantElement = false;
+
+            while (toElement && toElement !== document.body) {
+                if (toElement.classList && (
+                    toElement.classList.contains('anilist-weekly-calendar') ||
+                    (toElement.classList.contains('section-header') && toElement.querySelector('.airing-replaced-header')) ||
+                    toElement.classList.contains('header-settings-btn')
+                )) {
+                    isMovingToRelevantElement = true;
+                    break;
+                }
+                toElement = toElement.parentElement;
+            }
+
+            if (!isMovingToRelevantElement) {
                 const settingsBtn = document.querySelector('.header-settings-btn');
-                if (settingsBtn) settingsBtn.style.opacity = '0';
+                if (settingsBtn) {
+                    settingsBtn.style.opacity = '0';
+                }
             }
         }
     });
@@ -380,11 +412,23 @@ function createSettingsButton() {
     settingsButton.style.zIndex = '1000';
     settingsButton.innerHTML = '<i class="fa fa-cog" style="font-size: 14px;"></i>';
 
-    // Open options page when clicked
+    // Fixed: Open options page when settings button is clicked
     settingsButton.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        chrome.runtime.openOptionsPage();
+
+        try {
+            // First try to use chrome API to open options page
+            if (chrome && chrome.runtime && chrome.runtime.openOptionsPage) {
+                chrome.runtime.openOptionsPage();
+            } else {
+                // Fallback: create settings overlay directly
+                createSettingsOverlay();
+            }
+        } catch (err) {
+            // If chrome API fails, show settings overlay
+            createSettingsOverlay();
+        }
     });
 
     return settingsButton;
@@ -1115,7 +1159,7 @@ function createAnimeEntry(container, anime) {
     entry.style.padding = '0';
     entry.style.alignItems = 'stretch';
     entry.style.height = '65px';
-    entry.style.transition = 'background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease';
+    entry.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
 
     // Make the entry clickable to go to the anime page
     entry.addEventListener('click', () => {
@@ -1197,25 +1241,16 @@ function createAnimeEntry(container, anime) {
         imageContainer.appendChild(initialLetter);
     }
 
-    // Create the + button
+    // Create the + button - fixed dark background even on hover
     const plusButton = document.createElement('div');
     plusButton.className = 'plus-button';
-    plusButton.innerHTML = '<i class="fa fa-plus"></i>';
-    plusButton.style.position = 'absolute';
-    plusButton.style.top = '0';
-    plusButton.style.left = '0';
-    plusButton.style.width = '100%';
-    plusButton.style.height = '100%';
-    plusButton.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-    plusButton.style.color = 'white';
-    plusButton.style.fontSize = '24px';
-    plusButton.style.display = 'flex';
-    plusButton.style.alignItems = 'center';
-    plusButton.style.justifyContent = 'center';
-    plusButton.style.opacity = '0';
-    plusButton.style.transition = 'all 0.2s ease';
-    plusButton.style.cursor = 'pointer';
-    plusButton.style.zIndex = '10';
+
+    // Plus icon as a separate element
+    const plusIcon = document.createElement('i');
+    plusIcon.className = 'fa fa-plus';
+    plusIcon.style.fontSize = '24px';
+    plusIcon.style.color = 'white';
+    plusButton.appendChild(plusIcon);
 
     // Handle click event
     plusButton.addEventListener('click', (e) => {
@@ -1230,19 +1265,6 @@ function createAnimeEntry(container, anime) {
 
         // Increment episode count
         handlePlusButtonClick(e, anime);
-    });
-
-    // Show/hide button on mouse enter/leave
-    entry.addEventListener('mouseenter', () => {
-        plusButton.style.opacity = '1';
-        entry.style.backgroundColor = 'rgba(30, 45, 60, 0.95)';
-        entry.style.transform = 'translateY(-1px)';
-    });
-
-    entry.addEventListener('mouseleave', () => {
-        plusButton.style.opacity = '0';
-        entry.style.backgroundColor = 'rgba(21, 31, 46, 0.95)';
-        entry.style.transform = 'translateY(0)';
     });
 
     imageContainer.appendChild(plusButton);
@@ -1413,76 +1435,255 @@ function startCountdownTimer() {
 }
 
 /**
- * Creates a simplified settings overlay
+ * Creates a settings overlay
  */
 function createSettingsOverlay() {
-    // Create basic settings panel
-    const panel = document.createElement('div');
-    panel.className = 'settings-panel';
-    panel.style.position = 'absolute';
-    panel.style.top = '40px';
-    panel.style.right = '10px';
-    panel.style.width = '250px';
-    panel.style.backgroundColor = '#152232';
-    panel.style.color = '#fff';
-    panel.style.borderRadius = '4px';
-    panel.style.padding = '16px';
-    panel.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.4)';
-    panel.style.zIndex = '1001';
+    // Remove any existing overlay
+    const existingOverlay = document.querySelector('.settings-overlay');
+    if (existingOverlay) {
+        existingOverlay.remove();
+    }
 
-    // Add basic settings
-    panel.innerHTML = `
-    <h3 style="margin-top: 0; color: #fff; font-size: 16px;">Calendar Settings</h3>
-    <div style="margin-bottom: 16px;">
-      <label style="display: block; margin-bottom: 8px; color: #fff;">
-        <input type="checkbox" id="compact-toggle"> Compact Mode
-      </label>
-      <label style="display: block; margin-bottom: 8px; color: #fff;">
-        <input type="checkbox" id="countdown-toggle"> Show Countdown
-      </label>
-      <label style="display: block; margin-bottom: 8px; color: #fff;">
-        <input type="checkbox" id="episode-toggle"> Show Episodes
-      </label>
-    </div>
-    <button id="save-settings" style="background: #3db4f2; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Save Settings</button>
-  `;
+    // Create overlay container
+    const overlayContainer = document.createElement('div');
+    overlayContainer.className = 'settings-overlay';
 
-    // Append panel to the document
-    document.body.appendChild(panel);
+    // Create settings panel
+    const settingsPanel = document.createElement('div');
+    settingsPanel.className = 'settings-panel';
 
-    // Load current settings
-    document.getElementById('compact-toggle').checked = userPreferences.compactMode;
-    document.getElementById('countdown-toggle').checked = userPreferences.showCountdown;
-    document.getElementById('episode-toggle').checked = userPreferences.showEpisodeNumbers;
+    // Add header
+    const header = document.createElement('div');
+    header.className = 'settings-header';
 
-    // Save settings on button click
-    document.getElementById('save-settings').addEventListener('click', function() {
-        userPreferences.compactMode = document.getElementById('compact-toggle').checked;
-        userPreferences.showCountdown = document.getElementById('countdown-toggle').checked;
-        userPreferences.showEpisodeNumbers = document.getElementById('episode-toggle').checked;
+    const title = document.createElement('h3');
+    title.className = 'settings-title';
+    title.textContent = 'Calendar Settings';
 
-        // Save preferences
+    const closeButton = document.createElement('button');
+    closeButton.className = 'settings-close-btn';
+    closeButton.innerHTML = '<i class="fa fa-times"></i>';
+    closeButton.addEventListener('click', () => {
+        overlayContainer.classList.remove('active');
+        setTimeout(() => {
+            overlayContainer.remove();
+        }, 300);
+    });
+
+    header.appendChild(title);
+    header.appendChild(closeButton);
+    settingsPanel.appendChild(header);
+
+    // Add settings sections
+    const displaySection = document.createElement('div');
+    displaySection.className = 'settings-section';
+
+    const displayTitle = document.createElement('h4');
+    displayTitle.className = 'settings-section-title';
+    displayTitle.textContent = 'Display Settings';
+    displaySection.appendChild(displayTitle);
+
+    // Start day setting
+    const startDayRow = createSettingRow(
+        'First day of the week',
+        'Choose which day to display first in the calendar',
+        createSelect('start-day', [
+            { value: 'today', text: 'Today' },
+            { value: '0', text: 'Sunday' },
+            { value: '1', text: 'Monday' },
+            { value: '2', text: 'Tuesday' },
+            { value: '3', text: 'Wednesday' },
+            { value: '4', text: 'Thursday' },
+            { value: '5', text: 'Friday' },
+            { value: '6', text: 'Saturday' }
+        ], userPreferences.startDay)
+    );
+    displaySection.appendChild(startDayRow);
+
+    // Hide empty days setting
+    const hideEmptyDaysRow = createSettingRow(
+        'Hide empty days',
+        'Only show days with scheduled episodes',
+        createToggle('hide-empty-days', userPreferences.hideEmptyDays)
+    );
+    displaySection.appendChild(hideEmptyDaysRow);
+
+    // Compact mode setting
+    const compactModeRow = createSettingRow(
+        'Compact mode',
+        'Use a more compact layout to save space',
+        createToggle('compact-mode', userPreferences.compactMode)
+    );
+    displaySection.appendChild(compactModeRow);
+
+    // Grid mode setting
+    const gridModeRow = createSettingRow(
+        'Grid view',
+        'Display anime as a grid of images (hover for details)',
+        createToggle('grid-mode', userPreferences.gridMode)
+    );
+    displaySection.appendChild(gridModeRow);
+
+    // Show countdown setting
+    const showCountdownRow = createSettingRow(
+        'Show countdown',
+        'Display remaining time instead of airing time',
+        createToggle('show-countdown', userPreferences.showCountdown)
+    );
+    displaySection.appendChild(showCountdownRow);
+
+    // Show episode numbers setting
+    const showEpisodeNumbersRow = createSettingRow(
+        'Show episode numbers',
+        'Display episode numbers in the calendar',
+        createToggle('show-episode-numbers', userPreferences.showEpisodeNumbers)
+    );
+    displaySection.appendChild(showEpisodeNumbersRow);
+
+    // Timezone setting
+    const timezoneSelect = document.createElement('select');
+    timezoneSelect.id = 'timezone';
+    timezoneSelect.className = 'settings-select';
+
+    TIMEZONE_OPTIONS.forEach(tz => {
+        const option = document.createElement('option');
+        option.value = tz.value;
+        option.textContent = tz.text;
+        timezoneSelect.appendChild(option);
+    });
+
+    timezoneSelect.value = userPreferences.timezone;
+
+    const timezoneRow = createSettingRow(
+        'Timezone',
+        'Adjust anime airing times to your timezone',
+        timezoneSelect
+    );
+    displaySection.appendChild(timezoneRow);
+
+    settingsPanel.appendChild(displaySection);
+
+    // Save button
+    const saveContainer = document.createElement('div');
+    saveContainer.className = 'settings-save-container';
+
+    const saveButton = document.createElement('button');
+    saveButton.className = 'settings-save-btn';
+    saveButton.innerHTML = '<i class="fa fa-save"></i> Save Changes';
+    saveButton.addEventListener('click', () => {
+        // Update preferences from form values
+        userPreferences.startDay = document.getElementById('start-day').value;
+        userPreferences.hideEmptyDays = document.getElementById('hide-empty-days').checked;
+        userPreferences.compactMode = document.getElementById('compact-mode').checked;
+        userPreferences.gridMode = document.getElementById('grid-mode').checked;
+        userPreferences.showCountdown = document.getElementById('show-countdown').checked;
+        userPreferences.showEpisodeNumbers = document.getElementById('show-episode-numbers').checked;
+        userPreferences.timezone = document.getElementById('timezone').value;
+
+        // Save to storage
         saveUserPreferences();
 
         // Show notification
         showNotification('Settings saved! Refreshing page...');
 
-        // Remove panel
-        panel.remove();
+        // Close overlay
+        overlayContainer.classList.remove('active');
 
-        // Reload the page
+        // Reload the page after a short delay
         setTimeout(() => {
             window.location.reload();
-        }, 800);
+        }, 1000);
     });
 
-    // Close panel when clicking elsewhere
-    document.addEventListener('click', function closePanel(e) {
-        if (!panel.contains(e.target) && !e.target.matches('.header-settings-btn, .header-settings-btn *')) {
-            panel.remove();
-            document.removeEventListener('click', closePanel);
+    saveContainer.appendChild(saveButton);
+    settingsPanel.appendChild(saveContainer);
+
+    // Add panel to overlay
+    overlayContainer.appendChild(settingsPanel);
+
+    // Add overlay to page
+    document.body.appendChild(overlayContainer);
+
+    // Activate overlay with animation
+    setTimeout(() => {
+        overlayContainer.classList.add('active');
+    }, 10);
+
+    // Close when clicking outside the panel
+    overlayContainer.addEventListener('click', (e) => {
+        if (e.target === overlayContainer) {
+            overlayContainer.classList.remove('active');
+            setTimeout(() => {
+                overlayContainer.remove();
+            }, 300);
         }
     });
+}
+
+/**
+ * Creates a settings row with label and control
+ */
+function createSettingRow(label, description, control) {
+    const row = document.createElement('div');
+    row.className = 'settings-row';
+
+    const labelContainer = document.createElement('div');
+
+    const labelText = document.createElement('div');
+    labelText.className = 'settings-label';
+    labelText.textContent = label;
+
+    const descText = document.createElement('div');
+    descText.className = 'settings-description';
+    descText.textContent = description;
+
+    labelContainer.appendChild(labelText);
+    labelContainer.appendChild(descText);
+
+    row.appendChild(labelContainer);
+    row.appendChild(control);
+
+    return row;
+}
+
+/**
+ * Creates a select element with options
+ */
+function createSelect(id, options, selectedValue) {
+    const select = document.createElement('select');
+    select.id = id;
+    select.className = 'settings-select';
+
+    options.forEach(option => {
+        const optionElement = document.createElement('option');
+        optionElement.value = option.value;
+        optionElement.textContent = option.text;
+        select.appendChild(optionElement);
+    });
+
+    select.value = selectedValue;
+    return select;
+}
+
+/**
+ * Creates a toggle switch
+ */
+function createToggle(id, checked) {
+    const toggle = document.createElement('label');
+    toggle.className = 'toggle-switch';
+
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.id = id;
+    input.checked = checked;
+
+    const slider = document.createElement('span');
+    slider.className = 'slider';
+
+    toggle.appendChild(input);
+    toggle.appendChild(slider);
+
+    return toggle;
 }
 
 /**
@@ -1536,18 +1737,42 @@ function showNotification(message, type = 'success') {
 }
 
 /**
- * Handle the plus button click event - simplified version
+ * Handle the plus button click event - versione con controllo sul limite massimo
  */
 function handlePlusButtonClick(e, animeData) {
     e.stopPropagation(); // Prevent the click from bubbling to the entry
+    e.preventDefault(); // Previene comportamenti di default
 
     if (!animeData || !animeData.id) {
         console.error('No anime data available for this entry');
         return;
     }
 
+    // Ottieni i dati più aggiornati dall'elemento DOM
+    const entry = e.target.closest('.anime-entry');
+    if (entry && entry.dataset.animeData) {
+        try {
+            // Usa i dati più recenti dall'elemento DOM
+            const updatedData = JSON.parse(entry.dataset.animeData);
+            if (updatedData && updatedData.watched !== undefined) {
+                animeData = updatedData;
+            }
+        } catch (err) {
+            console.warn('Errore nel parsing dei dati anime:', err);
+        }
+    }
+
     // Calculate the new progress value (current + 1)
     const newProgress = (animeData.watched || 0) + 1;
+
+    // Verifica se superiamo il numero totale di episodi disponibili
+    if (animeData.total > 0 && newProgress > animeData.total) {
+        console.log(`Non posso incrementare oltre il totale di ${animeData.total} episodi`);
+        showNotification(`Hai già completato tutti gli episodi disponibili (${animeData.total})`, 'error');
+        return;
+    }
+
+    console.log(`Incrementing episode for ${animeData.id} from ${animeData.watched} to ${newProgress}`);
 
     // Update the progress via API
     updateAnimeProgress(animeData.id, newProgress)
@@ -1740,14 +1965,21 @@ function updateAnimeEntryInUI(animeId, newProgress) {
             }
         }
 
-        // Update the stored data
-        const animeData = getAnimeDataFromEntry(entry);
+        // Update the stored data - IMPORTANTE: aggiorna i dati nell'elemento DOM
+        let animeData = getAnimeDataFromEntry(entry);
         if (animeData) {
             animeData.watched = newProgress;
             // If we've caught up, zero out the behind count
             if (animeData.episodesBehind > 0 && animeData.watched >= animeData.available) {
                 animeData.episodesBehind = 0;
             }
+
+            // Aggiorna anche i dati disponibili se necessario
+            if (animeData.available < newProgress) {
+                animeData.available = newProgress;
+            }
+
+            // Salva i dati aggiornati nell'attributo data
             entry.dataset.animeData = JSON.stringify(animeData);
         }
     });
@@ -1761,6 +1993,12 @@ function updateAnimeEntryInUI(animeId, newProgress) {
             if (animeIndex !== -1) {
                 // Update watched count
                 window.weeklySchedule[day][animeIndex].watched = newProgress;
+
+                // Aggiorna anche i dati disponibili se necessario
+                if (window.weeklySchedule[day][animeIndex].available < newProgress) {
+                    window.weeklySchedule[day][animeIndex].available = newProgress;
+                }
+
                 // If we've caught up, zero out the behind count
                 if (window.weeklySchedule[day][animeIndex].episodesBehind > 0 &&
                     newProgress >= window.weeklySchedule[day][animeIndex].available) {

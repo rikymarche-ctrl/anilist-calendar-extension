@@ -116,7 +116,7 @@
     justify-content: center;
     cursor: pointer;
     color: var(--cal-text-light);
-    transition: opacity 0.05s ease;
+    transition: opacity 0.15s ease 0.1s, color 0.2s ease;
     opacity: 0;
 }
 
@@ -136,6 +136,12 @@
 
 .header-settings-btn i {
     font-size: 14px;
+    transition: color 0.2s ease;
+}
+
+.header-settings-btn:hover i,
+.calendar-settings-btn:hover i {
+    color: var(--cal-blue);
 }
 
 .section-header:hover .header-settings-btn,
@@ -239,6 +245,11 @@
     justify-content: center;
 }
 
+/* Added horizontal line between day header and anime list */
+.day-header {
+    border-bottom: 1px solid var(--cal-border);
+}
+
 .day-name {
     display: inline;
     font-size: 15px;
@@ -308,7 +319,7 @@
     padding: 0 !important;
     position: relative;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: transform 0.2s ease;
     overflow: hidden;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     width: 100%;
@@ -320,7 +331,6 @@
 
 .anime-entry:hover {
     transform: translateY(-1px);
-    background: var(--cal-anime-hover);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
@@ -1036,12 +1046,35 @@ input:checked + .slider:before {
     height: 135px;
 }
 
+/* Modified plus button styling to keep dark background on hover */
 .plus-button {
-    transition: all 0.2s ease-out;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    cursor: pointer;
+    z-index: 10;
 }
 
-.plus-button:hover {
-    background-color: rgba(61, 180, 242, 0.7) !important;
+.plus-button i {
+    font-size: 24px;
+    color: white;
+    transition: color 0.2s ease;
+}
+
+.plus-button:hover i {
+    color: var(--cal-blue) !important;
+}
+
+.anime-entry:hover .plus-button {
+    opacity: 1;
 }
 
 .plus-button:active {
@@ -1116,6 +1149,14 @@ input:checked + .slider:before {
     background-color: rgba(0, 0, 0, 0.85);
 }
 
-.anime-plus-button:hover {
-    background-color: rgba(61, 180, 242, 0.4) !important;
+/* Fix for anime image thumbnail overlay */
+.anime-entry .anime-image::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: 2;
 }
