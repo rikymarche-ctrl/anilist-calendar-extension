@@ -42,7 +42,8 @@ let userPreferences = {
     gridMode: false,                   // Use grid layout (images only with hover info)
     timezone: 'jst',                   // Timezone preference
     showCountdown: false,              // Show countdown instead of time
-    showEpisodeNumbers: true           // Show episode numbers
+    showEpisodeNumbers: true,          // Show episode numbers
+    showCountdownReleaseDate: true     // Show countdown or release date
 };
 
 // Global variables
@@ -1298,66 +1299,72 @@ function createAnimeEntry(container, anime) {
     infoRow.style.marginTop = '1px';
     infoRow.style.gap = '6px';
 
-    // Episode number
-    if (userPreferences.showEpisodeNumbers) {
-        const episodeNumber = document.createElement('div');
-        episodeNumber.className = 'episode-number';
-        episodeNumber.style.marginLeft = '0';
-        episodeNumber.style.paddingLeft = '0';
+    // Only add episode info and time if they should be shown
+    if (userPreferences.showEpisodeNumbers || userPreferences.showCountdownReleaseDate) {
+        // Episode number
+        if (userPreferences.showEpisodeNumbers) {
+            const episodeNumber = document.createElement('div');
+            episodeNumber.className = 'episode-number';
+            episodeNumber.style.marginLeft = '0';
+            episodeNumber.style.paddingLeft = '0';
 
-        if (anime.episodesBehind > 0) {
-            const behindIndicator = document.createElement('span');
-            behindIndicator.className = 'behind-indicator';
-            behindIndicator.title = `${anime.episodesBehind} episode(s) behind`;
-            episodeNumber.appendChild(behindIndicator);
-        }
-
-        if (anime.episodeProgressString) {
-            episodeNumber.appendChild(document.createTextNode('Ep ' + anime.episodeProgressString));
-        } else {
-            episodeNumber.appendChild(document.createTextNode('Ep ' + anime.episodeInfo));
-        }
-
-        infoRow.appendChild(episodeNumber);
-    }
-
-    // Time or countdown
-    const timeDisplay = document.createElement('div');
-    timeDisplay.className = 'anime-time';
-    timeDisplay.style.paddingRight = '10px';
-
-    if (userPreferences.showCountdown) {
-        timeDisplay.classList.add('countdown-mode');
-
-        const now = new Date();
-        const targetTime = new Date(anime.airingDate);
-        const diff = targetTime - now;
-
-        if (diff <= 0) {
-            timeDisplay.textContent = "Aired";
-        } else {
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-            if (days > 0) {
-                timeDisplay.textContent = `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-            } else {
-                // Non mostriamo i secondi
-                timeDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            if (anime.episodesBehind > 0) {
+                const behindIndicator = document.createElement('span');
+                behindIndicator.className = 'behind-indicator';
+                behindIndicator.title = `${anime.episodesBehind} episode(s) behind`;
+                episodeNumber.appendChild(behindIndicator);
             }
+
+            if (anime.episodeProgressString) {
+                episodeNumber.appendChild(document.createTextNode('Ep ' + anime.episodeProgressString));
+            } else {
+                episodeNumber.appendChild(document.createTextNode('Ep ' + anime.episodeInfo));
+            }
+
+            infoRow.appendChild(episodeNumber);
         }
-    } else {
-        timeDisplay.textContent = anime.formattedTime;
-    }
 
-    if (anime.dayChanged) {
-        timeDisplay.classList.add('day-adjusted');
-        timeDisplay.title = `Originally scheduled on ${anime.originalDay}`;
-    }
+        // Time or countdown
+        if (userPreferences.showCountdownReleaseDate) {
+            const timeDisplay = document.createElement('div');
+            timeDisplay.className = 'anime-time';
+            timeDisplay.style.paddingRight = '10px';
 
-    infoRow.appendChild(timeDisplay);
-    infoContainer.appendChild(infoRow);
+            if (userPreferences.showCountdown) {
+                timeDisplay.classList.add('countdown-mode');
+
+                const now = new Date();
+                const targetTime = new Date(anime.airingDate);
+                const diff = targetTime - now;
+
+                if (diff <= 0) {
+                    timeDisplay.textContent = "Aired";
+                } else {
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+                    if (days > 0) {
+                        timeDisplay.textContent = `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                    } else {
+                        // Non mostriamo i secondi
+                        timeDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                    }
+                }
+            } else {
+                timeDisplay.textContent = anime.formattedTime;
+            }
+
+            if (anime.dayChanged) {
+                timeDisplay.classList.add('day-adjusted');
+                timeDisplay.title = `Originally scheduled on ${anime.originalDay}`;
+            }
+
+            infoRow.appendChild(timeDisplay);
+        }
+
+        infoContainer.appendChild(infoRow);
+    }
     entry.appendChild(infoContainer);
 
     container.appendChild(entry);
@@ -1539,6 +1546,14 @@ function createSettingsOverlay() {
     );
     displaySection.appendChild(showCountdownRow);
 
+    // Show countdown/release date setting
+    const showCountdownReleaseDateRow = createSettingRow(
+        'Show time/date',
+        'Display release time or countdown for each anime',
+        createToggle('show-countdown-release-date', userPreferences.showCountdownReleaseDate)
+    );
+    displaySection.appendChild(showCountdownReleaseDateRow);
+
     // Show episode numbers setting
     const showEpisodeNumbersRow = createSettingRow(
         'Show episode numbers',
@@ -1556,12 +1571,22 @@ function createSettingsOverlay() {
     timezoneSelect.style.border = '1px solid #2c3e50';
     timezoneSelect.style.textAlign = 'center';
 
+    // Set styles for the dropdown list
+    const tzOptGroupStyle = document.createElement('style');
+    tzOptGroupStyle.textContent = `
+        select#timezone option {
+            text-align: center !important;
+            padding: 8px 0 !important;
+        }
+    `;
+    document.head.appendChild(tzOptGroupStyle);
+
     TIMEZONE_OPTIONS.forEach(tz => {
         const option = document.createElement('option');
         option.value = tz.value;
         option.textContent = tz.text;
         option.style.backgroundColor = '#151f2e';
-        option.style.padding = '8px';
+        option.style.padding = '8px 0';
         option.style.textAlign = 'center';
         timezoneSelect.appendChild(option);
     });
@@ -1676,6 +1701,21 @@ function createSelect(id, options, selectedValue) {
     select.style.border = '1px solid #2c3e50';
     select.style.textAlign = 'center';
 
+    // Set styles for the dropdown list
+    const optGroupStyle = document.createElement('style');
+    optGroupStyle.textContent = `
+        select#${id} option {
+            text-align: center !important;
+            padding: 8px 0 !important;
+        }
+        select#${id} option:first-child {
+            border-bottom: 2px solid #3b5574 !important;
+            padding-bottom: 10px !important;
+            margin-bottom: 5px !important;
+        }
+    `;
+    document.head.appendChild(optGroupStyle);
+
     options.forEach((option, index) => {
         const optionElement = document.createElement('option');
         optionElement.value = option.value;
@@ -1687,9 +1727,9 @@ function createSelect(id, options, selectedValue) {
 
         // Aggiungi un bordo inferiore all'opzione "Today" per separare
         if (index === 0 && id === 'start-day' && option.value === 'today') {
-            optionElement.style.borderBottom = '1px solid #3b5574';
-            optionElement.style.paddingBottom = '8px';
-            optionElement.style.marginBottom = '4px';
+            optionElement.style.borderBottom = '2px solid #3b5574';
+            optionElement.style.paddingBottom = '10px';
+            optionElement.style.marginBottom = '5px';
         }
 
         select.appendChild(optionElement);
@@ -2097,6 +2137,7 @@ async function loadUserPreferences() {
                 `${CONFIG.storageKeyPrefix}grid_mode`,
                 `${CONFIG.storageKeyPrefix}show_countdown`,
                 `${CONFIG.storageKeyPrefix}show_episode_numbers`,
+                `${CONFIG.storageKeyPrefix}show_countdown_release_date`,
                 `${CONFIG.storageKeyPrefix}timezone`
             ], function(result) {
                 if (result[`${CONFIG.storageKeyPrefix}start_day`] !== undefined) {
@@ -2116,6 +2157,9 @@ async function loadUserPreferences() {
                 }
                 if (result[`${CONFIG.storageKeyPrefix}show_episode_numbers`] !== undefined) {
                     userPreferences.showEpisodeNumbers = result[`${CONFIG.storageKeyPrefix}show_episode_numbers`];
+                }
+                if (result[`${CONFIG.storageKeyPrefix}show_countdown_release_date`] !== undefined) {
+                    userPreferences.showCountdownReleaseDate = result[`${CONFIG.storageKeyPrefix}show_countdown_release_date`];
                 }
                 if (result[`${CONFIG.storageKeyPrefix}timezone`] !== undefined) {
                     userPreferences.timezone = result[`${CONFIG.storageKeyPrefix}timezone`];
@@ -2142,6 +2186,7 @@ function saveUserPreferences() {
             [`${CONFIG.storageKeyPrefix}grid_mode`]: userPreferences.gridMode,
             [`${CONFIG.storageKeyPrefix}show_countdown`]: userPreferences.showCountdown,
             [`${CONFIG.storageKeyPrefix}show_episode_numbers`]: userPreferences.showEpisodeNumbers,
+            [`${CONFIG.storageKeyPrefix}show_countdown_release_date`]: userPreferences.showCountdownReleaseDate,
             [`${CONFIG.storageKeyPrefix}timezone`]: userPreferences.timezone
         };
 

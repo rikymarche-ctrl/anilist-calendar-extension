@@ -402,6 +402,11 @@
     margin-left: 0 !important;
 }
 
+/* Adjust height when no episode info/time */
+.anime-info:only-child {
+    padding-bottom: 0 !important;
+}
+
 .anime-info-row {
     display: flex;
     align-items: center;
@@ -418,7 +423,7 @@
 
 .anime-time {
     font-size: 12px;
-    color: var(--color-blue);
+    color: #a3b8cc;
     font-weight: 500;
     order: 2;
     text-align: right;
