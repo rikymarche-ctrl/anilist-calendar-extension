@@ -116,7 +116,7 @@
     justify-content: center;
     cursor: pointer;
     color: var(--cal-text-light);
-    transition: opacity 0.15s ease 0.1s, color 0.2s ease;
+    transition: opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s ease;
     opacity: 0;
 }
 
@@ -128,7 +128,7 @@
 .header-settings-btn {
     position: absolute;
     right: 0;
-    margin-top: -5px !important;
+    margin-top: -9px !important;
     width: 28px;
     height: 28px;
     z-index: 10;
@@ -136,12 +136,12 @@
 
 .header-settings-btn i {
     font-size: 14px;
-    transition: color 0.2s ease;
+    transition: color 0.25s ease;
 }
 
 .header-settings-btn:hover i,
 .calendar-settings-btn:hover i {
-    color: var(--cal-blue);
+    color: #3db4f2;
 }
 
 .section-header:hover .header-settings-btn,
@@ -664,14 +664,14 @@
 .settings-panel {
     width: 90%;
     max-width: 500px;
-    background-color: var(--color-background);
+    background-color: #152232;
     border-radius: 8px;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
     padding: 20px;
     max-height: 90vh;
     overflow-y: auto;
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
+    color: #FFFFFF;
+    border: 1px solid rgba(100, 100, 100, 0.4);
 }
 
 .settings-header {
@@ -851,10 +851,10 @@ input:checked + .slider:before {
 
 .settings-notification {
     position: fixed;
-    bottom: 20px;
+    top: 110px;
     left: 50%;
     transform: translateX(-50%) translateY(20px);
-    background-color: var(--color-blue);
+    background-color: #66C03A;
     color: white;
     padding: 10px 20px;
     border-radius: 4px;
@@ -876,11 +876,11 @@ input:checked + .slider:before {
 }
 
 .settings-notification.error {
-    background-color: #ff4f4f;
+    background-color: rgba(232, 93, 117, 0.95);
 }
 
 .settings-notification.loading {
-    background-color: #ff9e3f;
+    background-color: rgba(247, 154, 99, 0.95);
 }
 
 /*------------------------------------------------------
@@ -1104,7 +1104,7 @@ input:checked + .slider:before {
 }
 
 .anime-entry:hover .anime-image {
-    transform: translateY(-1px);
+    transform: none;
 }
 
 .anime-title,

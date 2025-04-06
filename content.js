@@ -241,7 +241,10 @@ function initSettingsButtonEvents() {
         if (isRelevantElement) {
             const settingsBtn = document.querySelector('.header-settings-btn');
             if (settingsBtn) {
-                settingsBtn.style.opacity = '1';
+                // Use setTimeout to delay the animation by 0ms (eliminates 50ms delay)
+                setTimeout(() => {
+                    settingsBtn.style.opacity = '1';
+                }, 0);
             }
         }
     });
@@ -282,7 +285,10 @@ function initSettingsButtonEvents() {
             if (!isMovingToRelevantElement) {
                 const settingsBtn = document.querySelector('.header-settings-btn');
                 if (settingsBtn) {
-                    settingsBtn.style.opacity = '0';
+                    // Use setTimeout to delay the animation by 0ms (eliminates 50ms delay)
+                    setTimeout(() => {
+                        settingsBtn.style.opacity = '0';
+                    }, 0);
                 }
             }
         }
@@ -405,7 +411,9 @@ function createSettingsButton() {
     settingsButton.style.right = '0';
     settingsButton.style.width = '28px';
     settingsButton.style.height = '28px';
-    settingsButton.style.marginTop = '-5px';
+    settingsButton.style.marginTop = '-9px';
+    settingsButton.style.position = 'absolute';
+    settingsButton.style.right = '0';
     settingsButton.style.display = 'flex';
     settingsButton.style.alignItems = 'center';
     settingsButton.style.justifyContent = 'center';
