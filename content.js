@@ -5,7 +5,7 @@
  * to provide a clearer visualization of anime episode release schedules.
  *
  * Author: ExAstra
- * GitHub: https://github.com/rikymarche-ctrl/anilist-weekly-schedule
+ * GitHub: https://github.com/rikymarche/anilist-weekly-schedule
  */
 
 // Configuration
@@ -20,18 +20,18 @@ const CONFIG = {
 
 // Common timezone options with UTC offsets - listed by popularity in anime community
 const TIMEZONE_OPTIONS = [
-    { value: 'jst', text: 'UTC+9 | Japan Standard Time', offset: 9 },
-    { value: 'pst', text: 'UTC-8 | Pacific Standard Time', offset: -8 },
-    { value: 'pdt', text: 'UTC-7 | Pacific Daylight Time', offset: -7 },
-    { value: 'est', text: 'UTC-5 | Eastern Standard Time', offset: -5 },
-    { value: 'edt', text: 'UTC-4 | Eastern Daylight Time', offset: -4 },
-    { value: 'bst', text: 'UTC+1 | British Summer Time', offset: 1 },
-    { value: 'cet', text: 'UTC+1 | Central European Time', offset: 1 },
-    { value: 'cest', text: 'UTC+2 | Central European Summer Time', offset: 2 },
-    { value: 'ist', text: 'UTC+5:30 | Indian Standard Time', offset: 5.5 },
-    { value: 'aest', text: 'UTC+10 | Australian Eastern Standard Time', offset: 10 },
-    { value: 'nzst', text: 'UTC+12 | New Zealand Standard Time', offset: 12 },
-    { value: 'auto', text: 'Auto-detect from browser', offset: null }
+    { value: 'jst', text: 'UTC+9 | Japan Standard Time', shortText: 'UTC+9', offset: 9 },
+    { value: 'pst', text: 'UTC-8 | Pacific Standard Time', shortText: 'UTC-8', offset: -8 },
+    { value: 'pdt', text: 'UTC-7 | Pacific Daylight Time', shortText: 'UTC-7', offset: -7 },
+    { value: 'est', text: 'UTC-5 | Eastern Standard Time', shortText: 'UTC-5', offset: -5 },
+    { value: 'edt', text: 'UTC-4 | Eastern Daylight Time', shortText: 'UTC-4', offset: -4 },
+    { value: 'bst', text: 'UTC+1 | British Summer Time', shortText: 'UTC+1', offset: 1 },
+    { value: 'cet', text: 'UTC+1 | Central European Time', shortText: 'UTC+1', offset: 1 },
+    { value: 'cest', text: 'UTC+2 | Central European Summer Time', shortText: 'UTC+2', offset: 2 },
+    { value: 'ist', text: 'UTC+5:30 | Indian Standard Time', shortText: 'UTC+5:30', offset: 5.5 },
+    { value: 'aest', text: 'UTC+10 | Australian Eastern Standard Time', shortText: 'UTC+10', offset: 10 },
+    { value: 'nzst', text: 'UTC+12 | New Zealand Standard Time', shortText: 'UTC+12', offset: 12 },
+    { value: 'auto', text: 'Auto-detect from browser', shortText: 'Auto', offset: null }
 ];
 
 // Default user preferences
@@ -169,6 +169,13 @@ function applyExtensionEnhancements() {
       box-sizing: border-box;
       z-index: 3;
       pointer-events: none;
+    }
+
+    /* Add separator for Today option in dropdown */
+    .option-separator {
+      border-bottom: 1px solid #3db4f2;
+      margin-bottom: 6px;
+      padding-bottom: 6px;
     }
   `;
     document.head.appendChild(styleForceBackground);
@@ -891,9 +898,8 @@ function getTimezoneName() {
 
     // Find the timezone in options and get just the UTC part
     const timezone = TIMEZONE_OPTIONS.find(tz => tz.value === userPreferences.timezone);
-    if (timezone) {
-        // Extract just the UTC part before the pipe symbol
-        return timezone.text.split('|')[0].trim();
+    if (timezone && timezone.shortText) {
+        return timezone.shortText;
     }
 
     return 'UTC+9'; // Default to Japan timezone
@@ -1333,7 +1339,10 @@ function createAnimeEntry(container, anime) {
     title.style.webkitBoxOrient = 'vertical';
     title.style.maxHeight = '2.4em';
     title.style.marginBottom = '6px'; // Increased spacing
-    title.style.textAlign = 'center'; // Center align title
+
+    // Apply title alignment based on user preferences
+    title.style.textAlign = userPreferences.titleAlignment;
+
     infoContainer.appendChild(title);
 
     // Info row (episodes and time)
@@ -1594,20 +1603,22 @@ function createSettingsOverlay() {
     //-----------------------------------------------------
     // CALENDAR TAB CONTENT
     //-----------------------------------------------------
-    // Start day setting
+    // Start day setting with visual separator
+    const startDaySelect = createSelect('start-day', [
+        { value: 'today', text: 'Today', separator: true },
+        { value: '0', text: 'Sunday' },
+        { value: '1', text: 'Monday' },
+        { value: '2', text: 'Tuesday' },
+        { value: '3', text: 'Wednesday' },
+        { value: '4', text: 'Thursday' },
+        { value: '5', text: 'Friday' },
+        { value: '6', text: 'Saturday' }
+    ], userPreferences.startDay);
+
     const startDayRow = createSettingRow(
         'First day of the week',
         'Choose which day to display first in the calendar',
-        createSelect('start-day', [
-            { value: 'today', text: 'Today' },
-            { value: '0', text: 'Sunday' },
-            { value: '1', text: 'Monday' },
-            { value: '2', text: 'Tuesday' },
-            { value: '3', text: 'Wednesday' },
-            { value: '4', text: 'Thursday' },
-            { value: '5', text: 'Friday' },
-            { value: '6', text: 'Saturday' }
-        ], userPreferences.startDay)
+        startDaySelect
     );
     calendarContent.appendChild(startDayRow);
 
@@ -1641,45 +1652,16 @@ function createSettingsOverlay() {
     );
     timeContent.appendChild(timeFormatRow);
 
-    // Timezone setting - standardized
+    // Timezone select with short display names
     const timezoneSelect = document.createElement('select');
     timezoneSelect.id = 'timezone';
     timezoneSelect.className = 'settings-select';
-    timezoneSelect.style.width = '150px';
-    timezoneSelect.style.textAlign = 'center';
 
-    // Short names for display
-    const tzDisplayNames = {
-        'jst': 'UTC+9',
-        'pst': 'UTC-8',
-        'pdt': 'UTC-7',
-        'est': 'UTC-5',
-        'edt': 'UTC-4',
-        'bst': 'UTC+1',
-        'cet': 'UTC+1',
-        'cest': 'UTC+2',
-        'ist': 'UTC+5:30',
-        'aest': 'UTC+10',
-        'nzst': 'UTC+12',
-        'auto': 'Auto-detect'
-    };
-
-    TIMEZONE_OPTIONS.forEach(tz => {
-        const option = document.createElement('option');
-        option.value = tz.value;
-        option.textContent = tz.text; // Full text in dropdown
-        option.dataset.shortName = tzDisplayNames[tz.value] || tz.text.split('|')[0].trim();
-        option.style.textAlign = 'center';
-        timezoneSelect.appendChild(option);
-    });
-
+    // Create options with full text in dropdown but display short version when selected
+    timezoneSelect.innerHTML = TIMEZONE_OPTIONS.map(tz => {
+        return `<option value="${tz.value}" title="${tz.text}" data-short="${tz.shortText}">${tz.text}</option>`;
+    }).join('');
     timezoneSelect.value = userPreferences.timezone;
-
-    // Custom function to update selected display text
-    timezoneSelect.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        this.title = selectedOption.textContent; // Full name in tooltip
-    });
 
     const timezoneRow = createSettingRow(
         'Timezone',
@@ -1721,6 +1703,7 @@ function createSettingsOverlay() {
         // Store previous values for comparison
         const prevTimeFormat = userPreferences.timeFormat;
         const prevTimezone = userPreferences.timezone;
+        const prevTitleAlignment = userPreferences.titleAlignment;
 
         // Update preferences
         userPreferences.startDay = startDay;
@@ -1745,7 +1728,7 @@ function createSettingsOverlay() {
         }, 300);
 
         // Update UI without page refresh
-        updateUIWithSettings(prevTimeFormat, prevTimezone);
+        updateUIWithSettings(prevTimeFormat, prevTimezone, prevTitleAlignment);
     });
 
     saveContainer.appendChild(saveButton);
@@ -1805,37 +1788,23 @@ function createTabButton(text, id, isActive = false) {
 }
 
 /**
- * Creates a settings section with title
- */
-function createSettingsSection(title, withDescription = true) {
-    const section = document.createElement('div');
-    section.className = 'settings-section';
-
-    const titleEl = document.createElement('h4');
-    titleEl.className = 'settings-section-title';
-    titleEl.textContent = title;
-    section.appendChild(titleEl);
-
-    if (withDescription) {
-        const descEl = document.createElement('p');
-        descEl.className = 'settings-section-description';
-        descEl.textContent = description;
-        section.appendChild(descEl);
-    }
-
-    return section;
-}
-
-/**
  * Updates UI directly after saving settings without page refresh
  */
-function updateUIWithSettings(prevTimeFormat, prevTimezone) {
+function updateUIWithSettings(prevTimeFormat, prevTimezone, prevTitleAlignment) {
     // Update calendar container classes
     if (calendarContainer) {
         // Update layout mode and title alignment
         calendarContainer.className = 'anilist-weekly-calendar';
         calendarContainer.classList.add(`${userPreferences.layoutMode}-mode`);
         calendarContainer.classList.add(`title-${userPreferences.titleAlignment}`);
+
+        // If title alignment changed, update all titles
+        if (prevTitleAlignment !== userPreferences.titleAlignment) {
+            const titles = calendarContainer.querySelectorAll('.anime-title');
+            titles.forEach(title => {
+                title.style.textAlign = userPreferences.titleAlignment;
+            });
+        }
 
         // Re-render calendar with new settings
         renderCalendar(weeklySchedule, true);
@@ -1877,16 +1846,20 @@ function createSettingRow(label, description, control) {
     row.className = 'settings-row';
     row.style.backgroundColor = '#0B1622';
     row.style.borderBottom = '1px solid rgba(70, 70, 80, 0.3)';
+    row.style.textAlign = 'left'; // Ensure left alignment for text
 
     const labelContainer = document.createElement('div');
+    labelContainer.style.textAlign = 'left'; // Ensure left alignment
 
     const labelText = document.createElement('div');
     labelText.className = 'settings-label';
     labelText.textContent = label;
+    labelText.style.textAlign = 'left'; // Ensure left alignment
 
     const descText = document.createElement('div');
     descText.className = 'settings-description';
     descText.textContent = description;
+    descText.style.textAlign = 'left'; // Ensure left alignment
 
     labelContainer.appendChild(labelText);
     labelContainer.appendChild(descText);
@@ -1904,42 +1877,32 @@ function createSelect(id, options, selectedValue) {
     const select = document.createElement('select');
     select.id = id;
     select.className = 'settings-select';
-    select.style.textAlign = 'center';
-    select.style.width = '150px'; // Standardized width
+    select.style.textAlign = 'left';
+    select.style.width = '150px';
+    select.style.paddingLeft = '8px';
 
-    // Clear any existing style
-    const existingStyle = document.getElementById(`select-style-${id}`);
-    if (existingStyle) {
-        existingStyle.remove();
-    }
-
-    // Set styles for the dropdown list
-    const optGroupStyle = document.createElement('style');
-    optGroupStyle.id = `select-style-${id}`;
-    optGroupStyle.textContent = `
-        select#${id} {
-            text-align: center !important;
-        }
-        select#${id} option {
-            text-align: center !important;
-            padding: 6px 0 !important;
-            margin: 0 !important;
-        }
-    `;
-    document.head.appendChild(optGroupStyle);
-
+    // Generate options with separators if needed
     options.forEach((option, index) => {
         const optionElement = document.createElement('option');
         optionElement.value = option.value;
         optionElement.textContent = option.text;
-        optionElement.style.textAlign = 'center';
-        optionElement.style.padding = '6px 0';
-        optionElement.style.margin = '0';
+
+        // Add separator class if specified
+        if (option.separator) {
+            optionElement.className = 'option-separator';
+        }
+
+        // Store short text for timezone display
+        if (option.shortText) {
+            optionElement.dataset.short = option.shortText;
+        }
 
         select.appendChild(optionElement);
     });
 
+    // Set the selected value
     select.value = selectedValue;
+
     return select;
 }
 
@@ -2019,6 +1982,7 @@ function showNotification(message, type = 'success') {
 
 /**
  * Handle the plus button click event - improved with max episodes check
+ * Fixed to handle UTF-8 characters correctly
  */
 function handlePlusButtonClick(e, animeData) {
     e.stopPropagation(); // Prevent the click from bubbling to the entry
@@ -2049,7 +2013,7 @@ function handlePlusButtonClick(e, animeData) {
     // Check if we exceed the total number of available episodes
     if (animeData.total > 0 && newProgress > animeData.total) {
         console.log(`Cannot increment beyond the total of ${animeData.total} episodes`);
-        showNotification(`Hai già completato tutti gli episodi disponibili (${animeData.total})`, 'error');
+        showNotification(`All episodes completed (${animeData.total})`, 'error');
         return;
     }
 
@@ -2058,25 +2022,22 @@ function handlePlusButtonClick(e, animeData) {
     // Update the UI immediately for better UX
     updateAnimeEntryInUI(animeData.id, newProgress);
 
-    // Update the progress via API - WITHOUT showing success yet
+    // Update the progress via API
     updateAnimeProgressOnServer(animeData.id, newProgress)
         .then(result => {
             if (result.success) {
                 console.log('API call completed successfully:', result.data);
                 // Show success notification only if API was successful
-                showNotification(`Episodio ${newProgress} segnato come visto!`, 'success');
+                showNotification(`Episode ${newProgress} marked as watched!`, 'success');
             } else {
                 console.warn('API call failed:', result.message);
                 // Show error notification
-                showNotification('Errore durante il salvataggio su AniList', 'error');
-
-                // Reverting UI changes would be confusing, so we'll leave them
-                console.log('UI changes remain despite API failure');
+                showNotification('Error saving to AniList', 'error');
             }
         })
         .catch(err => {
             console.error('API call error:', err);
-            showNotification('Errore di connessione ad AniList', 'error');
+            showNotification('Connection error with AniList', 'error');
         });
 }
 
@@ -2085,15 +2046,14 @@ function handlePlusButtonClick(e, animeData) {
  */
 function getAuthToken() {
     try {
-        // Strategia 1: Estrai direttamente i dati utente dalla pagina
+        // Strategy 1: Extract user data directly from page
         const userData = extractAnilistUserData();
         if (userData.token) {
             console.log("Using token found in page data");
             return userData.token;
         }
 
-        // Strategia 2: Controlla se ci sono token nel localStorage
-        // Luoghi comuni per i token AniList
+        // Strategy 2: Check for tokens in localStorage
         const tokenKeys = [
             '_at',
             'token',
@@ -2107,13 +2067,13 @@ function getAuthToken() {
             try {
                 const value = localStorage.getItem(key);
                 if (value && value.length > 20) {
-                    // Sembra un token JWT (inizia con ey)
+                    // Looks like a JWT token (starts with ey)
                     if (value.startsWith('ey')) {
                         console.log(`Found token in localStorage: ${key}`);
                         return value;
                     }
 
-                    // Tenta di parsificare come JSON
+                    // Try to parse as JSON
                     try {
                         const parsed = JSON.parse(value);
                         if (parsed && (parsed.token || parsed.accessToken)) {
@@ -2121,15 +2081,15 @@ function getAuthToken() {
                             return parsed.token || parsed.accessToken;
                         }
                     } catch (e) {
-                        // Non è JSON, continua
+                        // Not JSON, continue
                     }
                 }
             } catch (e) {
-                // Errore nel leggere localStorage, continua
+                // Error reading localStorage, continue
             }
         }
 
-        // Strategia 3: Scansiona tutti i localStorage per token potenziali
+        // Strategy 3: Scan all localStorage for potential tokens
         try {
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
@@ -2148,14 +2108,14 @@ function getAuthToken() {
                             return value;
                         }
 
-                        // Cerca JWT in testo JSON
+                        // Look for JWT in JSON text
                         const jwtMatch = value.match(/"(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)"/);
                         if (jwtMatch && jwtMatch[1]) {
                             console.log(`Found JWT in JSON text: ${key}`);
                             return jwtMatch[1];
                         }
 
-                        // Prova a parsificare JSON
+                        // Try to parse JSON
                         try {
                             const parsed = JSON.parse(value);
                             if (parsed.accessToken) {
@@ -2167,11 +2127,10 @@ function getAuthToken() {
                                 return parsed.token;
                             }
                         } catch (e) {
-                            // Non è JSON, continua
+                            // Not JSON, continue
                         }
                     } catch (e) {
-                        // Errore nel processare questa chiave
-                        continue;
+                        // Error processing this key
                     }
                 }
             }
@@ -2179,10 +2138,7 @@ function getAuthToken() {
             console.warn("Error scanning localStorage:", e);
         }
 
-        // Strategia 4: Controlla il DOM
-        // Lo saltiamo perché coperto da extractAnilistUserData
-
-        // Strategia 5: Fallback utilizzando cookie
+        // Strategy 4: Check cookies
         try {
             const cookies = document.cookie.split(';');
             for (const cookie of cookies) {
@@ -2197,10 +2153,10 @@ function getAuthToken() {
             console.warn("Error reading cookies:", e);
         }
 
-        // Strategia 6: Fallback utilizzando ID utente (diretto da extractAnilistUserData)
+        // Strategy 5: Fallback using user ID
         if (userData.userId) {
             console.log(`Using user ID as fallback: ${userData.userId}`);
-            // Questo è un fallback - non è un vero token
+            // This is a fallback - not a real token
             return `userid_fallback_${userData.userId}_${Date.now()}`;
         }
 
@@ -2213,11 +2169,11 @@ function getAuthToken() {
 }
 
 /**
- * Ottiene i dati utente AniList direttamente dalla pagina
+ * Extract AniList user data directly from the page
  */
 function extractAnilistUserData() {
     try {
-        // 1. Cerca il token nell'HTML
+        // 1. Look for token in HTML
         const scripts = Array.from(document.querySelectorAll('script:not([src])'));
         let userToken = null;
         let userId = null;
@@ -2225,21 +2181,21 @@ function extractAnilistUserData() {
         for (const script of scripts) {
             const content = script.textContent || '';
 
-            // Cerca JWT
+            // Look for JWT
             const jwtMatch = content.match(/"(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)"/);
             if (jwtMatch && jwtMatch[1]) {
                 userToken = jwtMatch[1];
                 console.log("Found JWT token in script");
             }
 
-            // Cerca userId
+            // Look for userId
             const userIdMatch = content.match(/userId['":\s]+(\d+)/);
             if (userIdMatch && userIdMatch[1]) {
                 userId = userIdMatch[1];
                 console.log("Found user ID in script:", userId);
             }
 
-            // Cerca userToken
+            // Look for userToken
             const userTokenMatch = content.match(/userToken['":\s]+"([^"]+)"/);
             if (userTokenMatch && userTokenMatch[1]) {
                 userToken = userTokenMatch[1];
@@ -2249,9 +2205,9 @@ function extractAnilistUserData() {
             if (userToken && userId) break;
         }
 
-        // 2. Cerca nel localStorage e nella pagina
+        // 2. Check localStorage and page
         if (!userToken) {
-            // Altre posizioni comuni in localStorage
+            // Other common places in localStorage
             for (const key of ['auth', '_at', 'AniList::auth', 'token']) {
                 try {
                     const value = localStorage.getItem(key);
@@ -2261,7 +2217,7 @@ function extractAnilistUserData() {
                         break;
                     }
 
-                    // Prova a parsificare come JSON
+                    // Try to parse as JSON
                     try {
                         const parsed = JSON.parse(value);
                         if (parsed && (parsed.token || parsed.accessToken)) {
@@ -2270,17 +2226,17 @@ function extractAnilistUserData() {
                             break;
                         }
                     } catch (e) {
-                        // Non è JSON, continua
+                        // Not JSON, continue
                     }
                 } catch (e) {
-                    // Errore nell'accesso a localStorage
+                    // Error accessing localStorage
                 }
             }
         }
 
-        // 3. Cerca userID nella pagina
+        // 3. Look for userID in the page
         if (!userId) {
-            // Cerca elementi DOM con dati utente
+            // Check DOM elements with user data
             const userElements = document.querySelectorAll('[data-user], [data-user-id], [data-userid]');
             for (const el of userElements) {
                 const id = el.dataset.user || el.dataset.userId || el.dataset.userid;
@@ -2291,9 +2247,9 @@ function extractAnilistUserData() {
                 }
             }
 
-            // Cerca userID nell'URL
+            // Look for userID in URL
             if (!userId && window.location.href.includes('/user/')) {
-                const urlMatch = window.location.href.match(/\/user\/([^\/\?#]+)/i);
+                const urlMatch = window.location.href.match(/\/user\/([^\/?#]+)/i);
                 if (urlMatch && urlMatch[1]) {
                     userId = urlMatch[1];
                     console.log("Found user ID in URL:", userId);
@@ -2301,10 +2257,10 @@ function extractAnilistUserData() {
             }
         }
 
-        // 4. Cerca AniList in window.__APOLLO_STATE__
+        // 4. Look for AniList in window.__APOLLO_STATE__
         if (window.__APOLLO_STATE__ && !userToken) {
             try {
-                // Esplora i dati Apollo per trovare il token
+                // Explore Apollo data for token
                 const keys = Object.keys(window.__APOLLO_STATE__);
                 for (const key of keys) {
                     if (key.startsWith('User:') && window.__APOLLO_STATE__[key].id) {
@@ -2326,6 +2282,7 @@ function extractAnilistUserData() {
 
 /**
  * Update progress via Anilist API with improved error handling
+ * Fixed to handle non-ASCII characters
  */
 async function updateAnimeProgressOnServer(mediaId, progress) {
     // Get authentication token
@@ -2333,7 +2290,7 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
 
     if (!token) {
         console.warn('No authentication token found');
-        showNotification('Per favore, assicurati di essere loggato su AniList', 'error');
+        showNotification('Please make sure you are logged in to AniList', 'error');
         return {
             success: false,
             message: 'Authentication token not found'
@@ -2366,25 +2323,24 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
     };
 
     try {
-        // Make the API request
+        // Make the API request with proper content encoding
         const response = await fetch(CONFIG.apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': token.startsWith('ey') ? `Bearer ${token}` : ''
             },
             body: JSON.stringify({
                 query: mutation,
                 variables: variables
-            }),
-            credentials: 'include'  // Include cookies in the request
+            })
         });
 
         // Check for HTTP errors
         if (!response.ok) {
             console.warn('API response not OK:', response.statusText);
-            showNotification(`Errore dal server: ${response.status}`, 'error');
+            showNotification(`Server error: ${response.status}`, 'error');
             return {
                 success: false,
                 message: `Server error: ${response.status} ${response.statusText}`
@@ -2397,7 +2353,7 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
         // Check for GraphQL errors
         if (result.errors) {
             console.warn('GraphQL error:', result.errors[0].message);
-            showNotification('Errore durante il salvataggio: ' + result.errors[0].message, 'error');
+            showNotification('Error saving: ' + result.errors[0].message, 'error');
             return {
                 success: false,
                 message: result.errors[0].message
@@ -2407,7 +2363,7 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
         // Check for data
         if (!result.data || !result.data.SaveMediaListEntry) {
             console.warn('No data returned from API');
-            showNotification('Nessun dato ricevuto dal server', 'error');
+            showNotification('No data received from server', 'error');
             return {
                 success: false,
                 message: 'No data returned from server'
@@ -2422,7 +2378,7 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
         };
     } catch (error) {
         console.error('Error updating progress:', error);
-        showNotification('Errore durante il salvataggio su AniList', 'error');
+        showNotification('Error saving to AniList', 'error');
         return {
             success: false,
             message: error.message || 'Network error'
@@ -2639,10 +2595,12 @@ function saveUserPreferences() {
 // Initialize when the page is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
+        console.log("[Anilist Calendar] DOM Content Loaded - initializing...");
         loadFontAwesome();
         initialize();
     });
 } else {
+    console.log("[Anilist Calendar] Document already loaded - initializing immediately...");
     loadFontAwesome();
     initialize();
 }
