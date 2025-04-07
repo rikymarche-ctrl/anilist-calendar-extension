@@ -1164,6 +1164,7 @@ function createAnimeEntry(container, anime) {
     entry.style.alignItems = 'stretch';
     entry.style.height = '65px';
     entry.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
+    entry.style.transform = 'none'; // Ensure no transform by default
 
     // Make the entry clickable to go to the anime page
     entry.addEventListener('click', () => {
@@ -1183,9 +1184,13 @@ function createAnimeEntry(container, anime) {
     imageContainer.style.border = 'none';
     imageContainer.style.position = 'relative';
     imageContainer.style.overflow = 'hidden';
+    imageContainer.style.transform = 'none'; // Ensure no transform
 
-    // Create actual image element
+    // Create actual image element with improved loading
     if (anime.coverImage) {
+        // Preload a placeholder until the actual image loads
+        imageContainer.classList.add('loading');
+
         const img = document.createElement('img');
         img.style.width = '100%';
         img.style.height = '100%';
@@ -1194,40 +1199,57 @@ function createAnimeEntry(container, anime) {
         img.style.top = '0';
         img.style.left = '0';
         img.style.zIndex = '1';
+        img.style.transform = 'none'; // Ensure no transform
 
-        // Set a loading animation background
-        imageContainer.style.background = 'linear-gradient(90deg, #152232 25%, #1A2C3D 50%, #152232 75%)';
-        imageContainer.style.backgroundSize = '200% 100%';
-        imageContainer.style.animation = 'shimmer 1.5s infinite';
+        // Add "loading" attribute for better performance
+        img.loading = 'eager';
+        img.decoding = 'async';
 
-        // Add error handling
+        // Add error handling with retry
+        let retryCount = 0;
+        const maxRetries = 2;
+
+        const loadImage = (src) => {
+            img.src = src;
+        };
+
         img.onerror = () => {
-            // Display fallback on error
-            img.style.display = 'none';
-            imageContainer.classList.add('error');
+            if (retryCount < maxRetries) {
+                retryCount++;
+                // Try again with cache-busting
+                setTimeout(() => {
+                    loadImage(anime.coverImage + '?retry=' + retryCount);
+                }, 500);
+            } else {
+                // Display fallback after retries fail
+                img.style.display = 'none';
+                imageContainer.classList.remove('loading');
+                imageContainer.classList.add('error');
 
-            // Show first letter of title
-            const initialLetter = document.createElement('div');
-            initialLetter.textContent = anime.cleanTitle.charAt(0).toUpperCase();
-            initialLetter.style.position = 'absolute';
-            initialLetter.style.top = '50%';
-            initialLetter.style.left = '50%';
-            initialLetter.style.transform = 'translate(-50%, -50%)';
-            initialLetter.style.fontSize = '20px';
-            initialLetter.style.fontWeight = 'bold';
-            initialLetter.style.color = '#5C728A';
-            initialLetter.style.zIndex = '2';
-            imageContainer.appendChild(initialLetter);
+                // Show first letter of title
+                const initialLetter = document.createElement('div');
+                initialLetter.textContent = anime.cleanTitle.charAt(0).toUpperCase();
+                initialLetter.style.position = 'absolute';
+                initialLetter.style.top = '50%';
+                initialLetter.style.left = '50%';
+                initialLetter.style.transform = 'translate(-50%, -50%)';
+                initialLetter.style.fontSize = '20px';
+                initialLetter.style.fontWeight = 'bold';
+                initialLetter.style.color = '#5C728A';
+                initialLetter.style.zIndex = '2';
+                imageContainer.appendChild(initialLetter);
+            }
         };
 
         img.onload = () => {
             // Remove loading animation
+            imageContainer.classList.remove('loading');
             imageContainer.style.background = 'none';
             imageContainer.style.animation = 'none';
         };
 
         // Set source after defining handlers
-        img.src = anime.coverImage;
+        loadImage(anime.coverImage);
         imageContainer.appendChild(img);
     } else {
         // No image URL - show first letter of title
@@ -1248,10 +1270,12 @@ function createAnimeEntry(container, anime) {
     // Create a container for the + button with isolated animation
     const plusButtonContainer = document.createElement('div');
     plusButtonContainer.className = 'plus-button-container';
+    plusButtonContainer.style.transform = 'none'; // Ensure no transform
 
     // Create the + button - fixed dark background even on hover
     const plusButton = document.createElement('div');
     plusButton.className = 'plus-button';
+    plusButton.style.transform = 'none'; // Ensure no transform
 
     // Plus icon as a separate element
     const plusIcon = document.createElement('i');
@@ -1270,6 +1294,9 @@ function createAnimeEntry(container, anime) {
         e.stopPropagation();
         e.preventDefault();
 
+        // Prevent animation propagation
+        e.stopImmediatePropagation();
+
         // Apply animation only to the icon container
         iconContainer.classList.add('plus-icon-active');
         setTimeout(() => {
@@ -1278,6 +1305,9 @@ function createAnimeEntry(container, anime) {
 
         // Increment episode count
         handlePlusButtonClick(e, anime);
+
+        // Return false to prevent further propagation
+        return false;
     });
 
     plusButtonContainer.appendChild(plusButton);
@@ -1997,86 +2027,103 @@ function handlePlusButtonClick(e, animeData) {
  */
 function getAuthToken() {
     try {
-        // DIRECT CHECK FOR SPECIFIC ANILIST TOKEN - Most reliable method
-        // Check for "_at" token which is AniList's main token
-        if (localStorage.getItem('_at')) {
-            return localStorage.getItem('_at');
-        }
-
-        // Check for common AniList token patterns
+        // DIRECT CHECK FOR SPECIFIC ANILIST TOKENS
         if (localStorage.getItem('auth')) {
-            const authData = JSON.parse(localStorage.getItem('auth'));
-            if (authData && authData.token) {
-                return authData.token;
-            }
-        }
-
-        // Check if token exists in AniList object
-        if (localStorage.getItem('AniList::accessToken')) {
-            return localStorage.getItem('AniList::accessToken');
-        }
-
-        if (localStorage.getItem('AniList::auth')) {
             try {
-                const data = JSON.parse(localStorage.getItem('AniList::auth'));
-                if (data && data.accessToken) {
-                    return data.accessToken;
+                const authData = JSON.parse(localStorage.getItem('auth'));
+                if (authData && authData.token) {
+                    return authData.token;
                 }
             } catch (e) {
-                // Not a valid JSON
+                // Not valid JSON
             }
         }
 
-        // Search for all tokens containing "anilist"
+        // Common AniList token locations
+        const tokenLocations = [
+            '_at',
+            'AniList::token',
+            'AniList::accessToken',
+            'anilistToken',
+            'authToken'
+        ];
+
+        for (const tokenKey of tokenLocations) {
+            const token = localStorage.getItem(tokenKey);
+            if (token && token.length > 20) {
+                return token;
+            }
+        }
+
+        // Look in Authorization key
+        const auth = localStorage.getItem('Authorization');
+        if (auth && auth.length > 20) {
+            return auth.replace('Bearer ', '');
+        }
+
+        // Scan all localStorage keys for potential AniList tokens
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (!key) continue;
 
-            if (key.toLowerCase().includes('anilist')) {
+            // Look for AniList-related keys
+            if (key.toLowerCase().includes('anilist') ||
+                key.toLowerCase().includes('token') ||
+                key.toLowerCase().includes('auth')) {
+
                 try {
                     const value = localStorage.getItem(key);
-                    if (!value) continue;
+                    if (!value || value.length < 20) continue;
 
-                    // Try to parse as JSON
-                    const parsed = JSON.parse(value);
-                    if (parsed.accessToken) return parsed.accessToken;
-                    if (parsed.token) return parsed.token;
-                } catch (e) {
-                    // If not JSON, check if it looks like a token
-                    const value = localStorage.getItem(key);
-                    if (typeof value === 'string' && value.length > 20) {
+                    // Check for JSON structure
+                    if (value.includes('{') && value.includes('}')) {
+                        try {
+                            const parsed = JSON.parse(value);
+                            if (parsed.accessToken) return parsed.accessToken;
+                            if (parsed.token) return parsed.token;
+                        } catch (e) {
+                            // Not valid JSON
+                        }
+                    } else if (value.includes('eyJ') || value.includes('ey0')) {
+                        // Looks like a JWT token
                         return value;
                     }
+                } catch (e) {
+                    continue;
                 }
             }
         }
 
-        // Look for global window object with AniList data
-        if (window.AniList && window.AniList.token) {
-            return window.AniList.token;
-        }
+        // Extract token from document cookie
+        const cookies = document.cookie.split(';');
+        const tokenCookie = cookies.find(c =>
+            c.trim().startsWith('token=') ||
+            c.trim().startsWith('access_token=') ||
+            c.trim().toLowerCase().includes('anilist')
+        );
 
-        // Check for GraphQL token in window
-        if (window.__APOLLO_STATE__ && window.__APOLLO_STATE__.ROOT_QUERY && window.__APOLLO_STATE__.ROOT_QUERY.Viewer) {
-            return "apollo_state_token";  // This is a placeholder but might help identify the request
-        }
-
-        // Check for user element which might help with auth
-        const userElement = document.querySelector('.nav .user, .header .user');
-        if (userElement && userElement.dataset && userElement.dataset.id) {
-            return `user_element_${userElement.dataset.id}`;
-        }
-
-        // Check document for a user ID
-        const scripts = document.querySelectorAll('script');
-        for (const script of scripts) {
-            const text = script.textContent;
-            if (text && text.includes('userId')) {
-                const match = text.match(/userId['":\s]+(\d+)/);
-                if (match && match[1]) {
-                    return `embedded_user_id_${match[1]}`;
-                }
+        if (tokenCookie) {
+            const token = tokenCookie.split('=')[1];
+            if (token && token.length > 20) {
+                return token.trim();
             }
+        }
+
+        // Extract user ID from the page
+        const userId = extractAnilistUserId();
+        if (userId) {
+            console.log(`Found user ID: ${userId}, using as fallback`);
+            return `user_id_${userId}_${Date.now()}`;
+        }
+
+        // Look for global ANILIST_ACCESS_TOKEN variable
+        if (window.ANILIST_ACCESS_TOKEN) {
+            return window.ANILIST_ACCESS_TOKEN;
+        }
+
+        // Try fetching token from current user via GraphQL cache
+        if (window.__APOLLO_STATE__ && window.__APOLLO_STATE__.ROOT_QUERY) {
+            return 'apollo_cache_token';
         }
 
         console.warn('No auth token found - please make sure you are logged in to AniList');
@@ -2088,6 +2135,44 @@ function getAuthToken() {
 }
 
 /**
+ * Extract AniList user ID from the page
+ */
+function extractAnilistUserId() {
+    // Method 1: Try to find user ID in DOM
+    const userIdElements = document.querySelectorAll('[data-user-id], [data-userid], [data-id]');
+    for (const el of userIdElements) {
+        const id = el.dataset.userId || el.dataset.userid || el.dataset.id;
+        if (id && !isNaN(parseInt(id))) {
+            return id;
+        }
+    }
+
+    // Method 2: Look for user ID in page scripts
+    const scripts = document.querySelectorAll('script');
+    for (const script of scripts) {
+        if (!script.textContent) continue;
+
+        const userIdMatch = script.textContent.match(/userId["']?\s*[=:]\s*["']?(\d+)["']?/);
+        if (userIdMatch && userIdMatch[1]) {
+            return userIdMatch[1];
+        }
+
+        const viewerIdMatch = script.textContent.match(/viewer["']?\.?id["']?\s*[=:]\s*["']?(\d+)["']?/);
+        if (viewerIdMatch && viewerIdMatch[1]) {
+            return viewerIdMatch[1];
+        }
+    }
+
+    // Method 3: Check URL for user ID
+    const userPathMatch = window.location.pathname.match(/\/user\/([^\/]+)/i);
+    if (userPathMatch && userPathMatch[1]) {
+        return userPathMatch[1];
+    }
+
+    return null;
+}
+
+/**
  * Update progress via Anilist API with improved error handling
  */
 async function updateAnimeProgressOnServer(mediaId, progress) {
@@ -2096,6 +2181,7 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
 
     if (!token) {
         console.warn('No authentication token found');
+        showNotification('Per favore, assicurati di essere loggato su AniList', 'error');
         return {
             success: false,
             message: 'Authentication token not found'
@@ -2110,6 +2196,12 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
         mediaId
         progress
         status
+        media {
+          id
+          title {
+            userPreferred
+          }
+        }
       }
     }
   `;
@@ -2140,6 +2232,7 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
         // Check for HTTP errors
         if (!response.ok) {
             console.warn('API response not OK:', response.statusText);
+            showNotification(`Errore dal server: ${response.status}`, 'error');
             return {
                 success: false,
                 message: `Server error: ${response.status} ${response.statusText}`
@@ -2152,6 +2245,7 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
         // Check for GraphQL errors
         if (result.errors) {
             console.warn('GraphQL error:', result.errors[0].message);
+            showNotification('Errore durante il salvataggio: ' + result.errors[0].message, 'error');
             return {
                 success: false,
                 message: result.errors[0].message
@@ -2161,6 +2255,7 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
         // Check for data
         if (!result.data || !result.data.SaveMediaListEntry) {
             console.warn('No data returned from API');
+            showNotification('Nessun dato ricevuto dal server', 'error');
             return {
                 success: false,
                 message: 'No data returned from server'
@@ -2175,6 +2270,7 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
         };
     } catch (error) {
         console.error('Error updating progress:', error);
+        showNotification('Errore durante il salvataggio su AniList', 'error');
         return {
             success: false,
             message: error.message || 'Network error'

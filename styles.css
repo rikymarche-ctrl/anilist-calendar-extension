@@ -731,6 +731,17 @@
     transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
+/* Blocco interazioni sotto l'overlay */
+.settings-overlay::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+}
+
 .settings-overlay.active {
     opacity: 1;
     visibility: visible;
@@ -742,11 +753,12 @@
     background-color: #152232;
     border-radius: 8px;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
-    padding: 20px;
-    max-height: 90vh;
+    padding: 16px;
+    max-height: 85vh;
     overflow-y: auto;
     color: #FFFFFF;
     border: 1px solid rgba(100, 100, 100, 0.4);
+    z-index: 10000;
 }
 
 .settings-header {
@@ -779,29 +791,30 @@
 }
 
 .settings-section {
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     background: var(--color-foreground);
-    padding: 15px;
+    padding: 12px;
     border-radius: 6px;
+    border: 1px solid rgba(70, 70, 80, 0.15);
 }
 
 .settings-section-title {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
-    margin: 0 0 10px 0;
+    margin: 0 0 8px 0;
     color: var(--color-blue);
-    border-bottom: 1px solid rgba(61, 180, 242, 0.2);
-    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(61, 180, 242, 0.1);
+    padding-bottom: 6px;
 }
 
 .settings-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 10px;
-    border-bottom: 1px solid var(--color-border);
+    padding: 8px 8px;
+    border-bottom: 1px solid rgba(70, 70, 80, 0.1);
     background: var(--color-background);
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     border-radius: 4px;
 }
 
@@ -953,7 +966,8 @@ input:checked + .slider:before {
 }
 
 .settings-notification.error {
-    background-color: rgba(232, 93, 117, 0.95);
+    background-color: rgba(220, 53, 69, 0.95); /* Rosso più intenso */
+    border-left: 4px solid #b71c1c;
 }
 
 .settings-notification.loading {
@@ -1123,6 +1137,7 @@ input:checked + .slider:before {
     height: 135px;
 }
 
+/* Plus button with animation isolated to icon only */
 .plus-button-container {
     position: absolute;
     top: 0;
@@ -1130,6 +1145,7 @@ input:checked + .slider:before {
     width: 100%;
     height: 100%;
     z-index: 10;
+    pointer-events: auto;
 }
 
 .plus-button {
@@ -1145,8 +1161,7 @@ input:checked + .slider:before {
     opacity: 0;
     transition: opacity 0.2s ease;
     cursor: pointer;
-    z-index: 10;
-    transform: none !important;
+    transform: none !important; /* Prevent any transformations */
 }
 
 .plus-icon-container {
@@ -1157,16 +1172,19 @@ input:checked + .slider:before {
     height: 40px;
     border-radius: 50%;
     transition: transform 0.15s ease;
+    background-color: rgba(0, 0, 0, 0.2);
+    transform: none; /* Initial state */
 }
 
 .plus-icon-active {
-    transform: scale(0.85) translate(-1px, 1px);
+    transform: scale(0.85) !important; /* Animation only for the icon container */
 }
 
 .plus-button i {
     font-size: 24px;
     color: white;
     transition: color 0.2s ease;
+    pointer-events: none; /* Ensure icon doesn't interfere with clicks */
 }
 
 .plus-button:hover i {
