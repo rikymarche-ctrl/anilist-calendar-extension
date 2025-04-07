@@ -1101,9 +1101,21 @@ function renderCalendar(schedule, skipHeader = false) {
     const daysToShow = orderedDays.slice(0, 7);
 
     // Create day columns
-    daysToShow.forEach(day => {
+    daysToShow.forEach((day, index) => {
         const dayCol = document.createElement('div');
-        dayCol.className = `anilist-calendar-day ${day === currentDayName ? 'current-day' : ''}`;
+
+        // Add classes to properly style current day
+        const classes = ['anilist-calendar-day'];
+        if (day === currentDayName) {
+            classes.push('current-day');
+        }
+
+        // Add class for "Today" column when it's the first one
+        if (userPreferences.startDay === 'today' && index === 0) {
+            classes.push('today-column');
+        }
+
+        dayCol.className = classes.join(' ');
 
         // Create day header
         const dayHeader = document.createElement('div');
@@ -1666,12 +1678,42 @@ function createSettingsOverlay() {
     const timezoneSelect = document.createElement('select');
     timezoneSelect.id = 'timezone';
     timezoneSelect.className = 'settings-select';
+    timezoneSelect.style.textAlign = 'center';
+    timezoneSelect.style.width = '180px'; // Wider for timezone options
 
     // Create options with full text in dropdown but display short version when selected
-    timezoneSelect.innerHTML = TIMEZONE_OPTIONS.map(tz => {
-        return `<option value="${tz.value}" title="${tz.text}" data-short="${tz.shortText}">${tz.text}</option>`;
-    }).join('');
-    timezoneSelect.value = userPreferences.timezone;
+    for (const tz of TIMEZONE_OPTIONS) {
+        const option = document.createElement('option');
+        option.value = tz.value;
+        option.textContent = tz.text;
+        option.dataset.shortText = tz.shortText; // Store short text in data attribute
+        if (tz.value === userPreferences.timezone) {
+            option.selected = true;
+            // Display short version for selected item
+            option.textContent = tz.shortText;
+        }
+        timezoneSelect.appendChild(option);
+    }
+
+    // Handle change event to update the display of selected item to short version
+    timezoneSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const shortText = selectedOption.dataset.shortText;
+
+        // Reset all options to full text
+        for (let i = 0; i < this.options.length; i++) {
+            const opt = this.options[i];
+            const tz = TIMEZONE_OPTIONS.find(t => t.value === opt.value);
+            if (tz) {
+                opt.textContent = tz.text;
+            }
+        }
+
+        // Set selected option to short text
+        if (shortText) {
+            selectedOption.textContent = shortText;
+        }
+    });
 
     const timezoneRow = createSettingRow(
         'Timezone',
@@ -2086,18 +2128,19 @@ function handlePlusButtonClick(e, animeData) {
  */
 function getAuthToken() {
     try {
-        // Strategy 1: Extract user data directly from page
-        const userData = extractAnilistUserData();
-        if (userData.token) {
-            console.log("Using token found in page data");
-            return userData.token;
+        console.log("Attempting to get authentication token...");
+
+        // Check for token in Anilist's expected location first
+        const anilistToken = localStorage.getItem('auth');
+        if (anilistToken && anilistToken.length > 20) {
+            console.log("Found token in 'auth' localStorage");
+            return anilistToken;
         }
 
-        // Strategy 2: Check for tokens in localStorage
+        // Try the common token locations
         const tokenKeys = [
-            '_at',
             'token',
-            'auth',
+            '_at',
             'AniList::token',
             'anilistToken',
             'accessToken'
@@ -2107,100 +2150,23 @@ function getAuthToken() {
             try {
                 const value = localStorage.getItem(key);
                 if (value && value.length > 20) {
-                    // Looks like a JWT token (starts with ey)
-                    if (value.startsWith('ey')) {
-                        console.log(`Found token in localStorage: ${key}`);
-                        return value;
-                    }
-
-                    // Try to parse as JSON
-                    try {
-                        const parsed = JSON.parse(value);
-                        if (parsed && (parsed.token || parsed.accessToken)) {
-                            console.log(`Found token in parsed JSON: ${key}`);
-                            return parsed.token || parsed.accessToken;
-                        }
-                    } catch (e) {
-                        // Not JSON, continue
-                    }
-                }
-            } catch (e) {
-                // Error reading localStorage, continue
-            }
-        }
-
-        // Strategy 3: Scan all localStorage for potential tokens
-        try {
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (!key) continue;
-
-                if (key.toLowerCase().includes('anilist') ||
-                    key.toLowerCase().includes('token') ||
-                    key.toLowerCase().includes('auth')) {
-
-                    try {
-                        const value = localStorage.getItem(key);
-                        if (!value || value.length < 20) continue;
-
-                        if (value.startsWith('ey')) {
-                            console.log(`Found likely JWT in localStorage: ${key}`);
-                            return value;
-                        }
-
-                        // Look for JWT in JSON text
-                        const jwtMatch = value.match(/"(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)"/);
-                        if (jwtMatch && jwtMatch[1]) {
-                            console.log(`Found JWT in JSON text: ${key}`);
-                            return jwtMatch[1];
-                        }
-
-                        // Try to parse JSON
-                        try {
-                            const parsed = JSON.parse(value);
-                            if (parsed.accessToken) {
-                                console.log(`Found access token in JSON: ${key}`);
-                                return parsed.accessToken;
-                            }
-                            if (parsed.token) {
-                                console.log(`Found token in JSON: ${key}`);
-                                return parsed.token;
-                            }
-                        } catch (e) {
-                            // Not JSON, continue
-                        }
-                    } catch (e) {
-                        // Error processing this key
-                    }
-                }
-            }
-        } catch (e) {
-            console.warn("Error scanning localStorage:", e);
-        }
-
-        // Strategy 4: Check cookies
-        try {
-            const cookies = document.cookie.split(';');
-            for (const cookie of cookies) {
-                const [name, value] = cookie.trim().split('=');
-                if (name && value && value.length > 20 &&
-                    (name.includes('token') || name.includes('auth'))) {
-                    console.log(`Found token in cookie: ${name}`);
+                    console.log(`Found token in localStorage: ${key}`);
                     return value;
                 }
+            } catch (e) {
+                // Continue to next key
             }
-        } catch (e) {
-            console.warn("Error reading cookies:", e);
         }
 
-        // Strategy 5: Fallback using user ID
-        if (userData.userId) {
-            console.log(`Using user ID as fallback: ${userData.userId}`);
-            // This is a fallback - not a real token
-            return `userid_fallback_${userData.userId}_${Date.now()}`;
+        // Extract from page as last resort
+        const userData = extractAnilistUserData();
+        if (userData.token) {
+            console.log("Using token found in page data");
+            return userData.token;
         }
 
         console.warn('No auth token found - please make sure you are logged in to AniList');
+        showNotification('To mark episodes as watched, please log in to AniList.', 'error');
         return null;
     } catch (err) {
         console.error('Error retrieving auth token:', err);
@@ -2330,10 +2296,9 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
 
     if (!token) {
         console.warn('No authentication token found');
-        showNotification('Please make sure you are logged in to AniList', 'error');
         return {
             success: false,
-            message: 'Authentication token not found'
+            message: 'Authentication token not found. Please log in to AniList.'
         };
     }
 
@@ -2363,15 +2328,18 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
     };
 
     try {
+        console.log("Making API request to update progress...");
+
         // Make the API request with proper content encoding
         const headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         };
 
-        // Only add Authorization header if we have a valid JWT token
-        if (token && token.startsWith('ey')) {
+        // Always add Authorization header with Bearer prefix
+        if (token) {
             headers['Authorization'] = `Bearer ${token}`;
+            console.log("Added authorization header");
         }
 
         const response = await fetch(CONFIG.apiUrl, {
@@ -2387,6 +2355,14 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
         if (!response.ok) {
             const statusText = response.statusText || 'Unknown error';
             console.warn('API response not OK:', statusText, response.status);
+
+            if (response.status === 401) {
+                return {
+                    success: false,
+                    message: `Authentication failed. Please try logging out and back in to AniList.`
+                };
+            }
+
             return {
                 success: false,
                 message: `Server error: ${response.status} (${statusText})`
