@@ -1486,7 +1486,7 @@ function startCountdownTimer() {
 }
 
 /**
- * Creates a settings overlay with organized sections
+ * Creates a settings overlay with organized sections and tabs
  */
 function createSettingsOverlay() {
     // Remove any existing overlay
@@ -1529,11 +1529,37 @@ function createSettingsOverlay() {
     header.appendChild(closeButton);
     settingsPanel.appendChild(header);
 
-    //-----------------------------------------------------
-    // LAYOUT SECTION
-    //-----------------------------------------------------
-    const layoutSection = createSettingsSection('Layout & Display', 'Customize how the calendar looks');
+    // Create tabs container
+    const tabsContainer = document.createElement('div');
+    tabsContainer.className = 'settings-tabs';
 
+    // Create tab buttons
+    const layoutTab = createTabButton('Layout', 'layout-tab', true);
+    const calendarTab = createTabButton('Calendar', 'calendar-tab');
+    const timeTab = createTabButton('Time', 'time-tab');
+
+    tabsContainer.appendChild(layoutTab);
+    tabsContainer.appendChild(calendarTab);
+    tabsContainer.appendChild(timeTab);
+
+    settingsPanel.appendChild(tabsContainer);
+
+    // Create tab content containers
+    const layoutContent = document.createElement('div');
+    layoutContent.id = 'layout-tab-content';
+    layoutContent.className = 'tab-content active';
+
+    const calendarContent = document.createElement('div');
+    calendarContent.id = 'calendar-tab-content';
+    calendarContent.className = 'tab-content';
+
+    const timeContent = document.createElement('div');
+    timeContent.id = 'time-tab-content';
+    timeContent.className = 'tab-content';
+
+    //-----------------------------------------------------
+    // LAYOUT & DISPLAY TAB CONTENT
+    //-----------------------------------------------------
     // Layout mode setting
     const layoutModeRow = createSettingRow(
         'Layout style',
@@ -1544,7 +1570,7 @@ function createSettingsOverlay() {
             { value: 'extended', text: 'Gallery' }
         ], userPreferences.layoutMode)
     );
-    layoutSection.appendChild(layoutModeRow);
+    layoutContent.appendChild(layoutModeRow);
 
     // Title alignment setting
     const titleAlignmentRow = createSettingRow(
@@ -1555,7 +1581,7 @@ function createSettingsOverlay() {
             { value: 'center', text: 'Center aligned' }
         ], userPreferences.titleAlignment)
     );
-    layoutSection.appendChild(titleAlignmentRow);
+    layoutContent.appendChild(titleAlignmentRow);
 
     // Hide empty days setting
     const hideEmptyDaysRow = createSettingRow(
@@ -1563,15 +1589,11 @@ function createSettingsOverlay() {
         'Only show days with scheduled episodes',
         createToggle('hide-empty-days', userPreferences.hideEmptyDays)
     );
-    layoutSection.appendChild(hideEmptyDaysRow);
-
-    settingsPanel.appendChild(layoutSection);
+    layoutContent.appendChild(hideEmptyDaysRow);
 
     //-----------------------------------------------------
-    // CALENDAR SECTION
+    // CALENDAR TAB CONTENT
     //-----------------------------------------------------
-    const calendarSection = createSettingsSection('Calendar Options', 'Configure calendar behavior');
-
     // Start day setting
     const startDayRow = createSettingRow(
         'First day of the week',
@@ -1587,7 +1609,7 @@ function createSettingsOverlay() {
             { value: '6', text: 'Saturday' }
         ], userPreferences.startDay)
     );
-    calendarSection.appendChild(startDayRow);
+    calendarContent.appendChild(startDayRow);
 
     // Show episode numbers setting
     const showEpisodeNumbersRow = createSettingRow(
@@ -1595,22 +1617,18 @@ function createSettingsOverlay() {
         'Display episode numbers in the calendar',
         createToggle('show-episode-numbers', userPreferences.showEpisodeNumbers)
     );
-    calendarSection.appendChild(showEpisodeNumbersRow);
-
-    settingsPanel.appendChild(calendarSection);
+    calendarContent.appendChild(showEpisodeNumbersRow);
 
     //-----------------------------------------------------
-    // TIME & TIMEZONE SECTION
+    // TIME & TIMEZONE TAB CONTENT
     //-----------------------------------------------------
-    const timeSection = createSettingsSection('Time & Timezone', 'Configure time display options');
-
     // Show time setting
     const showTimeRow = createSettingRow(
         'Show time',
         'Display time information for each anime',
         createToggle('show-time', userPreferences.showTime)
     );
-    timeSection.appendChild(showTimeRow);
+    timeContent.appendChild(showTimeRow);
 
     // Time format setting
     const timeFormatRow = createSettingRow(
@@ -1621,47 +1639,64 @@ function createSettingsOverlay() {
             { value: 'countdown', text: 'Countdown' }
         ], userPreferences.timeFormat)
     );
-    timeSection.appendChild(timeFormatRow);
+    timeContent.appendChild(timeFormatRow);
 
-    // Timezone setting
+    // Timezone setting - standardized
     const timezoneSelect = document.createElement('select');
     timezoneSelect.id = 'timezone';
     timezoneSelect.className = 'settings-select';
-    timezoneSelect.style.backgroundColor = '#1A2632';
-    timezoneSelect.style.color = 'white';
-    timezoneSelect.style.border = '1px solid #2c3e50';
+    timezoneSelect.style.width = '150px';
     timezoneSelect.style.textAlign = 'center';
 
-    // Set styles for the dropdown list
-    const tzOptGroupStyle = document.createElement('style');
-    tzOptGroupStyle.textContent = `
-        select#timezone option {
-            text-align: center !important;
-            padding: 8px 0 !important;
-        }
-    `;
-    document.head.appendChild(tzOptGroupStyle);
+    // Short names for display
+    const tzDisplayNames = {
+        'jst': 'UTC+9',
+        'pst': 'UTC-8',
+        'pdt': 'UTC-7',
+        'est': 'UTC-5',
+        'edt': 'UTC-4',
+        'bst': 'UTC+1',
+        'cet': 'UTC+1',
+        'cest': 'UTC+2',
+        'ist': 'UTC+5:30',
+        'aest': 'UTC+10',
+        'nzst': 'UTC+12',
+        'auto': 'Auto-detect'
+    };
 
     TIMEZONE_OPTIONS.forEach(tz => {
         const option = document.createElement('option');
         option.value = tz.value;
-        option.textContent = tz.text;
-        option.style.backgroundColor = '#151f2e';
-        option.style.padding = '8px 0';
+        option.textContent = tz.text; // Full text in dropdown
+        option.dataset.shortName = tzDisplayNames[tz.value] || tz.text.split('|')[0].trim();
         option.style.textAlign = 'center';
         timezoneSelect.appendChild(option);
     });
 
     timezoneSelect.value = userPreferences.timezone;
 
+    // Custom function to update selected display text
+    timezoneSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        this.title = selectedOption.textContent; // Full name in tooltip
+    });
+
     const timezoneRow = createSettingRow(
         'Timezone',
         'Adjust anime airing times to your timezone',
         timezoneSelect
     );
-    timeSection.appendChild(timezoneRow);
+    timeContent.appendChild(timezoneRow);
 
-    settingsPanel.appendChild(timeSection);
+    // Add all tab contents to panel
+    settingsPanel.appendChild(layoutContent);
+    settingsPanel.appendChild(calendarContent);
+    settingsPanel.appendChild(timeContent);
+
+    // Add tab switching functionality
+    layoutTab.addEventListener('click', () => switchTab('layout-tab'));
+    calendarTab.addEventListener('click', () => switchTab('calendar-tab'));
+    timeTab.addEventListener('click', () => switchTab('time-tab'));
 
     // Save button
     const saveContainer = document.createElement('div');
@@ -1736,30 +1771,55 @@ function createSettingsOverlay() {
             }, 300);
         }
     });
+
+    // Function to switch tabs
+    function switchTab(tabId) {
+        // Remove active class from all tabs
+        const tabs = document.querySelectorAll('.settings-tab');
+        tabs.forEach(tab => tab.classList.remove('active'));
+
+        // Remove active class from all content
+        const contents = document.querySelectorAll('.tab-content');
+        contents.forEach(content => content.classList.remove('active'));
+
+        // Add active class to selected tab
+        document.getElementById(tabId).classList.add('active');
+
+        // Add active class to selected content
+        document.getElementById(tabId + '-content').classList.add('active');
+    }
 }
 
 /**
- * Creates a settings section with title and description
+ * Creates a tab button
  */
-function createSettingsSection(title, description = '') {
+function createTabButton(text, id, isActive = false) {
+    const button = document.createElement('button');
+    button.textContent = text;
+    button.id = id;
+    button.className = 'settings-tab';
+    if (isActive) {
+        button.classList.add('active');
+    }
+    return button;
+}
+
+/**
+ * Creates a settings section with title
+ */
+function createSettingsSection(title, withDescription = true) {
     const section = document.createElement('div');
     section.className = 'settings-section';
-    section.style.backgroundColor = '#152232';
-    section.style.border = '1px solid rgba(70, 70, 80, 0.3)';
-    section.style.marginBottom = '16px';
 
     const titleEl = document.createElement('h4');
     titleEl.className = 'settings-section-title';
     titleEl.textContent = title;
     section.appendChild(titleEl);
 
-    if (description) {
+    if (withDescription) {
         const descEl = document.createElement('p');
         descEl.className = 'settings-section-description';
         descEl.textContent = description;
-        descEl.style.fontSize = '13px';
-        descEl.style.color = '#9ca3af';
-        descEl.style.margin = '-5px 0 10px 0';
         section.appendChild(descEl);
     }
 
@@ -1844,22 +1904,26 @@ function createSelect(id, options, selectedValue) {
     const select = document.createElement('select');
     select.id = id;
     select.className = 'settings-select';
-    select.style.backgroundColor = '#1A2632';
-    select.style.color = 'white';
-    select.style.border = '1px solid #2c3e50';
     select.style.textAlign = 'center';
+    select.style.width = '150px'; // Standardized width
+
+    // Clear any existing style
+    const existingStyle = document.getElementById(`select-style-${id}`);
+    if (existingStyle) {
+        existingStyle.remove();
+    }
 
     // Set styles for the dropdown list
     const optGroupStyle = document.createElement('style');
+    optGroupStyle.id = `select-style-${id}`;
     optGroupStyle.textContent = `
+        select#${id} {
+            text-align: center !important;
+        }
         select#${id} option {
             text-align: center !important;
-            padding: 8px 0 !important;
-        }
-        select#${id} option:first-child {
-            border-bottom: 2px solid #3b5574 !important;
-            padding-bottom: 10px !important;
-            margin-bottom: 5px !important;
+            padding: 6px 0 !important;
+            margin: 0 !important;
         }
     `;
     document.head.appendChild(optGroupStyle);
@@ -1868,17 +1932,9 @@ function createSelect(id, options, selectedValue) {
         const optionElement = document.createElement('option');
         optionElement.value = option.value;
         optionElement.textContent = option.text;
-        optionElement.style.backgroundColor = '#151f2e';
         optionElement.style.textAlign = 'center';
-        optionElement.style.padding = '8px 0';
+        optionElement.style.padding = '6px 0';
         optionElement.style.margin = '0';
-
-        // Add a bottom border to the "Today" option to separate
-        if (index === 0 && id === 'start-day' && option.value === 'today') {
-            optionElement.style.borderBottom = '2px solid #3b5574';
-            optionElement.style.paddingBottom = '10px';
-            optionElement.style.marginBottom = '5px';
-        }
 
         select.appendChild(optionElement);
     });
@@ -1993,7 +2049,7 @@ function handlePlusButtonClick(e, animeData) {
     // Check if we exceed the total number of available episodes
     if (animeData.total > 0 && newProgress > animeData.total) {
         console.log(`Cannot increment beyond the total of ${animeData.total} episodes`);
-        showNotification(`You've already completed all available episodes (${animeData.total})`, 'error');
+        showNotification(`Hai già completato tutti gli episodi disponibili (${animeData.total})`, 'error');
         return;
     }
 
@@ -2002,128 +2058,150 @@ function handlePlusButtonClick(e, animeData) {
     // Update the UI immediately for better UX
     updateAnimeEntryInUI(animeData.id, newProgress);
 
-    // Show success notification
-    showNotification(`Episode ${newProgress} marked as watched!`, 'success');
-
-    // Update the progress via API
+    // Update the progress via API - WITHOUT showing success yet
     updateAnimeProgressOnServer(animeData.id, newProgress)
         .then(result => {
             if (result.success) {
                 console.log('API call completed successfully:', result.data);
+                // Show success notification only if API was successful
+                showNotification(`Episodio ${newProgress} segnato come visto!`, 'success');
             } else {
                 console.warn('API call failed:', result.message);
-                // Show error notification only if API call fails
-                showNotification('Error saving progress to server. Please try again.', 'error');
+                // Show error notification
+                showNotification('Errore durante il salvataggio su AniList', 'error');
+
+                // Reverting UI changes would be confusing, so we'll leave them
+                console.log('UI changes remain despite API failure');
             }
         })
         .catch(err => {
             console.error('API call error:', err);
-            showNotification('Error connecting to server. Please try again.', 'error');
+            showNotification('Errore di connessione ad AniList', 'error');
         });
 }
 
 /**
- * Get the authentication token from localStorage
+ * Get the authentication token from localStorage with improved methods
  */
 function getAuthToken() {
     try {
-        // DIRECT CHECK FOR SPECIFIC ANILIST TOKENS
-        if (localStorage.getItem('auth')) {
-            try {
-                const authData = JSON.parse(localStorage.getItem('auth'));
-                if (authData && authData.token) {
-                    return authData.token;
-                }
-            } catch (e) {
-                // Not valid JSON
-            }
+        // Strategia 1: Estrai direttamente i dati utente dalla pagina
+        const userData = extractAnilistUserData();
+        if (userData.token) {
+            console.log("Using token found in page data");
+            return userData.token;
         }
 
-        // Common AniList token locations
-        const tokenLocations = [
+        // Strategia 2: Controlla se ci sono token nel localStorage
+        // Luoghi comuni per i token AniList
+        const tokenKeys = [
             '_at',
+            'token',
+            'auth',
             'AniList::token',
-            'AniList::accessToken',
             'anilistToken',
-            'authToken'
+            'accessToken'
         ];
 
-        for (const tokenKey of tokenLocations) {
-            const token = localStorage.getItem(tokenKey);
-            if (token && token.length > 20) {
-                return token;
-            }
-        }
-
-        // Look in Authorization key
-        const auth = localStorage.getItem('Authorization');
-        if (auth && auth.length > 20) {
-            return auth.replace('Bearer ', '');
-        }
-
-        // Scan all localStorage keys for potential AniList tokens
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (!key) continue;
-
-            // Look for AniList-related keys
-            if (key.toLowerCase().includes('anilist') ||
-                key.toLowerCase().includes('token') ||
-                key.toLowerCase().includes('auth')) {
-
-                try {
-                    const value = localStorage.getItem(key);
-                    if (!value || value.length < 20) continue;
-
-                    // Check for JSON structure
-                    if (value.includes('{') && value.includes('}')) {
-                        try {
-                            const parsed = JSON.parse(value);
-                            if (parsed.accessToken) return parsed.accessToken;
-                            if (parsed.token) return parsed.token;
-                        } catch (e) {
-                            // Not valid JSON
-                        }
-                    } else if (value.includes('eyJ') || value.includes('ey0')) {
-                        // Looks like a JWT token
+        for (const key of tokenKeys) {
+            try {
+                const value = localStorage.getItem(key);
+                if (value && value.length > 20) {
+                    // Sembra un token JWT (inizia con ey)
+                    if (value.startsWith('ey')) {
+                        console.log(`Found token in localStorage: ${key}`);
                         return value;
                     }
-                } catch (e) {
-                    continue;
+
+                    // Tenta di parsificare come JSON
+                    try {
+                        const parsed = JSON.parse(value);
+                        if (parsed && (parsed.token || parsed.accessToken)) {
+                            console.log(`Found token in parsed JSON: ${key}`);
+                            return parsed.token || parsed.accessToken;
+                        }
+                    } catch (e) {
+                        // Non è JSON, continua
+                    }
+                }
+            } catch (e) {
+                // Errore nel leggere localStorage, continua
+            }
+        }
+
+        // Strategia 3: Scansiona tutti i localStorage per token potenziali
+        try {
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (!key) continue;
+
+                if (key.toLowerCase().includes('anilist') ||
+                    key.toLowerCase().includes('token') ||
+                    key.toLowerCase().includes('auth')) {
+
+                    try {
+                        const value = localStorage.getItem(key);
+                        if (!value || value.length < 20) continue;
+
+                        if (value.startsWith('ey')) {
+                            console.log(`Found likely JWT in localStorage: ${key}`);
+                            return value;
+                        }
+
+                        // Cerca JWT in testo JSON
+                        const jwtMatch = value.match(/"(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)"/);
+                        if (jwtMatch && jwtMatch[1]) {
+                            console.log(`Found JWT in JSON text: ${key}`);
+                            return jwtMatch[1];
+                        }
+
+                        // Prova a parsificare JSON
+                        try {
+                            const parsed = JSON.parse(value);
+                            if (parsed.accessToken) {
+                                console.log(`Found access token in JSON: ${key}`);
+                                return parsed.accessToken;
+                            }
+                            if (parsed.token) {
+                                console.log(`Found token in JSON: ${key}`);
+                                return parsed.token;
+                            }
+                        } catch (e) {
+                            // Non è JSON, continua
+                        }
+                    } catch (e) {
+                        // Errore nel processare questa chiave
+                        continue;
+                    }
                 }
             }
+        } catch (e) {
+            console.warn("Error scanning localStorage:", e);
         }
 
-        // Extract token from document cookie
-        const cookies = document.cookie.split(';');
-        const tokenCookie = cookies.find(c =>
-            c.trim().startsWith('token=') ||
-            c.trim().startsWith('access_token=') ||
-            c.trim().toLowerCase().includes('anilist')
-        );
+        // Strategia 4: Controlla il DOM
+        // Lo saltiamo perché coperto da extractAnilistUserData
 
-        if (tokenCookie) {
-            const token = tokenCookie.split('=')[1];
-            if (token && token.length > 20) {
-                return token.trim();
+        // Strategia 5: Fallback utilizzando cookie
+        try {
+            const cookies = document.cookie.split(';');
+            for (const cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name && value && value.length > 20 &&
+                    (name.includes('token') || name.includes('auth'))) {
+                    console.log(`Found token in cookie: ${name}`);
+                    return value;
+                }
             }
+        } catch (e) {
+            console.warn("Error reading cookies:", e);
         }
 
-        // Extract user ID from the page
-        const userId = extractAnilistUserId();
-        if (userId) {
-            console.log(`Found user ID: ${userId}, using as fallback`);
-            return `user_id_${userId}_${Date.now()}`;
-        }
-
-        // Look for global ANILIST_ACCESS_TOKEN variable
-        if (window.ANILIST_ACCESS_TOKEN) {
-            return window.ANILIST_ACCESS_TOKEN;
-        }
-
-        // Try fetching token from current user via GraphQL cache
-        if (window.__APOLLO_STATE__ && window.__APOLLO_STATE__.ROOT_QUERY) {
-            return 'apollo_cache_token';
+        // Strategia 6: Fallback utilizzando ID utente (diretto da extractAnilistUserData)
+        if (userData.userId) {
+            console.log(`Using user ID as fallback: ${userData.userId}`);
+            // Questo è un fallback - non è un vero token
+            return `userid_fallback_${userData.userId}_${Date.now()}`;
         }
 
         console.warn('No auth token found - please make sure you are logged in to AniList');
@@ -2135,41 +2213,115 @@ function getAuthToken() {
 }
 
 /**
- * Extract AniList user ID from the page
+ * Ottiene i dati utente AniList direttamente dalla pagina
  */
-function extractAnilistUserId() {
-    // Method 1: Try to find user ID in DOM
-    const userIdElements = document.querySelectorAll('[data-user-id], [data-userid], [data-id]');
-    for (const el of userIdElements) {
-        const id = el.dataset.userId || el.dataset.userid || el.dataset.id;
-        if (id && !isNaN(parseInt(id))) {
-            return id;
+function extractAnilistUserData() {
+    try {
+        // 1. Cerca il token nell'HTML
+        const scripts = Array.from(document.querySelectorAll('script:not([src])'));
+        let userToken = null;
+        let userId = null;
+
+        for (const script of scripts) {
+            const content = script.textContent || '';
+
+            // Cerca JWT
+            const jwtMatch = content.match(/"(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)"/);
+            if (jwtMatch && jwtMatch[1]) {
+                userToken = jwtMatch[1];
+                console.log("Found JWT token in script");
+            }
+
+            // Cerca userId
+            const userIdMatch = content.match(/userId['":\s]+(\d+)/);
+            if (userIdMatch && userIdMatch[1]) {
+                userId = userIdMatch[1];
+                console.log("Found user ID in script:", userId);
+            }
+
+            // Cerca userToken
+            const userTokenMatch = content.match(/userToken['":\s]+"([^"]+)"/);
+            if (userTokenMatch && userTokenMatch[1]) {
+                userToken = userTokenMatch[1];
+                console.log("Found user token in script");
+            }
+
+            if (userToken && userId) break;
         }
-    }
 
-    // Method 2: Look for user ID in page scripts
-    const scripts = document.querySelectorAll('script');
-    for (const script of scripts) {
-        if (!script.textContent) continue;
+        // 2. Cerca nel localStorage e nella pagina
+        if (!userToken) {
+            // Altre posizioni comuni in localStorage
+            for (const key of ['auth', '_at', 'AniList::auth', 'token']) {
+                try {
+                    const value = localStorage.getItem(key);
+                    if (value && (value.startsWith('ey') || value.length > 40)) {
+                        userToken = value;
+                        console.log(`Found token in localStorage: ${key}`);
+                        break;
+                    }
 
-        const userIdMatch = script.textContent.match(/userId["']?\s*[=:]\s*["']?(\d+)["']?/);
-        if (userIdMatch && userIdMatch[1]) {
-            return userIdMatch[1];
+                    // Prova a parsificare come JSON
+                    try {
+                        const parsed = JSON.parse(value);
+                        if (parsed && (parsed.token || parsed.accessToken)) {
+                            userToken = parsed.token || parsed.accessToken;
+                            console.log(`Found token in parsed localStorage: ${key}`);
+                            break;
+                        }
+                    } catch (e) {
+                        // Non è JSON, continua
+                    }
+                } catch (e) {
+                    // Errore nell'accesso a localStorage
+                }
+            }
         }
 
-        const viewerIdMatch = script.textContent.match(/viewer["']?\.?id["']?\s*[=:]\s*["']?(\d+)["']?/);
-        if (viewerIdMatch && viewerIdMatch[1]) {
-            return viewerIdMatch[1];
+        // 3. Cerca userID nella pagina
+        if (!userId) {
+            // Cerca elementi DOM con dati utente
+            const userElements = document.querySelectorAll('[data-user], [data-user-id], [data-userid]');
+            for (const el of userElements) {
+                const id = el.dataset.user || el.dataset.userId || el.dataset.userid;
+                if (id && !isNaN(parseInt(id))) {
+                    userId = id;
+                    console.log("Found user ID in DOM:", userId);
+                    break;
+                }
+            }
+
+            // Cerca userID nell'URL
+            if (!userId && window.location.href.includes('/user/')) {
+                const urlMatch = window.location.href.match(/\/user\/([^\/\?#]+)/i);
+                if (urlMatch && urlMatch[1]) {
+                    userId = urlMatch[1];
+                    console.log("Found user ID in URL:", userId);
+                }
+            }
         }
-    }
 
-    // Method 3: Check URL for user ID
-    const userPathMatch = window.location.pathname.match(/\/user\/([^\/]+)/i);
-    if (userPathMatch && userPathMatch[1]) {
-        return userPathMatch[1];
-    }
+        // 4. Cerca AniList in window.__APOLLO_STATE__
+        if (window.__APOLLO_STATE__ && !userToken) {
+            try {
+                // Esplora i dati Apollo per trovare il token
+                const keys = Object.keys(window.__APOLLO_STATE__);
+                for (const key of keys) {
+                    if (key.startsWith('User:') && window.__APOLLO_STATE__[key].id) {
+                        userId = window.__APOLLO_STATE__[key].id;
+                        console.log("Found user ID in Apollo cache:", userId);
+                    }
+                }
+            } catch (e) {
+                console.warn("Error parsing Apollo state:", e);
+            }
+        }
 
-    return null;
+        return { token: userToken, userId: userId };
+    } catch (err) {
+        console.error("Error extracting user data:", err);
+        return { token: null, userId: null };
+    }
 }
 
 /**
