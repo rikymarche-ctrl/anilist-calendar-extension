@@ -1157,7 +1157,7 @@ function renderCalendar(schedule, skipHeader = false) {
 }
 
 /**
- * Creates an anime entry element with proper image handling
+ * Creates an anime entry element with improved image handling
  */
 function createAnimeEntry(container, anime) {
     // Create the entry container
@@ -1191,9 +1191,10 @@ function createAnimeEntry(container, anime) {
     imageContainer.style.position = 'relative';
     imageContainer.style.overflow = 'hidden';
     imageContainer.style.transform = 'none'; // Ensure no transform
+    imageContainer.style.backgroundColor = '#1A1A2E'; // Ensure visible background
 
     // Create actual image element with improved loading
-    if (anime.coverImage) {
+    if (anime.coverImage && anime.coverImage.length > 10) {
         // Preload a placeholder until the actual image loads
         imageContainer.classList.add('loading');
 
@@ -1206,48 +1207,52 @@ function createAnimeEntry(container, anime) {
         img.style.left = '0';
         img.style.zIndex = '1';
         img.style.transform = 'none'; // Ensure no transform
+        img.setAttribute('loading', 'eager');
+        img.setAttribute('decoding', 'async');
+        img.setAttribute('crossorigin', 'anonymous'); // Try to fix CORS issues
 
-        // Add "loading" attribute for better performance
-        img.loading = 'eager';
-        img.decoding = 'async';
-
-        // Add error handling with retry
+        // Add error handling with enhanced retry
         let retryCount = 0;
-        const maxRetries = 2;
+        const maxRetries = 3;
 
         const loadImage = (src) => {
-            img.src = src;
+            console.log(`Loading image for ${anime.cleanTitle}: ${src}`);
+            // Clean up the URL if it contains special characters
+            const cleanSrc = src.replace(/"/g, '%22').replace(/'/g, '%27');
+            img.src = cleanSrc;
         };
 
         img.onerror = () => {
+            console.warn(`Image load error for ${anime.cleanTitle}`);
             if (retryCount < maxRetries) {
                 retryCount++;
-                // Try again with cache-busting
+                // Try with different cache-busting strategies
                 setTimeout(() => {
-                    loadImage(anime.coverImage + '?retry=' + retryCount);
-                }, 500);
+                    if (retryCount === 1) {
+                        // First retry - add cache buster
+                        loadImage(anime.coverImage + '?retry=' + Date.now());
+                    } else if (retryCount === 2) {
+                        // Second retry - try to extract URL if it's complex
+                        const simplifiedUrl = anime.coverImage.split('?')[0];
+                        loadImage(simplifiedUrl);
+                    } else {
+                        // Last retry - try with a different approach
+                        const baseUrl = anime.coverImage.replace(/https?:\/\//, '');
+                        loadImage('https://' + baseUrl);
+                    }
+                }, 800 * retryCount); // Increase delay for each retry
             } else {
                 // Display fallback after retries fail
+                console.error(`Failed to load image for ${anime.cleanTitle} after ${maxRetries} retries`);
                 img.style.display = 'none';
                 imageContainer.classList.remove('loading');
                 imageContainer.classList.add('error');
-
-                // Show first letter of title
-                const initialLetter = document.createElement('div');
-                initialLetter.textContent = anime.cleanTitle.charAt(0).toUpperCase();
-                initialLetter.style.position = 'absolute';
-                initialLetter.style.top = '50%';
-                initialLetter.style.left = '50%';
-                initialLetter.style.transform = 'translate(-50%, -50%)';
-                initialLetter.style.fontSize = '20px';
-                initialLetter.style.fontWeight = 'bold';
-                initialLetter.style.color = '#5C728A';
-                initialLetter.style.zIndex = '2';
-                imageContainer.appendChild(initialLetter);
+                showFallbackImage(imageContainer, anime);
             }
         };
 
         img.onload = () => {
+            console.log(`Image loaded successfully for ${anime.cleanTitle}`);
             // Remove loading animation
             imageContainer.classList.remove('loading');
             imageContainer.style.background = 'none';
@@ -1258,8 +1263,13 @@ function createAnimeEntry(container, anime) {
         loadImage(anime.coverImage);
         imageContainer.appendChild(img);
     } else {
-        // No image URL - show first letter of title
+        // No valid image URL - show fallback
         imageContainer.classList.add('error');
+        showFallbackImage(imageContainer, anime);
+    }
+
+    function showFallbackImage(container, anime) {
+        // Show first letter of title as fallback
         const initialLetter = document.createElement('div');
         initialLetter.textContent = anime.cleanTitle.charAt(0).toUpperCase();
         initialLetter.style.position = 'absolute';
@@ -1270,7 +1280,7 @@ function createAnimeEntry(container, anime) {
         initialLetter.style.fontWeight = 'bold';
         initialLetter.style.color = '#5C728A';
         initialLetter.style.zIndex = '2';
-        imageContainer.appendChild(initialLetter);
+        container.appendChild(initialLetter);
     }
 
     // Create a container for the + button with isolated animation
@@ -1877,15 +1887,16 @@ function createSelect(id, options, selectedValue) {
     const select = document.createElement('select');
     select.id = id;
     select.className = 'settings-select';
-    select.style.textAlign = 'left';
+    select.style.textAlign = 'center';
     select.style.width = '150px';
-    select.style.paddingLeft = '8px';
+    select.style.paddingLeft = '0';
 
     // Generate options with separators if needed
     options.forEach((option, index) => {
         const optionElement = document.createElement('option');
         optionElement.value = option.value;
         optionElement.textContent = option.text;
+        optionElement.style.textAlign = 'center';
 
         // Add separator class if specified
         if (option.separator) {
@@ -1902,6 +1913,31 @@ function createSelect(id, options, selectedValue) {
 
     // Set the selected value
     select.value = selectedValue;
+
+    // Special handling for timezone select - display short version
+    if (id === 'timezone') {
+        select.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const shortText = selectedOption.dataset.short;
+            if (shortText) {
+                // Store original text for reference
+                if (!selectedOption.dataset.originalText) {
+                    selectedOption.dataset.originalText = selectedOption.textContent;
+                }
+                // Display only the short version when selected
+                selectedOption.textContent = shortText;
+            }
+        });
+
+        // Apply short text to initial selection
+        const selectedOption = select.options[select.selectedIndex];
+        if (selectedOption && selectedOption.dataset.short) {
+            // Store original text
+            selectedOption.dataset.originalText = selectedOption.textContent;
+            // Set short text
+            selectedOption.textContent = selectedOption.dataset.short;
+        }
+    }
 
     return select;
 }
@@ -1982,7 +2018,7 @@ function showNotification(message, type = 'success') {
 
 /**
  * Handle the plus button click event - improved with max episodes check
- * Fixed to handle UTF-8 characters correctly
+ * Fixed to handle UTF-8 characters correctly and only update UI after successful API call
  */
 function handlePlusButtonClick(e, animeData) {
     e.stopPropagation(); // Prevent the click from bubbling to the entry
@@ -2017,22 +2053,26 @@ function handlePlusButtonClick(e, animeData) {
         return;
     }
 
-    console.log(`Incrementing episode for ${animeData.id} from ${animeData.watched} to ${newProgress}`);
+    console.log(`Attempting to increment episode for ${animeData.id} from ${animeData.watched} to ${newProgress}`);
 
-    // Update the UI immediately for better UX
-    updateAnimeEntryInUI(animeData.id, newProgress);
+    // Show loading notification
+    const loadingNotification = showNotification(`Updating episode progress...`, 'loading');
 
-    // Update the progress via API
+    // Update the progress via API first
     updateAnimeProgressOnServer(animeData.id, newProgress)
         .then(result => {
             if (result.success) {
                 console.log('API call completed successfully:', result.data);
-                // Show success notification only if API was successful
+
+                // Only update UI after successful API call
+                updateAnimeEntryInUI(animeData.id, newProgress);
+
+                // Show success notification
                 showNotification(`Episode ${newProgress} marked as watched!`, 'success');
             } else {
                 console.warn('API call failed:', result.message);
                 // Show error notification
-                showNotification('Error saving to AniList', 'error');
+                showNotification('Error saving to AniList: ' + result.message, 'error');
             }
         })
         .catch(err => {
@@ -2282,7 +2322,7 @@ function extractAnilistUserData() {
 
 /**
  * Update progress via Anilist API with improved error handling
- * Fixed to handle non-ASCII characters
+ * Fixed to handle non-ASCII characters with better error reporting
  */
 async function updateAnimeProgressOnServer(mediaId, progress) {
     // Get authentication token
@@ -2324,13 +2364,19 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
 
     try {
         // Make the API request with proper content encoding
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        };
+
+        // Only add Authorization header if we have a valid JWT token
+        if (token && token.startsWith('ey')) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const response = await fetch(CONFIG.apiUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': token.startsWith('ey') ? `Bearer ${token}` : ''
-            },
+            headers: headers,
             body: JSON.stringify({
                 query: mutation,
                 variables: variables
@@ -2339,11 +2385,11 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
 
         // Check for HTTP errors
         if (!response.ok) {
-            console.warn('API response not OK:', response.statusText);
-            showNotification(`Server error: ${response.status}`, 'error');
+            const statusText = response.statusText || 'Unknown error';
+            console.warn('API response not OK:', statusText, response.status);
             return {
                 success: false,
-                message: `Server error: ${response.status} ${response.statusText}`
+                message: `Server error: ${response.status} (${statusText})`
             };
         }
 
@@ -2352,18 +2398,17 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
 
         // Check for GraphQL errors
         if (result.errors) {
-            console.warn('GraphQL error:', result.errors[0].message);
-            showNotification('Error saving: ' + result.errors[0].message, 'error');
+            const errorMsg = result.errors[0].message || 'Unknown GraphQL error';
+            console.warn('GraphQL error:', errorMsg);
             return {
                 success: false,
-                message: result.errors[0].message
+                message: errorMsg
             };
         }
 
         // Check for data
         if (!result.data || !result.data.SaveMediaListEntry) {
             console.warn('No data returned from API');
-            showNotification('No data received from server', 'error');
             return {
                 success: false,
                 message: 'No data returned from server'
@@ -2378,7 +2423,6 @@ async function updateAnimeProgressOnServer(mediaId, progress) {
         };
     } catch (error) {
         console.error('Error updating progress:', error);
-        showNotification('Error saving to AniList', 'error');
         return {
             success: false,
             message: error.message || 'Network error'
