@@ -105,30 +105,6 @@ function preloadFontAwesomeIcons() {
 }
 
 /**
- * Creates and preloads a default image for error states
- */
-function createDefaultImage() {
-    const defaultImageData = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="150" viewBox="0 0 100 150">
-      <rect width="100" height="150" fill="#1A1A2E"/>
-      <text x="50" y="75" font-family="Arial" font-size="16" fill="#9CA3AF" text-anchor="middle">No Image</text>
-    </svg>
-  `;
-    const defaultImageUrl = 'data:image/svg+xml;base64,' + btoa(defaultImageData);
-
-    const defaultImage = new Image();
-    defaultImage.src = defaultImageUrl;
-
-    try {
-        chrome.storage.local.set({ 'default_cover_image': defaultImageUrl });
-    } catch (e) {
-        window.defaultCoverImage = defaultImageUrl;
-    }
-
-    return defaultImageUrl;
-}
-
-/**
  * Applies extension enhancements
  */
 function applyExtensionEnhancements() {
@@ -179,9 +155,6 @@ function applyExtensionEnhancements() {
     }
   `;
     document.head.appendChild(styleForceBackground);
-
-    // Create default image for error states
-    createDefaultImage();
 }
 
 /**
@@ -328,6 +301,32 @@ function setupObserver() {
 }
 
 /**
+ * Creates settings button with fixed z-index
+ */
+function createSettingsButton() {
+    const settingsButton = document.createElement('button');
+    settingsButton.className = 'calendar-settings-btn header-settings-btn';
+    settingsButton.title = 'Open settings';
+    settingsButton.innerHTML = '<i class="fa fa-cog" style="font-size: 14px;"></i>';
+
+    // Open settings overlay when settings button is clicked
+    settingsButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        try {
+            // Show the settings overlay
+            createSettingsOverlay();
+        } catch (err) {
+            // Fallback
+            createSettingsOverlay();
+        }
+    });
+
+    return settingsButton;
+}
+
+/**
  * Finds and replaces the Airing section with unified header
  */
 function findAndReplaceAiringSection() {
@@ -405,42 +404,6 @@ function findAndReplaceAiringSection() {
         log("Error finding Airing section", err);
         return false;
     }
-}
-
-/**
- * Creates settings button with fixed z-index
- */
-function createSettingsButton() {
-    const settingsButton = document.createElement('button');
-    settingsButton.className = 'calendar-settings-btn header-settings-btn';
-    settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
-    settingsButton.title = 'Open settings';
-    settingsButton.style.position = 'absolute';
-    settingsButton.style.right = '0';
-    settingsButton.style.width = '28px';
-    settingsButton.style.height = '28px';
-    settingsButton.style.marginTop = '-6px';
-    settingsButton.style.display = 'flex';
-    settingsButton.style.alignItems = 'center';
-    settingsButton.style.justifyContent = 'center';
-    settingsButton.style.zIndex = '1000';
-    settingsButton.innerHTML = '<i class="fa fa-cog" style="font-size: 14px;"></i>';
-
-    // Open settings overlay when settings button is clicked
-    settingsButton.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        try {
-            // Show the settings overlay
-            createSettingsOverlay();
-        } catch (err) {
-            // Fallback
-            createSettingsOverlay();
-        }
-    });
-
-    return settingsButton;
 }
 
 /**
@@ -554,9 +517,7 @@ function extractAnimeDataFromDOM(container) {
         animeCards.forEach(card => {
             try {
                 // Debug entire card structure if enabled
-                if (CONFIG.debug) {
-                    console.log("Card HTML:", card.outerHTML);
-                }
+                console.log("Card HTML:", card.outerHTML);
 
                 const animeLink = card.querySelector('a[href^="/anime/"]');
                 if (!animeLink) return;
@@ -569,13 +530,13 @@ function extractAnimeDataFromDOM(container) {
                 const infoHeader = card.querySelector('.info-header');
                 const infoHeaderText = infoHeader ? infoHeader.textContent.trim() : "";
 
-                if (CONFIG.debug) {
-                    console.log("Processing:", {
-                        id: animeId,
-                        title: rawTitle,
-                        infoHeader: infoHeaderText
-                    });
+                log("Processing:", {
+                    id: animeId,
+                    title: rawTitle,
+                    infoHeader: infoHeaderText
+                });
 
+                if (CONFIG.debug) {
                     const infoEl = card.querySelector('.info');
                     const mobileEl = card.querySelector('.plus-progress.mobile');
 
@@ -604,12 +565,6 @@ function extractAnimeDataFromDOM(container) {
                     days = dMatch ? parseInt(dMatch[1]) : 0;
                     hours = hMatch ? parseInt(hMatch[1]) : 0;
                     minutes = mMatch ? parseInt(mMatch[1]) : 0;
-                }
-
-                // Get card color
-                let color = '#3db4f2';
-                if (coverImgElement && coverImgElement.getAttribute('data-src-color')) {
-                    color = coverImgElement.getAttribute('data-src-color');
                 }
 
                 // Get episode string - EXACT as displayed by Anilist
@@ -644,7 +599,6 @@ function extractAnimeDataFromDOM(container) {
                     days: days,
                     hours: hours,
                     minutes: minutes,
-                    color: color,
                     episode: getEpisodeNumber(card) || "Next",
                     originalDay: airingInfo.originalDay,
                     dayChanged: airingInfo.dayChanged,
@@ -791,15 +745,14 @@ function parseEpisodeInfo(rawTitle, card) {
         }
 
         // Debug logging for episode info
-        if (CONFIG.debug) {
-            console.log(`Episode info for ${title}:`, {
-                watched: episodeInfo.watched,
-                available: episodeInfo.available,
-                total: episodeInfo.total,
-                behind: episodeInfo.episodesBehind,
-                formatted: episodeInfo.formatted
-            });
-        }
+        console.log(`Episode info for ${title}:`, {
+            watched: episodeInfo.watched,
+            available: episodeInfo.available,
+            total: episodeInfo.total,
+            behind: episodeInfo.episodesBehind,
+            formatted: episodeInfo.formatted
+        });
+
     } catch (err) {
         log('parseEpisodeInfo error:', err);
     }
@@ -1230,8 +1183,7 @@ function createAnimeEntry(container, anime) {
         const loadImage = (src) => {
             console.log(`Loading image for ${anime.cleanTitle}: ${src}`);
             // Clean up the URL if it contains special characters
-            const cleanSrc = src.replace(/"/g, '%22').replace(/'/g, '%27');
-            img.src = cleanSrc;
+            img.src = src.replace(/"/g, '%22').replace(/'/g, '%27');
         };
 
         img.onerror = () => {
@@ -1934,7 +1886,7 @@ function createSelect(id, options, selectedValue) {
     select.style.paddingLeft = '0';
 
     // Generate options with separators if needed
-    options.forEach((option, index) => {
+    options.forEach((option) => {
         const optionElement = document.createElement('option');
         optionElement.value = option.value;
         optionElement.textContent = option.text;
@@ -2098,7 +2050,7 @@ function handlePlusButtonClick(e, animeData) {
     console.log(`Attempting to increment episode for ${animeData.id} from ${animeData.watched} to ${newProgress}`);
 
     // Show loading notification
-    const loadingNotification = showNotification(`Updating episode progress...`, 'loading');
+    showNotification(`Updating episode progress...`, 'loading');
 
     // Update the progress via API first
     updateAnimeProgressOnServer(animeData.id, newProgress)
