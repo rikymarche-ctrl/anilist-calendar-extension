@@ -298,17 +298,47 @@ let domObserver = null;
 function setupObserver() {
     if (domObserver) {
         domObserver.disconnect();
+        domObserver = null;
     }
 
-    domObserver = new MutationObserver((mutations) => {
-        if (isCalendarInitialized) return;
+    // Debounce function to limit frequent calls
+    let debounceTimer = null;
+    const debounce = (callback, time) => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(callback, time);
+    };
 
-        const shouldCheck = mutations.some(mutation => {
-            return mutation.addedNodes.length > 0;
+    domObserver = new MutationObserver((mutations) => {
+        // Skip processing if calendar is already initialized or no mutations to process
+        if (isCalendarInitialized || mutations.length === 0) return;
+
+        // Check if mutations are relevant (add more specific filters)
+        const relevantMutation = mutations.some(mutation => {
+            // Only process mutations with added nodes that might contain the airing section
+            if (mutation.addedNodes.length === 0) return false;
+
+            // Check if any of the added nodes might contain the airing section
+            return Array.from(mutation.addedNodes).some(node => {
+                if (node.nodeType !== Node.ELEMENT_NODE) return false;
+
+                // Check if node or its children might contain the airing section
+                return node.textContent &&
+                    (node.textContent.includes('Airing') ||
+                        node.classList && (
+                            node.classList.contains('home') ||
+                            node.classList.contains('section-header') ||
+                            node.classList.contains('content-wrap')
+                        )
+                    );
+            });
         });
 
-        if (shouldCheck) {
-            findAndReplaceAiringSection();
+        if (relevantMutation) {
+            // Use debounce to avoid multiple rapid calls
+            debounce(() => {
+                log("Relevant DOM changes detected - attempting to find Airing section");
+                findAndReplaceAiringSection();
+            }, 200);
         }
     });
 
@@ -317,7 +347,7 @@ function setupObserver() {
         subtree: true
     });
 
-    log("Observer set up");
+    log("Observer set up with improved filtering");
 }
 
 /**
