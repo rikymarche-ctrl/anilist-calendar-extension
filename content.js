@@ -52,6 +52,7 @@ let isCalendarInitialized = false;
 let calendarContainer = null;
 let countdownInterval = null;
 let originalPlusButtons = {};  // Store original plus buttons
+let originalCoverImages = {};  // Store original cover images
 
 /**
  * Logs debug messages to console when debug mode is enabled
@@ -741,6 +742,12 @@ function extractAnimeDataFromDOM(container) {
                 const coverImgElement = card.querySelector('img') || card.querySelector('.cover');
                 const coverImage = getCoverImage(coverImgElement);
 
+                // IMPORTANTE: Salva l'elemento immagine originale
+                if (coverImgElement) {
+                    originalCoverImages[animeId] = coverImgElement.cloneNode(true);
+                    log(`Saved original cover image for anime ID: ${animeId}`);
+                }
+
                 // Get countdown information
                 const countdownElement = card.querySelector('.countdown');
                 let days = 0, hours = 0, minutes = 0;
@@ -806,6 +813,303 @@ function extractAnimeDataFromDOM(container) {
         log("Error extracting anime data from DOM", err);
         return [];
     }
+}
+
+/**
+ * Creates an anime entry element with improved image handling
+ */
+function createAnimeEntry(container, anime) {
+    // Create the entry container
+    const entry = document.createElement('div');
+    entry.className = 'anime-entry';
+    entry.dataset.animeId = anime.id;
+    entry.dataset.animeData = JSON.stringify(anime);
+    entry.style.backgroundColor = 'rgba(21, 31, 46, 0.95)';
+    entry.style.padding = '0';
+    entry.style.alignItems = 'stretch';
+    entry.style.height = '65px';
+    entry.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
+    entry.style.transform = 'none'; // Ensure no transform by default
+
+    // Make the entry clickable to go to the anime page
+    entry.addEventListener('click', () => {
+        window.location.href = `/anime/${anime.id}`;
+    });
+
+    // Create image container
+    const imageContainer = document.createElement('div');
+    imageContainer.className = 'anime-image';
+    imageContainer.style.width = '45px';
+    imageContainer.style.height = '100%';
+    imageContainer.style.marginRight = '6px';
+    imageContainer.style.borderRadius = '0';
+    imageContainer.style.display = 'flex';
+    imageContainer.style.alignItems = 'center';
+    imageContainer.style.padding = '0';
+    imageContainer.style.border = 'none';
+    imageContainer.style.position = 'relative';
+    imageContainer.style.overflow = 'hidden';
+    imageContainer.style.transform = 'none'; // Ensure no transform
+    imageContainer.style.backgroundColor = '#1A1A2E'; // Ensure visible background
+
+    // Verifica se abbiamo l'immagine originale
+    if (originalCoverImages[anime.id]) {
+        log(`Using original cover image for anime ID: ${anime.id}`);
+
+        // Clona l'immagine originale per evitare conflitti DOM
+        const originalImg = originalCoverImages[anime.id];
+        const clonedImg = originalImg.cloneNode(true);
+
+        // Assicurati che gli stili siano corretti per il nostro layout
+        clonedImg.style.width = '100%';
+        clonedImg.style.height = '100%';
+        clonedImg.style.objectFit = 'cover';
+        clonedImg.style.position = 'absolute';
+        clonedImg.style.top = '0';
+        clonedImg.style.left = '0';
+        clonedImg.style.zIndex = '1';
+        clonedImg.style.transform = 'none';
+
+        imageContainer.appendChild(clonedImg);
+    } else {
+        // Fallback al metodo originale se l'immagine originale non è disponibile
+        if (anime.coverImage && anime.coverImage.length > 10) {
+            // Preload a placeholder until the actual image loads
+            imageContainer.classList.add('loading');
+
+            const img = document.createElement('img');
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            img.style.position = 'absolute';
+            img.style.top = '0';
+            img.style.left = '0';
+            img.style.zIndex = '1';
+            img.style.transform = 'none'; // Ensure no transform
+            img.setAttribute('loading', 'eager');
+            img.setAttribute('decoding', 'async');
+            img.setAttribute('crossorigin', 'anonymous'); // Try to fix CORS issues
+
+            // Add error handling with enhanced retry
+            let retryCount = 0;
+            const maxRetries = 3;
+
+            const loadImage = (src) => {
+                console.log(`Loading image for ${anime.cleanTitle}: ${src}`);
+                // Clean up the URL if it contains special characters
+                img.src = src.replace(/"/g, '%22').replace(/'/g, '%27');
+            };
+
+            img.onerror = () => {
+                console.warn(`Image load error for ${anime.cleanTitle}`);
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    // Try with different cache-busting strategies
+                    setTimeout(() => {
+                        if (retryCount === 1) {
+                            // First retry - add cache buster
+                            loadImage(anime.coverImage + '?retry=' + Date.now());
+                        } else if (retryCount === 2) {
+                            // Second retry - try to extract URL if it's complex
+                            const simplifiedUrl = anime.coverImage.split('?')[0];
+                            loadImage(simplifiedUrl);
+                        } else {
+                            // Last retry - try with a different approach
+                            const baseUrl = anime.coverImage.replace(/https?:\/\//, '');
+                            loadImage('https://' + baseUrl);
+                        }
+                    }, 800 * retryCount); // Increase delay for each retry
+                } else {
+                    // Display fallback after retries fail
+                    console.error(`Failed to load image for ${anime.cleanTitle} after ${maxRetries} retries`);
+                    img.style.display = 'none';
+                    imageContainer.classList.remove('loading');
+                    imageContainer.classList.add('error');
+                    showFallbackImage(imageContainer, anime);
+                }
+            };
+
+            img.onload = () => {
+                console.log(`Image loaded successfully for ${anime.cleanTitle}`);
+                // Remove loading animation
+                imageContainer.classList.remove('loading');
+                imageContainer.style.background = 'none';
+                imageContainer.style.animation = 'none';
+            };
+
+            // Set source after defining handlers
+            loadImage(anime.coverImage);
+            imageContainer.appendChild(img);
+        } else {
+            // No valid image URL - show fallback
+            imageContainer.classList.add('error');
+            showFallbackImage(imageContainer, anime);
+        }
+    }
+
+    function showFallbackImage(container, anime) {
+        // Show first letter of title as fallback
+        const initialLetter = document.createElement('div');
+        initialLetter.textContent = anime.cleanTitle.charAt(0).toUpperCase();
+        initialLetter.style.position = 'absolute';
+        initialLetter.style.top = '50%';
+        initialLetter.style.left = '50%';
+        initialLetter.style.transform = 'translate(-50%, -50%)';
+        initialLetter.style.fontSize = '20px';
+        initialLetter.style.fontWeight = 'bold';
+        initialLetter.style.color = '#5C728A';
+        initialLetter.style.zIndex = '2';
+        container.appendChild(initialLetter);
+    }
+
+    // Create a container for the + button with isolated animation
+    const plusButtonContainer = document.createElement('div');
+    plusButtonContainer.className = 'plus-button-container';
+    plusButtonContainer.style.transform = 'none'; // Ensure no transform
+
+    // Create the + button - fixed dark background even on hover
+    const plusButton = document.createElement('div');
+    plusButton.className = 'plus-button';
+    plusButton.style.transform = 'none'; // Ensure no transform
+
+    // Plus icon as a separate element
+    const plusIcon = document.createElement('i');
+    plusIcon.className = 'fa fa-plus';
+    plusIcon.style.fontSize = '24px';
+    plusIcon.style.color = 'white';
+
+    // Create a clickable button element to contain the icon with proper animation
+    const iconContainer = document.createElement('div');
+    iconContainer.className = 'plus-icon-container';
+    iconContainer.appendChild(plusIcon);
+    plusButton.appendChild(iconContainer);
+
+    // Handle click event with isolated animation only on the icon container
+    plusButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        // Prevent animation propagation
+        e.stopImmediatePropagation();
+
+        // Apply animation only to the icon container
+        iconContainer.classList.add('plus-icon-active');
+        setTimeout(() => {
+            iconContainer.classList.remove('plus-icon-active');
+        }, 300);
+
+        // Increment episode count
+        handlePlusButtonClick(e, anime);
+
+        // Return false to prevent further propagation
+        return false;
+    });
+
+    plusButtonContainer.appendChild(plusButton);
+    imageContainer.appendChild(plusButtonContainer);
+    entry.appendChild(imageContainer);
+
+    // Create info container
+    const infoContainer = document.createElement('div');
+    infoContainer.className = 'anime-info';
+    infoContainer.style.padding = '8px 0';
+    infoContainer.style.display = 'flex';
+    infoContainer.style.flexDirection = 'column';
+    infoContainer.style.justifyContent = 'center';
+    infoContainer.style.marginLeft = '0';
+
+    // Title - multiline with ellipsis and increased spacing
+    const title = document.createElement('div');
+    title.className = 'anime-title';
+    title.textContent = anime.cleanTitle;
+    title.style.maxHeight = '2.4em';
+    title.style.marginBottom = '6px';
+    title.style.whiteSpace = 'normal';
+    title.style.overflow = 'hidden';
+    title.style.textOverflow = 'ellipsis';
+    title.style.setProperty('display', '-webkit-box');
+    title.style.setProperty('-webkit-line-clamp', '2');
+    title.style.setProperty('-webkit-box-orient', 'vertical');
+    title.style.setProperty('line-clamp', '2');
+
+    // Apply title alignment based on user preferences
+    title.style.textAlign = userPreferences.titleAlignment;
+
+    infoContainer.appendChild(title);
+
+    // Info row (episodes and time)
+    const infoRow = document.createElement('div');
+    infoRow.className = 'anime-info-row';
+    infoRow.style.marginTop = '1px';
+    infoRow.style.gap = '6px';
+
+    // Only add episode info and time if they should be shown
+    if (userPreferences.showEpisodeNumbers || userPreferences.showTime) {
+        // Episode number
+        if (userPreferences.showEpisodeNumbers) {
+            const episodeNumber = document.createElement('div');
+            episodeNumber.className = 'episode-number';
+            episodeNumber.style.marginLeft = '0';
+            episodeNumber.style.paddingLeft = '0';
+
+            if (anime.episodesBehind > 0) {
+                const behindIndicator = document.createElement('span');
+                behindIndicator.className = 'behind-indicator';
+                behindIndicator.title = `${anime.episodesBehind} episode(s) behind`;
+                episodeNumber.appendChild(behindIndicator);
+            }
+
+            if (anime.episodeProgressString) {
+                episodeNumber.appendChild(document.createTextNode('Ep ' + anime.episodeProgressString));
+            } else {
+                episodeNumber.appendChild(document.createTextNode('Ep ' + anime.episodeInfo));
+            }
+
+            infoRow.appendChild(episodeNumber);
+        }
+
+        // Time or countdown
+        if (userPreferences.showTime) {
+            const timeDisplay = document.createElement('div');
+            timeDisplay.className = 'anime-time';
+            timeDisplay.style.paddingRight = '10px';
+
+            if (userPreferences.timeFormat === 'countdown') {
+                timeDisplay.classList.add('countdown-mode');
+
+                const now = new Date();
+                const targetTime = new Date(anime.airingDate);
+                const diff = targetTime - now;
+
+                if (diff <= 0) {
+                    timeDisplay.textContent = "Aired";
+                } else {
+                    const { days, hours, minutes } = calculateTimeComponents(diff);
+
+                    if (days > 0) {
+                        timeDisplay.textContent = `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                    } else {
+                        // Don't show seconds
+                        timeDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                    }
+                }
+            } else {
+                timeDisplay.textContent = anime.formattedTime;
+            }
+
+            if (anime.dayChanged) {
+                timeDisplay.classList.add('day-adjusted');
+                timeDisplay.title = `Originally scheduled on ${anime.originalDay}`;
+            }
+
+            infoRow.appendChild(timeDisplay);
+        }
+
+        infoContainer.appendChild(infoRow);
+    }
+    entry.appendChild(infoContainer);
+
+    container.appendChild(entry);
 }
 
 /**
@@ -1309,282 +1613,6 @@ function renderCalendar(schedule, skipHeader = false) {
 
     calendarContainer.appendChild(calendarGrid);
     log("Calendar rendered");
-}
-
-/**
- * Creates an anime entry element with improved image handling
- */
-function createAnimeEntry(container, anime) {
-    // Create the entry container
-    const entry = document.createElement('div');
-    entry.className = 'anime-entry';
-    entry.dataset.animeId = anime.id;
-    entry.dataset.animeData = JSON.stringify(anime);
-    entry.style.backgroundColor = 'rgba(21, 31, 46, 0.95)';
-    entry.style.padding = '0';
-    entry.style.alignItems = 'stretch';
-    entry.style.height = '65px';
-    entry.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
-    entry.style.transform = 'none'; // Ensure no transform by default
-
-    // Make the entry clickable to go to the anime page
-    entry.addEventListener('click', () => {
-        window.location.href = `/anime/${anime.id}`;
-    });
-
-    // Create image container
-    const imageContainer = document.createElement('div');
-    imageContainer.className = 'anime-image';
-    imageContainer.style.width = '45px';
-    imageContainer.style.height = '100%';
-    imageContainer.style.marginRight = '6px';
-    imageContainer.style.borderRadius = '0';
-    imageContainer.style.display = 'flex';
-    imageContainer.style.alignItems = 'center';
-    imageContainer.style.padding = '0';
-    imageContainer.style.border = 'none';
-    imageContainer.style.position = 'relative';
-    imageContainer.style.overflow = 'hidden';
-    imageContainer.style.transform = 'none'; // Ensure no transform
-    imageContainer.style.backgroundColor = '#1A1A2E'; // Ensure visible background
-
-    // Create actual image element with improved loading
-    if (anime.coverImage && anime.coverImage.length > 10) {
-        // Preload a placeholder until the actual image loads
-        imageContainer.classList.add('loading');
-
-        const img = document.createElement('img');
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.objectFit = 'cover';
-        img.style.position = 'absolute';
-        img.style.top = '0';
-        img.style.left = '0';
-        img.style.zIndex = '1';
-        img.style.transform = 'none'; // Ensure no transform
-        img.setAttribute('loading', 'eager');
-        img.setAttribute('decoding', 'async');
-        img.setAttribute('crossorigin', 'anonymous'); // Try to fix CORS issues
-
-        // Add error handling with enhanced retry
-        let retryCount = 0;
-        const maxRetries = 3;
-
-        const loadImage = (src) => {
-            console.log(`Loading image for ${anime.cleanTitle}: ${src}`);
-            // Clean up the URL if it contains special characters
-            img.src = src.replace(/"/g, '%22').replace(/'/g, '%27');
-        };
-
-        img.onerror = () => {
-            console.warn(`Image load error for ${anime.cleanTitle}`);
-            if (retryCount < maxRetries) {
-                retryCount++;
-                // Try with different cache-busting strategies
-                setTimeout(() => {
-                    if (retryCount === 1) {
-                        // First retry - add cache buster
-                        loadImage(anime.coverImage + '?retry=' + Date.now());
-                    } else if (retryCount === 2) {
-                        // Second retry - try to extract URL if it's complex
-                        const simplifiedUrl = anime.coverImage.split('?')[0];
-                        loadImage(simplifiedUrl);
-                    } else {
-                        // Last retry - try with a different approach
-                        const baseUrl = anime.coverImage.replace(/https?:\/\//, '');
-                        loadImage('https://' + baseUrl);
-                    }
-                }, 800 * retryCount); // Increase delay for each retry
-            } else {
-                // Display fallback after retries fail
-                console.error(`Failed to load image for ${anime.cleanTitle} after ${maxRetries} retries`);
-                img.style.display = 'none';
-                imageContainer.classList.remove('loading');
-                imageContainer.classList.add('error');
-                showFallbackImage(imageContainer, anime);
-            }
-        };
-
-        img.onload = () => {
-            console.log(`Image loaded successfully for ${anime.cleanTitle}`);
-            // Remove loading animation
-            imageContainer.classList.remove('loading');
-            imageContainer.style.background = 'none';
-            imageContainer.style.animation = 'none';
-        };
-
-        // Set source after defining handlers
-        loadImage(anime.coverImage);
-        imageContainer.appendChild(img);
-    } else {
-        // No valid image URL - show fallback
-        imageContainer.classList.add('error');
-        showFallbackImage(imageContainer, anime);
-    }
-
-    function showFallbackImage(container, anime) {
-        // Show first letter of title as fallback
-        const initialLetter = document.createElement('div');
-        initialLetter.textContent = anime.cleanTitle.charAt(0).toUpperCase();
-        initialLetter.style.position = 'absolute';
-        initialLetter.style.top = '50%';
-        initialLetter.style.left = '50%';
-        initialLetter.style.transform = 'translate(-50%, -50%)';
-        initialLetter.style.fontSize = '20px';
-        initialLetter.style.fontWeight = 'bold';
-        initialLetter.style.color = '#5C728A';
-        initialLetter.style.zIndex = '2';
-        container.appendChild(initialLetter);
-    }
-
-    // Create a container for the + button with isolated animation
-    const plusButtonContainer = document.createElement('div');
-    plusButtonContainer.className = 'plus-button-container';
-    plusButtonContainer.style.transform = 'none'; // Ensure no transform
-
-    // Create the + button - fixed dark background even on hover
-    const plusButton = document.createElement('div');
-    plusButton.className = 'plus-button';
-    plusButton.style.transform = 'none'; // Ensure no transform
-
-    // Plus icon as a separate element
-    const plusIcon = document.createElement('i');
-    plusIcon.className = 'fa fa-plus';
-    plusIcon.style.fontSize = '24px';
-    plusIcon.style.color = 'white';
-
-    // Create a clickable button element to contain the icon with proper animation
-    const iconContainer = document.createElement('div');
-    iconContainer.className = 'plus-icon-container';
-    iconContainer.appendChild(plusIcon);
-    plusButton.appendChild(iconContainer);
-
-    // Handle click event with isolated animation only on the icon container
-    plusButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-
-        // Prevent animation propagation
-        e.stopImmediatePropagation();
-
-        // Apply animation only to the icon container
-        iconContainer.classList.add('plus-icon-active');
-        setTimeout(() => {
-            iconContainer.classList.remove('plus-icon-active');
-        }, 300);
-
-        // Increment episode count
-        handlePlusButtonClick(e, anime);
-
-        // Return false to prevent further propagation
-        return false;
-    });
-
-    plusButtonContainer.appendChild(plusButton);
-    imageContainer.appendChild(plusButtonContainer);
-    entry.appendChild(imageContainer);
-
-    // Create info container
-    const infoContainer = document.createElement('div');
-    infoContainer.className = 'anime-info';
-    infoContainer.style.padding = '8px 0';
-    infoContainer.style.display = 'flex';
-    infoContainer.style.flexDirection = 'column';
-    infoContainer.style.justifyContent = 'center';
-    infoContainer.style.marginLeft = '0';
-
-    // Title - multiline with ellipsis and increased spacing
-    const title = document.createElement('div');
-    title.className = 'anime-title';
-    title.textContent = anime.cleanTitle;
-    title.style.maxHeight = '2.4em';
-    title.style.marginBottom = '6px';
-    title.style.whiteSpace = 'normal';
-    title.style.overflow = 'hidden';
-    title.style.textOverflow = 'ellipsis';
-    title.style.setProperty('display', '-webkit-box');
-    title.style.setProperty('-webkit-line-clamp', '2');
-    title.style.setProperty('-webkit-box-orient', 'vertical');
-    title.style.setProperty('line-clamp', '2');
-
-    // Apply title alignment based on user preferences
-    title.style.textAlign = userPreferences.titleAlignment;
-
-    infoContainer.appendChild(title);
-
-    // Info row (episodes and time)
-    const infoRow = document.createElement('div');
-    infoRow.className = 'anime-info-row';
-    infoRow.style.marginTop = '1px';
-    infoRow.style.gap = '6px';
-
-    // Only add episode info and time if they should be shown
-    if (userPreferences.showEpisodeNumbers || userPreferences.showTime) {
-        // Episode number
-        if (userPreferences.showEpisodeNumbers) {
-            const episodeNumber = document.createElement('div');
-            episodeNumber.className = 'episode-number';
-            episodeNumber.style.marginLeft = '0';
-            episodeNumber.style.paddingLeft = '0';
-
-            if (anime.episodesBehind > 0) {
-                const behindIndicator = document.createElement('span');
-                behindIndicator.className = 'behind-indicator';
-                behindIndicator.title = `${anime.episodesBehind} episode(s) behind`;
-                episodeNumber.appendChild(behindIndicator);
-            }
-
-            if (anime.episodeProgressString) {
-                episodeNumber.appendChild(document.createTextNode('Ep ' + anime.episodeProgressString));
-            } else {
-                episodeNumber.appendChild(document.createTextNode('Ep ' + anime.episodeInfo));
-            }
-
-            infoRow.appendChild(episodeNumber);
-        }
-
-        // Time or countdown
-        if (userPreferences.showTime) {
-            const timeDisplay = document.createElement('div');
-            timeDisplay.className = 'anime-time';
-            timeDisplay.style.paddingRight = '10px';
-
-            if (userPreferences.timeFormat === 'countdown') {
-                timeDisplay.classList.add('countdown-mode');
-
-                const now = new Date();
-                const targetTime = new Date(anime.airingDate);
-                const diff = targetTime - now;
-
-                if (diff <= 0) {
-                    timeDisplay.textContent = "Aired";
-                } else {
-                    const { days, hours, minutes } = calculateTimeComponents(diff);
-
-                    if (days > 0) {
-                        timeDisplay.textContent = `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                    } else {
-                        // Don't show seconds
-                        timeDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                    }
-                }
-            } else {
-                timeDisplay.textContent = anime.formattedTime;
-            }
-
-            if (anime.dayChanged) {
-                timeDisplay.classList.add('day-adjusted');
-                timeDisplay.title = `Originally scheduled on ${anime.originalDay}`;
-            }
-
-            infoRow.appendChild(timeDisplay);
-        }
-
-        infoContainer.appendChild(infoRow);
-    }
-    entry.appendChild(infoContainer);
-
-    container.appendChild(entry);
 }
 
 /**
