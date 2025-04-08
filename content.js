@@ -10,7 +10,7 @@
 
 // Configuration
 const CONFIG = {
-    debug: false,
+    debug: true, // Enable debug logging to better diagnose issues
     daysOfWeek: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
     abbreviatedDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     storageKeyPrefix: 'anilist_calendar_',
@@ -51,6 +51,7 @@ let weeklySchedule = {};
 let isCalendarInitialized = false;
 let calendarContainer = null;
 let countdownInterval = null;
+let originalPlusButtons = {};  // Store original plus buttons
 
 /**
  * Logs debug messages to console when debug mode is enabled
@@ -164,6 +165,15 @@ function initialize() {
     log("Initializing extension");
 
     try {
+        // Clear any existing countdown interval to prevent multiple timers
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+        }
+
+        // Reset global variables on each initialization
+        originalPlusButtons = {};
+
         // Apply custom enhancements
         applyExtensionEnhancements();
 
@@ -185,10 +195,9 @@ function initialize() {
                 }
             });
 
-        // Set up error handler
-        window.addEventListener('error', (event) => {
-            log("Global error caught", event.error);
-        });
+        // Set up error handler - use once to avoid duplicates
+        window.removeEventListener('error', handleGlobalError);
+        window.addEventListener('error', handleGlobalError);
 
         // Initialize settings button events globally
         initSettingsButtonEvents();
@@ -196,6 +205,11 @@ function initialize() {
     } catch (err) {
         log("Error during initialization", err);
     }
+}
+
+// Separate function for error handler to allow removal
+function handleGlobalError(event) {
+    log("Global error caught", event.error);
 }
 
 /**
@@ -276,11 +290,17 @@ function initSettingsButtonEvents() {
     });
 }
 
+let domObserver = null;
+
 /**
  * Sets up a mutation observer to watch for DOM changes
  */
 function setupObserver() {
-    const observer = new MutationObserver((mutations) => {
+    if (domObserver) {
+        domObserver.disconnect();
+    }
+
+    domObserver = new MutationObserver((mutations) => {
         if (isCalendarInitialized) return;
 
         const shouldCheck = mutations.some(mutation => {
@@ -292,7 +312,7 @@ function setupObserver() {
         }
     });
 
-    observer.observe(document.body, {
+    domObserver.observe(document.body, {
         childList: true,
         subtree: true
     });
@@ -331,75 +351,141 @@ function createSettingsButton() {
  */
 function findAndReplaceAiringSection() {
     try {
-        // Direct approach: look for h2 with "Airing" text
-        const airingElements = Array.from(document.querySelectorAll('h2')).filter(el =>
-            el.textContent.trim() === 'Airing'
-        );
+        log("Attempting to find Airing section...");
 
-        log(`Found ${airingElements.length} h2 elements with Airing text`);
+        // Function to find elements by text content (jQuery-like :contains)
+        function findElementsContainingText(selector, text) {
+            const elements = document.querySelectorAll(selector);
+            return Array.from(elements).filter(el =>
+                el.textContent.trim().includes(text)
+            );
+        }
 
-        // Find the first valid airing section
-        for (const element of airingElements) {
-            // Replace the "Airing" text with our custom header text
-            element.innerHTML = `Weekly Schedule <span class="timezone-separator">|</span> <span class="timezone-info">${getTimezoneName()}</span>`;
-            element.className = 'airing-replaced-header';
+        // Try all potential selectors
+        let airingElement = null;
 
-            // Add settings button next to the title
-            const settingsButton = createSettingsButton();
+        // First method: Direct approach with h2 elements
+        const airingH2Elements = findElementsContainingText('h2', 'Airing');
+        log(`Found ${airingH2Elements.length} h2 elements containing "Airing" text`);
 
-            // Add the settings button after the title
-            const parentHeader = element.closest('.section-header') || element.parentNode;
-            parentHeader.appendChild(settingsButton);
+        if (airingH2Elements.length > 0) {
+            // Filter for exact matches
+            const exactAiringH2 = airingH2Elements.filter(el => el.textContent.trim() === 'Airing');
 
-            // Remove any margin or padding that might create unwanted space
-            if (parentHeader) {
-                parentHeader.style.marginBottom = "0";
-                parentHeader.style.paddingBottom = "6px";
-            }
-
-            // Find the container
-            const container = findAiringContainer(element);
-            if (container) {
-                // Remove any margin that might create space
-                container.style.marginTop = "0";
-
-                replaceAiringSection(container, element, true);
-                return true;
+            if (exactAiringH2.length > 0) {
+                airingElement = exactAiringH2[0];
+                log("Found exact 'Airing' h2 element");
+            } else {
+                airingElement = airingH2Elements[0];
+                log("Found h2 element containing 'Airing'");
             }
         }
 
-        // Second try: look for section headers
-        const sectionHeaders = document.querySelectorAll('.section-header');
-        for (const header of sectionHeaders) {
-            if (header.textContent.trim() === 'Airing') {
-                // Find the title element inside the section header
-                const titleElement = header.querySelector('h2') || header.querySelector('h3');
-                if (titleElement) {
-                    titleElement.innerHTML = `Weekly Schedule <span class="timezone-separator">|</span> <span class="timezone-info">${getTimezoneName()}</span>`;
-                    titleElement.className = 'airing-replaced-header';
-                }
+        // Second method: Look for section headers if not found yet
+        if (!airingElement) {
+            const sectionHeaders = document.querySelectorAll('.section-header');
+            log(`Found ${sectionHeaders.length} section headers to check`);
 
-                // Add settings button
-                const settingsButton = createSettingsButton();
-                header.appendChild(settingsButton);
-
-                // Remove any margin or padding that might create unwanted space
-                header.style.marginBottom = "0";
-                header.style.paddingBottom = "6px";
-
-                const container = findAiringContainer(header);
-                if (container) {
-                    // Remove any margin that might create space
-                    container.style.marginTop = "0";
-
-                    replaceAiringSection(container, header, true);
-                    return true;
+            for (const header of sectionHeaders) {
+                if (header.textContent.includes('Airing')) {
+                    airingElement = header;
+                    log("Found section header containing 'Airing'");
+                    break;
                 }
             }
         }
 
-        log("Airing section not found");
-        return false;
+        // Third method: Look in the home sections
+        if (!airingElement) {
+            const homeSections = document.querySelectorAll('.home section');
+            log(`Found ${homeSections.length} home sections to check`);
+
+            for (const section of homeSections) {
+                if (section.textContent.includes('Airing')) {
+                    // Find the header within this section
+                    const headerInSection = section.querySelector('h2, h3, .section-header');
+                    if (headerInSection) {
+                        airingElement = headerInSection;
+                        log("Found header in home section containing 'Airing'");
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Fourth method: Look for any elements with class containing "airing"
+        if (!airingElement) {
+            const airingClassElements = document.querySelectorAll('[class*="airing" i], [class*="Airing" i]');
+            log(`Found ${airingClassElements.length} elements with class containing "airing"`);
+
+            if (airingClassElements.length > 0) {
+                // Find a header near these elements
+                for (const el of airingClassElements) {
+                    const nearbyHeader = el.querySelector('h2, h3, .section-header') ||
+                        el.closest('.section-header') ||
+                        el.closest('section')?.querySelector('h2, h3, .section-header');
+
+                    if (nearbyHeader) {
+                        airingElement = nearbyHeader;
+                        log("Found header near element with class containing 'airing'");
+                        break;
+                    }
+                }
+
+                // If still not found, use the first element itself
+                if (!airingElement && airingClassElements[0].tagName.toLowerCase() === 'section') {
+                    airingElement = airingClassElements[0].querySelector('h2, h3, .section-header') || airingClassElements[0];
+                    log("Using element with class containing 'airing' itself");
+                }
+            }
+        }
+
+        // If still not found, just log and return
+        if (!airingElement) {
+            log("Airing section not found in this page pass - will retry on DOM changes");
+            return false;
+        }
+
+        // Now that we have a potential airing element, process it
+        log("Found potential Airing element:", airingElement);
+
+        // Find the inner header element if we're dealing with a container
+        const headerElement = airingElement.tagName.toLowerCase() === 'h2' || airingElement.tagName.toLowerCase() === 'h3'
+            ? airingElement
+            : airingElement.querySelector('h2, h3');
+
+        // Replace the header text
+        if (headerElement) {
+            headerElement.innerHTML = `Weekly Schedule <span class="timezone-separator">|</span> <span class="timezone-info">${getTimezoneName()}</span>`;
+            headerElement.className = 'airing-replaced-header';
+            log("Replaced header text");
+        }
+
+        // Add settings button
+        const settingsButton = createSettingsButton();
+        const parentHeader = airingElement.closest('.section-header') || airingElement.parentNode;
+        parentHeader.appendChild(settingsButton);
+
+        // Remove any margin or padding that might create unwanted space
+        if (parentHeader) {
+            parentHeader.style.marginBottom = "0";
+            parentHeader.style.paddingBottom = "6px";
+        }
+
+        // Find the container that holds the anime cards
+        const container = findAiringContainer(airingElement);
+
+        if (container) {
+            // Remove any margin that might create space
+            container.style.marginTop = "0";
+
+            log("Found container for Airing section, replacing with calendar", container);
+            replaceAiringSection(container, airingElement, true);
+            return true;
+        } else {
+            log("Container for Airing section not found");
+            return false;
+        }
     } catch (err) {
         log("Error finding Airing section", err);
         return false;
@@ -411,32 +497,95 @@ function findAndReplaceAiringSection() {
  */
 function findAiringContainer(headerElement) {
     try {
-        // Try to find the appropriate container
+        log("Finding container for Airing header element", headerElement);
+
+        // Method 1: Try to find via section-header and list-preview-wrap
         const sectionHeader = headerElement.closest('.section-header');
-        if (!sectionHeader) return null;
+        if (sectionHeader) {
+            log("Found section header container", sectionHeader);
 
-        const listPreviewWrap = sectionHeader.closest('.list-preview-wrap');
-        if (listPreviewWrap) {
-            log("Found Airing container via list-preview-wrap", listPreviewWrap);
-            return listPreviewWrap;
-        }
-
-        const listPreview = sectionHeader.closest('.list-preview');
-        if (listPreview) {
-            log("Found Airing container via list-preview", listPreview);
-            return listPreview;
-        }
-
-        // If we can't find the usual containers, go up a few levels
-        let parent = sectionHeader.parentElement;
-        for (let i = 0; i < 3 && parent; i++) {
-            log(`Checking parent level ${i}`, parent);
-            if (parent.querySelectorAll('.media-preview-card').length > 0) {
-                return parent;
+            const listPreviewWrap = sectionHeader.closest('.list-preview-wrap');
+            if (listPreviewWrap) {
+                log("Found container via list-preview-wrap", listPreviewWrap);
+                return listPreviewWrap;
             }
-            parent = parent.parentElement;
+
+            const listPreview = sectionHeader.closest('.list-preview');
+            if (listPreview) {
+                log("Found container via list-preview", listPreview);
+                return listPreview;
+            }
+
+            // If the section header has a nextSibling, that might be our container
+            if (sectionHeader.nextElementSibling &&
+                (sectionHeader.nextElementSibling.classList.contains('list-wrap') ||
+                    sectionHeader.nextElementSibling.classList.contains('content-wrap'))) {
+                log("Found container via next sibling", sectionHeader.nextElementSibling);
+                return sectionHeader.nextElementSibling;
+            }
         }
 
+        // Method 2: Find the section containing both the header and anime cards
+        let currentElement = headerElement;
+        for (let i = 0; i < 5; i++) {
+            // Go up the DOM tree
+            currentElement = currentElement.parentElement;
+            if (!currentElement) break;
+
+            log(`Checking container at level ${i}`, currentElement);
+
+            // Check if this element contains media preview cards
+            const mediaCards = currentElement.querySelectorAll('.media-preview-card');
+            if (mediaCards.length > 0) {
+                log(`Found container with ${mediaCards.length} media cards`, currentElement);
+                return currentElement;
+            }
+
+            // Check for other common container classes
+            if (currentElement.classList.contains('list-wrap') ||
+                currentElement.classList.contains('content-wrap') ||
+                currentElement.classList.contains('list-preview-wrap') ||
+                currentElement.classList.contains('list-preview') ||
+                currentElement.classList.contains('airing-content')) {
+                log("Found container via class name", currentElement);
+                return currentElement;
+            }
+        }
+
+        // Method 3: Find container by searching siblings of the header's parent
+        if (headerElement.parentElement) {
+            const siblings = headerElement.parentElement.parentElement?.children;
+            if (siblings) {
+                for (let i = 0; i < siblings.length; i++) {
+                    const sibling = siblings[i];
+
+                    // Skip the header element itself
+                    if (sibling === headerElement.parentElement) continue;
+
+                    // Check if this sibling contains media cards
+                    const mediaCards = sibling.querySelectorAll('.media-preview-card');
+                    if (mediaCards.length > 0) {
+                        log(`Found container in sibling with ${mediaCards.length} media cards`, sibling);
+                        return sibling;
+                    }
+                }
+            }
+        }
+
+        // Method 4: Look for the nearest parent section
+        const parentSection = headerElement.closest('section');
+        if (parentSection) {
+            log("Using parent section as container", parentSection);
+            return parentSection;
+        }
+
+        // Method 5: Last resort - use a generic container higher up
+        if (headerElement.parentElement && headerElement.parentElement.parentElement) {
+            log("Using generic parent container as fallback", headerElement.parentElement.parentElement);
+            return headerElement.parentElement.parentElement;
+        }
+
+        log("No suitable container found");
         return null;
     } catch (err) {
         log("Error finding container", err);
@@ -517,7 +666,9 @@ function extractAnimeDataFromDOM(container) {
         animeCards.forEach(card => {
             try {
                 // Debug entire card structure if enabled
-                console.log("Card HTML:", card.outerHTML);
+                if (CONFIG.debug) {
+                    console.log("Card HTML:", card.outerHTML);
+                }
 
                 const animeLink = card.querySelector('a[href^="/anime/"]');
                 if (!animeLink) return;
@@ -544,6 +695,13 @@ function extractAnimeDataFromDOM(container) {
                         info: infoEl ? infoEl.textContent : null,
                         mobile: mobileEl ? mobileEl.textContent : null
                     });
+                }
+
+                // IMPORTANT: Save original plus button
+                const plusButton = card.querySelector('.plus-progress, .add-button');
+                if (plusButton) {
+                    originalPlusButtons[animeId] = plusButton;
+                    log(`Saved original plus button for anime ID: ${animeId}`);
                 }
 
                 // Parse episode information
@@ -745,13 +903,15 @@ function parseEpisodeInfo(rawTitle, card) {
         }
 
         // Debug logging for episode info
-        console.log(`Episode info for ${title}:`, {
-            watched: episodeInfo.watched,
-            available: episodeInfo.available,
-            total: episodeInfo.total,
-            behind: episodeInfo.episodesBehind,
-            formatted: episodeInfo.formatted
-        });
+        if (CONFIG.debug) {
+            console.log(`Episode info for ${title}:`, {
+                watched: episodeInfo.watched,
+                available: episodeInfo.available,
+                total: episodeInfo.total,
+                behind: episodeInfo.episodesBehind,
+                formatted: episodeInfo.formatted
+            });
+        }
 
     } catch (err) {
         log('parseEpisodeInfo error:', err);
@@ -1307,12 +1467,15 @@ function createAnimeEntry(container, anime) {
     const title = document.createElement('div');
     title.className = 'anime-title';
     title.textContent = anime.cleanTitle;
-    title.style.whiteSpace = 'normal';
-    title.style.display = '-webkit-box';
-    title.style.webkitLineClamp = '2';
-    title.style.webkitBoxOrient = 'vertical';
     title.style.maxHeight = '2.4em';
-    title.style.marginBottom = '6px'; // Increased spacing
+    title.style.marginBottom = '6px';
+    title.style.whiteSpace = 'normal';
+    title.style.overflow = 'hidden';
+    title.style.textOverflow = 'ellipsis';
+    title.style.setProperty('display', '-webkit-box');
+    title.style.setProperty('-webkit-line-clamp', '2');
+    title.style.setProperty('-webkit-box-orient', 'vertical');
+    title.style.setProperty('line-clamp', '2');
 
     // Apply title alignment based on user preferences
     title.style.textAlign = userPreferences.titleAlignment;
@@ -1366,9 +1529,7 @@ function createAnimeEntry(container, anime) {
                 if (diff <= 0) {
                     timeDisplay.textContent = "Aired";
                 } else {
-                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const { days, hours, minutes } = calculateTimeComponents(diff);
 
                     if (days > 0) {
                         timeDisplay.textContent = `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
@@ -1453,9 +1614,7 @@ function startCountdownTimer() {
             }
 
             // Calculate days, hours, minutes, seconds
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const { days, hours, minutes } = calculateTimeComponents(diff);
 
             // Update the text
             if (days > 0) {
@@ -1466,6 +1625,14 @@ function startCountdownTimer() {
             }
         });
     }, 1000);
+}
+
+function calculateTimeComponents(diff) {
+    return {
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+    };
 }
 
 /**
@@ -2011,8 +2178,7 @@ function showNotification(message, type = 'success') {
 }
 
 /**
- * Handle the plus button click event - improved with max episodes check
- * Fixed to handle UTF-8 characters correctly and only update UI after successful API call
+ * Handle the plus button click event - uses original plus button
  */
 function handlePlusButtonClick(e, animeData) {
     e.stopPropagation(); // Prevent the click from bubbling to the entry
@@ -2023,339 +2189,29 @@ function handlePlusButtonClick(e, animeData) {
         return;
     }
 
-    // Get the most up-to-date data from the DOM element
-    const entry = e.target.closest('.anime-entry');
-    if (entry && entry.dataset.animeData) {
-        try {
-            // Use the most recent data from the DOM element
-            const updatedData = JSON.parse(entry.dataset.animeData);
-            if (updatedData && updatedData.watched !== undefined) {
-                animeData = updatedData;
-            }
-        } catch (err) {
-            console.warn('Error parsing anime data:', err);
-        }
-    }
+    // Retrieve the original plus button
+    const originalButton = originalPlusButtons[animeData.id];
 
-    // Calculate the new progress value (current + 1)
-    const newProgress = (animeData.watched || 0) + 1;
+    if (originalButton) {
+        log(`Clicking original plus button for anime ID: ${animeData.id}`);
 
-    // Check if we exceed the total number of available episodes
-    if (animeData.total > 0 && newProgress > animeData.total) {
-        console.log(`Cannot increment beyond the total of ${animeData.total} episodes`);
-        showNotification(`All episodes completed (${animeData.total})`, 'error');
+        // Show loading notification
+        showNotification(`Updating episode progress...`, 'loading');
+
+        // Simulate a click on the original button
+        originalButton.click();
+
+        // Update our UI after a short delay
+        setTimeout(() => {
+            updateAnimeEntryInUI(animeData.id, (animeData.watched || 0) + 1);
+            showNotification(`Episode marked as watched!`, 'success');
+        }, 800);
+
         return;
     }
 
-    console.log(`Attempting to increment episode for ${animeData.id} from ${animeData.watched} to ${newProgress}`);
-
-    // Show loading notification
-    showNotification(`Updating episode progress...`, 'loading');
-
-    // Update the progress via API first
-    updateAnimeProgressOnServer(animeData.id, newProgress)
-        .then(result => {
-            if (result.success) {
-                console.log('API call completed successfully:', result.data);
-
-                // Only update UI after successful API call
-                updateAnimeEntryInUI(animeData.id, newProgress);
-
-                // Show success notification
-                showNotification(`Episode ${newProgress} marked as watched!`, 'success');
-            } else {
-                console.warn('API call failed:', result.message);
-                // Show error notification
-                showNotification('Error saving to AniList: ' + result.message, 'error');
-            }
-        })
-        .catch(err => {
-            console.error('API call error:', err);
-            showNotification('Connection error with AniList', 'error');
-        });
-}
-
-/**
- * Get the authentication token from localStorage with improved methods
- */
-function getAuthToken() {
-    try {
-        console.log("Attempting to get authentication token...");
-
-        // Check for token in Anilist's expected location first
-        const anilistToken = localStorage.getItem('auth');
-        if (anilistToken && anilistToken.length > 20) {
-            console.log("Found token in 'auth' localStorage");
-            return anilistToken;
-        }
-
-        // Try the common token locations
-        const tokenKeys = [
-            'token',
-            '_at',
-            'AniList::token',
-            'anilistToken',
-            'accessToken'
-        ];
-
-        for (const key of tokenKeys) {
-            try {
-                const value = localStorage.getItem(key);
-                if (value && value.length > 20) {
-                    console.log(`Found token in localStorage: ${key}`);
-                    return value;
-                }
-            } catch (e) {
-                // Continue to next key
-            }
-        }
-
-        // Extract from page as last resort
-        const userData = extractAnilistUserData();
-        if (userData.token) {
-            console.log("Using token found in page data");
-            return userData.token;
-        }
-
-        console.warn('No auth token found - please make sure you are logged in to AniList');
-        showNotification('To mark episodes as watched, please log in to AniList.', 'error');
-        return null;
-    } catch (err) {
-        console.error('Error retrieving auth token:', err);
-        return null;
-    }
-}
-
-/**
- * Extract AniList user data directly from the page
- */
-function extractAnilistUserData() {
-    try {
-        // 1. Look for token in HTML
-        const scripts = Array.from(document.querySelectorAll('script:not([src])'));
-        let userToken = null;
-        let userId = null;
-
-        for (const script of scripts) {
-            const content = script.textContent || '';
-
-            // Look for JWT
-            const jwtMatch = content.match(/"(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)"/);
-            if (jwtMatch && jwtMatch[1]) {
-                userToken = jwtMatch[1];
-                console.log("Found JWT token in script");
-            }
-
-            // Look for userId
-            const userIdMatch = content.match(/userId['":\s]+(\d+)/);
-            if (userIdMatch && userIdMatch[1]) {
-                userId = userIdMatch[1];
-                console.log("Found user ID in script:", userId);
-            }
-
-            // Look for userToken
-            const userTokenMatch = content.match(/userToken['":\s]+"([^"]+)"/);
-            if (userTokenMatch && userTokenMatch[1]) {
-                userToken = userTokenMatch[1];
-                console.log("Found user token in script");
-            }
-
-            if (userToken && userId) break;
-        }
-
-        // 2. Check localStorage and page
-        if (!userToken) {
-            // Other common places in localStorage
-            for (const key of ['auth', '_at', 'AniList::auth', 'token']) {
-                try {
-                    const value = localStorage.getItem(key);
-                    if (value && (value.startsWith('ey') || value.length > 40)) {
-                        userToken = value;
-                        console.log(`Found token in localStorage: ${key}`);
-                        break;
-                    }
-
-                    // Try to parse as JSON
-                    try {
-                        const parsed = JSON.parse(value);
-                        if (parsed && (parsed.token || parsed.accessToken)) {
-                            userToken = parsed.token || parsed.accessToken;
-                            console.log(`Found token in parsed localStorage: ${key}`);
-                            break;
-                        }
-                    } catch (e) {
-                        // Not JSON, continue
-                    }
-                } catch (e) {
-                    // Error accessing localStorage
-                }
-            }
-        }
-
-        // 3. Look for userID in the page
-        if (!userId) {
-            // Check DOM elements with user data
-            const userElements = document.querySelectorAll('[data-user], [data-user-id], [data-userid]');
-            for (const el of userElements) {
-                const id = el.dataset.user || el.dataset.userId || el.dataset.userid;
-                if (id && !isNaN(parseInt(id))) {
-                    userId = id;
-                    console.log("Found user ID in DOM:", userId);
-                    break;
-                }
-            }
-
-            // Look for userID in URL
-            if (!userId && window.location.href.includes('/user/')) {
-                const urlMatch = window.location.href.match(/\/user\/([^\/?#]+)/i);
-                if (urlMatch && urlMatch[1]) {
-                    userId = urlMatch[1];
-                    console.log("Found user ID in URL:", userId);
-                }
-            }
-        }
-
-        // 4. Look for AniList in window.__APOLLO_STATE__
-        if (window.__APOLLO_STATE__ && !userToken) {
-            try {
-                // Explore Apollo data for token
-                const keys = Object.keys(window.__APOLLO_STATE__);
-                for (const key of keys) {
-                    if (key.startsWith('User:') && window.__APOLLO_STATE__[key].id) {
-                        userId = window.__APOLLO_STATE__[key].id;
-                        console.log("Found user ID in Apollo cache:", userId);
-                    }
-                }
-            } catch (e) {
-                console.warn("Error parsing Apollo state:", e);
-            }
-        }
-
-        return { token: userToken, userId: userId };
-    } catch (err) {
-        console.error("Error extracting user data:", err);
-        return { token: null, userId: null };
-    }
-}
-
-/**
- * Update progress via Anilist API with improved error handling
- * Fixed to handle non-ASCII characters with better error reporting
- */
-async function updateAnimeProgressOnServer(mediaId, progress) {
-    // Get authentication token
-    const token = getAuthToken();
-
-    if (!token) {
-        console.warn('No authentication token found');
-        return {
-            success: false,
-            message: 'Authentication token not found. Please log in to AniList.'
-        };
-    }
-
-    // GraphQL mutation to update progress
-    const mutation = `
-    mutation ($mediaId: Int, $progress: Int, $status: MediaListStatus) {
-      SaveMediaListEntry (mediaId: $mediaId, progress: $progress, status: $status) {
-        id
-        mediaId
-        progress
-        status
-        media {
-          id
-          title {
-            userPreferred
-          }
-        }
-      }
-    }
-  `;
-
-    // Variables for the mutation
-    const variables = {
-        mediaId: parseInt(mediaId),
-        progress: progress,
-        status: 'CURRENT'  // Set status explicitly to ensure proper tracking
-    };
-
-    try {
-        console.log("Making API request to update progress...");
-
-        // Make the API request with proper content encoding
-        const headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        };
-
-        // Always add Authorization header with Bearer prefix
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-            console.log("Added authorization header");
-        }
-
-        const response = await fetch(CONFIG.apiUrl, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({
-                query: mutation,
-                variables: variables
-            })
-        });
-
-        // Check for HTTP errors
-        if (!response.ok) {
-            const statusText = response.statusText || 'Unknown error';
-            console.warn('API response not OK:', statusText, response.status);
-
-            if (response.status === 401) {
-                return {
-                    success: false,
-                    message: `Authentication failed. Please try logging out and back in to AniList.`
-                };
-            }
-
-            return {
-                success: false,
-                message: `Server error: ${response.status} (${statusText})`
-            };
-        }
-
-        // Parse response
-        const result = await response.json();
-
-        // Check for GraphQL errors
-        if (result.errors) {
-            const errorMsg = result.errors[0].message || 'Unknown GraphQL error';
-            console.warn('GraphQL error:', errorMsg);
-            return {
-                success: false,
-                message: errorMsg
-            };
-        }
-
-        // Check for data
-        if (!result.data || !result.data.SaveMediaListEntry) {
-            console.warn('No data returned from API');
-            return {
-                success: false,
-                message: 'No data returned from server'
-            };
-        }
-
-        // Success
-        console.log('Progress updated successfully:', result.data);
-        return {
-            success: true,
-            data: result.data.SaveMediaListEntry
-        };
-    } catch (error) {
-        console.error('Error updating progress:', error);
-        return {
-            success: false,
-            message: error.message || 'Network error'
-        };
-    }
+    // Fallback if original button not found
+    showNotification('Cannot update progress (original button not found)', 'error');
 }
 
 /**
