@@ -275,36 +275,25 @@
 
       <div class="setting-row">
         <div>
-          <div class="setting-label">Compact mode</div>
-          <div class="setting-description">Use a more compact layout to save space</div>
+          <div class="setting-label">Layout style</div>
+          <div class="setting-description">Choose how anime entries are displayed</div>
         </div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="compact-mode">
-          <span class="slider"></span>
-        </label>
+        <select id="layout-mode">
+          <option value="standard">Standard</option>
+          <option value="compact">Compact</option>
+          <option value="extended">Gallery</option>
+        </select>
       </div>
 
       <div class="setting-row">
         <div>
-          <div class="setting-label">Grid view</div>
-          <div class="setting-description">Display anime as a grid of images (hover for details)</div>
+          <div class="setting-label">Title alignment</div>
+          <div class="setting-description">Choose how anime titles are aligned</div>
         </div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="grid-mode">
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <!-- NUOVE OPZIONI -->
-      <div class="setting-row">
-        <div>
-          <div class="setting-label">Show countdown</div>
-          <div class="setting-description">Display remaining time instead of airing time</div>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="show-countdown">
-          <span class="slider"></span>
-        </label>
+        <select id="title-alignment">
+          <option value="left">Left aligned</option>
+          <option value="center">Center aligned</option>
+        </select>
       </div>
 
       <div class="setting-row">
@@ -317,7 +306,28 @@
           <span class="slider"></span>
         </label>
       </div>
-      <!-- FINE NUOVE OPZIONI -->
+
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Show time</div>
+          <div class="setting-description">Display time information for each anime</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="show-time">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">Time format</div>
+          <div class="setting-description">Choose between time formats</div>
+        </div>
+        <select id="time-format">
+          <option value="release">Release Time</option>
+          <option value="countdown">Countdown</option>
+        </select>
+      </div>
 
       <!-- Timezone Setting -->
       <div class="setting-row">

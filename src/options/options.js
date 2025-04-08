@@ -8,11 +8,12 @@ const STORAGE_KEY_PREFIX = 'anilist_calendar_';
 const DEFAULT_SETTINGS = {
   startDay: 'today',
   hideEmptyDays: false,
-  compactMode: false,
-  gridMode: false,
-  showCountdown: false,        // Mostra countdown invece dell'orario
-  showEpisodeNumbers: true,    // Mostra numeri degli episodi
-  timezone: 'jst'              // Default timezone is Japan Standard Time
+  layoutMode: 'standard',
+  showTime: true,
+  timeFormat: 'release',
+  showEpisodeNumbers: true,
+  timezone: 'jst',
+  titleAlignment: 'center'
 };
 
 // Common timezone options with UTC offsets
@@ -34,10 +35,11 @@ const TIMEZONE_OPTIONS = [
 // DOM Elements
 const startDaySelect = document.getElementById('start-day');
 const hideEmptyDaysCheckbox = document.getElementById('hide-empty-days');
-const compactModeCheckbox = document.getElementById('compact-mode');
-const gridModeCheckbox = document.getElementById('grid-mode');
-const showCountdownCheckbox = document.getElementById('show-countdown');
+const layoutModeSelect = document.getElementById('layout-mode');
+const titleAlignmentSelect = document.getElementById('title-alignment');
 const showEpisodeNumbersCheckbox = document.getElementById('show-episode-numbers');
+const showTimeCheckbox = document.getElementById('show-time');
+const timeFormatSelect = document.getElementById('time-format');
 const timezoneSelect = document.getElementById('timezone');
 const themeToggleButton = document.getElementById('theme-toggle');
 
@@ -70,10 +72,11 @@ function populateTimezoneSelect() {
 // Set up event listeners for all settings
 startDaySelect.addEventListener('change', saveSettings);
 hideEmptyDaysCheckbox.addEventListener('change', saveSettings);
-compactModeCheckbox.addEventListener('change', saveSettings);
-gridModeCheckbox.addEventListener('change', saveSettings);
-showCountdownCheckbox.addEventListener('change', saveSettings);
+layoutModeSelect.addEventListener('change', saveSettings);
+titleAlignmentSelect.addEventListener('change', saveSettings);
 showEpisodeNumbersCheckbox.addEventListener('change', saveSettings);
+showTimeCheckbox.addEventListener('change', saveSettings);
+timeFormatSelect.addEventListener('change', saveSettings);
 timezoneSelect.addEventListener('change', saveSettings);
 themeToggleButton.addEventListener('click', toggleTheme);
 
@@ -88,42 +91,47 @@ function loadSettings() {
     setTheme(currentTheme);
 
     // Start day setting
-    const startDay = items[`${STORAGE_KEY_PREFIX}start_day`] || DEFAULT_SETTINGS.startDay;
-    startDaySelect.value = startDay;
+    startDaySelect.value = items[`${STORAGE_KEY_PREFIX}start_day`] || DEFAULT_SETTINGS.startDay;
 
     // Hide empty days setting
-    const hideEmptyDays = items[`${STORAGE_KEY_PREFIX}hide_empty_days`] !== undefined
+    hideEmptyDaysCheckbox.checked = items[`${STORAGE_KEY_PREFIX}hide_empty_days`] !== undefined
         ? items[`${STORAGE_KEY_PREFIX}hide_empty_days`]
         : DEFAULT_SETTINGS.hideEmptyDays;
-    hideEmptyDaysCheckbox.checked = hideEmptyDays;
 
-    // Compact mode setting
-    const compactMode = items[`${STORAGE_KEY_PREFIX}compact_mode`] !== undefined
-        ? items[`${STORAGE_KEY_PREFIX}compact_mode`]
-        : DEFAULT_SETTINGS.compactMode;
-    compactModeCheckbox.checked = compactMode;
+    // Layout mode setting
+    layoutModeSelect.value = items[`${STORAGE_KEY_PREFIX}layout_mode`] || DEFAULT_SETTINGS.layoutMode;
 
-    // Grid mode setting
-    const gridMode = items[`${STORAGE_KEY_PREFIX}grid_mode`] !== undefined
-        ? items[`${STORAGE_KEY_PREFIX}grid_mode`]
-        : DEFAULT_SETTINGS.gridMode;
-    gridModeCheckbox.checked = gridMode;
-
-    // Show countdown setting
-    const showCountdown = items[`${STORAGE_KEY_PREFIX}show_countdown`] !== undefined
-        ? items[`${STORAGE_KEY_PREFIX}show_countdown`]
-        : DEFAULT_SETTINGS.showCountdown;
-    showCountdownCheckbox.checked = showCountdown;
+    // Title alignment setting
+    titleAlignmentSelect.value = items[`${STORAGE_KEY_PREFIX}title_alignment`] || DEFAULT_SETTINGS.titleAlignment;
 
     // Show episode numbers setting
-    const showEpisodeNumbers = items[`${STORAGE_KEY_PREFIX}show_episode_numbers`] !== undefined
+    showEpisodeNumbersCheckbox.checked = items[`${STORAGE_KEY_PREFIX}show_episode_numbers`] !== undefined
         ? items[`${STORAGE_KEY_PREFIX}show_episode_numbers`]
         : DEFAULT_SETTINGS.showEpisodeNumbers;
-    showEpisodeNumbersCheckbox.checked = showEpisodeNumbers;
+
+    // Show time setting
+    showTimeCheckbox.checked = items[`${STORAGE_KEY_PREFIX}show_time`] !== undefined
+        ? items[`${STORAGE_KEY_PREFIX}show_time`]
+        : DEFAULT_SETTINGS.showTime;
+
+    // Time format setting
+    timeFormatSelect.value = items[`${STORAGE_KEY_PREFIX}time_format`] || DEFAULT_SETTINGS.timeFormat;
 
     // Timezone setting
-    const timezone = items[`${STORAGE_KEY_PREFIX}timezone`] || DEFAULT_SETTINGS.timezone;
-    timezoneSelect.value = timezone;
+    timezoneSelect.value = items[`${STORAGE_KEY_PREFIX}timezone`] || DEFAULT_SETTINGS.timezone;
+
+    // Handle backward compatibility
+    // For compact mode and grid mode legacy settings
+    if (items[`${STORAGE_KEY_PREFIX}compact_mode`] === true) {
+      layoutModeSelect.value = 'compact';
+    } else if (items[`${STORAGE_KEY_PREFIX}grid_mode`] === true) {
+      layoutModeSelect.value = 'extended';
+    }
+
+    // For show countdown legacy setting
+    if (items[`${STORAGE_KEY_PREFIX}show_countdown`] === true) {
+      timeFormatSelect.value = 'countdown';
+    }
   });
 }
 
@@ -134,10 +142,11 @@ function saveSettings() {
   const settings = {
     [`${STORAGE_KEY_PREFIX}start_day`]: startDaySelect.value,
     [`${STORAGE_KEY_PREFIX}hide_empty_days`]: hideEmptyDaysCheckbox.checked,
-    [`${STORAGE_KEY_PREFIX}compact_mode`]: compactModeCheckbox.checked,
-    [`${STORAGE_KEY_PREFIX}grid_mode`]: gridModeCheckbox.checked,
-    [`${STORAGE_KEY_PREFIX}show_countdown`]: showCountdownCheckbox.checked,
+    [`${STORAGE_KEY_PREFIX}layout_mode`]: layoutModeSelect.value,
+    [`${STORAGE_KEY_PREFIX}title_alignment`]: titleAlignmentSelect.value,
     [`${STORAGE_KEY_PREFIX}show_episode_numbers`]: showEpisodeNumbersCheckbox.checked,
+    [`${STORAGE_KEY_PREFIX}show_time`]: showTimeCheckbox.checked,
+    [`${STORAGE_KEY_PREFIX}time_format`]: timeFormatSelect.value,
     [`${STORAGE_KEY_PREFIX}timezone`]: timezoneSelect.value
   };
 

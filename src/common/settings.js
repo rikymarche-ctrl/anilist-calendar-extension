@@ -1,0 +1,148 @@
+/**
+ * Anilist Weekly Schedule - Settings Manager
+ * Handles loading, saving, and accessing user preferences
+ */
+
+// Access directly the global namespace
+// (no need to create a local variable)
+
+/**
+ * Loads user preferences from storage
+ * @return {Promise} Promise that resolves when preferences are loaded
+ */
+window.AnilistCalendar.settings.loadUserPreferences = async function() {
+    return new Promise((resolve) => {
+        try {
+            chrome.storage.sync.get([
+                `${window.AnilistCalendar.STORAGE_KEY_PREFIX}start_day`,
+                `${window.AnilistCalendar.STORAGE_KEY_PREFIX}hide_empty_days`,
+                `${window.AnilistCalendar.STORAGE_KEY_PREFIX}layout_mode`,
+                `${window.AnilistCalendar.STORAGE_KEY_PREFIX}time_format`,
+                `${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_time`,
+                `${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_episode_numbers`,
+                `${window.AnilistCalendar.STORAGE_KEY_PREFIX}timezone`,
+                `${window.AnilistCalendar.STORAGE_KEY_PREFIX}title_alignment`,
+                // Legacy keys for backwards compatibility
+                `${window.AnilistCalendar.STORAGE_KEY_PREFIX}compact_mode`,
+                `${window.AnilistCalendar.STORAGE_KEY_PREFIX}grid_mode`,
+                `${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_countdown`
+            ], function(result) {
+                // Load settings if they exist
+                if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}start_day`] !== undefined) {
+                    window.AnilistCalendar.userPreferences.startDay = result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}start_day`];
+                }
+                if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}hide_empty_days`] !== undefined) {
+                    window.AnilistCalendar.userPreferences.hideEmptyDays = result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}hide_empty_days`];
+                }
+                if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}layout_mode`] !== undefined) {
+                    window.AnilistCalendar.userPreferences.layoutMode = result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}layout_mode`];
+                }
+                if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}time_format`] !== undefined) {
+                    window.AnilistCalendar.userPreferences.timeFormat = result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}time_format`];
+                }
+                if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_time`] !== undefined) {
+                    window.AnilistCalendar.userPreferences.showTime = result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_time`];
+                }
+                if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_episode_numbers`] !== undefined) {
+                    window.AnilistCalendar.userPreferences.showEpisodeNumbers = result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_episode_numbers`];
+                }
+                if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}timezone`] !== undefined) {
+                    window.AnilistCalendar.userPreferences.timezone = result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}timezone`];
+                }
+                if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}title_alignment`] !== undefined) {
+                    window.AnilistCalendar.userPreferences.titleAlignment = result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}title_alignment`];
+                }
+
+                // Handle backward compatibility with older settings
+                // Prioritize direct layout_mode setting if it exists
+                if (!result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}layout_mode`]) {
+                    // Otherwise, check legacy settings
+                    if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}compact_mode`] === true) {
+                        window.AnilistCalendar.userPreferences.layoutMode = 'compact';
+                    } else if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}grid_mode`] === true) {
+                        window.AnilistCalendar.userPreferences.layoutMode = 'extended';
+                    }
+                }
+
+                // For show countdown legacy setting
+                if (!result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}time_format`] &&
+                    result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_countdown`] === true) {
+                    window.AnilistCalendar.userPreferences.timeFormat = 'countdown';
+                }
+
+                window.AnilistCalendar.utils.log("Loaded user preferences", window.AnilistCalendar.userPreferences);
+                resolve();
+            });
+        } catch (e) {
+            window.AnilistCalendar.utils.log("Error loading preferences", e);
+            resolve();
+        }
+    });
+};
+
+/**
+ * Saves user preferences to storage
+ */
+window.AnilistCalendar.settings.saveUserPreferences = function() {
+    try {
+        const data = {
+            [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}start_day`]: window.AnilistCalendar.userPreferences.startDay,
+            [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}hide_empty_days`]: window.AnilistCalendar.userPreferences.hideEmptyDays,
+            [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}layout_mode`]: window.AnilistCalendar.userPreferences.layoutMode,
+            [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}time_format`]: window.AnilistCalendar.userPreferences.timeFormat,
+            [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_time`]: window.AnilistCalendar.userPreferences.showTime,
+            [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_episode_numbers`]: window.AnilistCalendar.userPreferences.showEpisodeNumbers,
+            [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}timezone`]: window.AnilistCalendar.userPreferences.timezone,
+            [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}title_alignment`]: window.AnilistCalendar.userPreferences.titleAlignment
+        };
+
+        // Add backward compatibility entries
+        data[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}compact_mode`] = (window.AnilistCalendar.userPreferences.layoutMode === 'compact');
+        data[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}grid_mode`] = (window.AnilistCalendar.userPreferences.layoutMode === 'extended');
+        data[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_countdown`] = (window.AnilistCalendar.userPreferences.timeFormat === 'countdown');
+
+        chrome.storage.sync.set(data, function() {
+            window.AnilistCalendar.utils.log("Saved user preferences", data);
+        });
+    } catch (e) {
+        window.AnilistCalendar.utils.log("Error saving preferences", e);
+    }
+};
+
+/**
+ * Gets the timezone offset for the selected timezone
+ * @return {number} The timezone offset in hours
+ */
+window.AnilistCalendar.settings.getSelectedTimezoneOffset = function() {
+    if (window.AnilistCalendar.userPreferences.timezone === 'auto') {
+        return window.AnilistCalendar.utils.getBrowserTimezoneOffset();
+    }
+
+    // Find the selected timezone in options
+    const timezone = window.AnilistCalendar.TIMEZONE_OPTIONS.find(tz => tz.value === window.AnilistCalendar.userPreferences.timezone);
+    return timezone ? timezone.offset : window.AnilistCalendar.JAPAN_TIMEZONE_OFFSET; // Default to Japan if not found
+};
+
+/**
+ * Gets a clean timezone name format for display
+ * @return {string} Formatted timezone name
+ */
+window.AnilistCalendar.settings.getTimezoneName = function() {
+    if (window.AnilistCalendar.userPreferences.timezone === 'auto') {
+        const offset = window.AnilistCalendar.utils.getBrowserTimezoneOffset();
+        const sign = offset >= 0 ? '+' : '-';
+        const absOffset = Math.abs(offset);
+        const hours = Math.floor(absOffset);
+        const minutes = Math.round((absOffset - hours) * 60);
+
+        return `UTC${sign}${hours}${minutes > 0 ? `:${minutes}` : ''}`;
+    }
+
+    // Find the timezone in options and get just the UTC part
+    const timezone = window.AnilistCalendar.TIMEZONE_OPTIONS.find(tz => tz.value === window.AnilistCalendar.userPreferences.timezone);
+    if (timezone && timezone.shortText) {
+        return timezone.shortText;
+    }
+
+    return 'UTC+9'; // Default to Japan timezone
+};

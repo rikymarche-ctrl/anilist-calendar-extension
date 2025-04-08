@@ -1,5 +1,6 @@
 /**
  * Anilist Weekly Schedule - Popup
+ * Handles interactions in the extension popup
  */
 
 // Initialize event listeners once the DOM is loaded

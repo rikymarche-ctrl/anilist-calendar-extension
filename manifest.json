@@ -8,24 +8,39 @@
   "permissions": ["storage"],
   "host_permissions": ["https://anilist.co/*"],
   "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
   "action": {
     "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
     "default_title": "Anilist Weekly Schedule",
-    "default_popup": "popup.html"
+    "default_popup": "src/popup/popup.html"
   },
   "options_ui": {
-    "page": "options.html",
+    "page": "src/options/options.html",
     "open_in_tab": true
   },
   "content_scripts": [
     {
       "matches": ["https://anilist.co/*"],
-      "js": ["content.js"],
-      "css": ["styles.css"],
+      "js": [
+        "src/init.js",
+        "src/common/utils.js",
+        "src/common/settings.js",
+        "src/content/settings-ui.js",
+        "src/content/calendar.js",
+        "src/content/main.js"
+      ],
+      "css": [
+        "styles/common.css",
+        "styles/calendar.css",
+        "styles/settings.css"
+      ],
       "run_at": "document_idle"
     }
   ],
