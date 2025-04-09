@@ -284,7 +284,6 @@
     width: 100%;
     padding: 4px 0 6px !important; /* Adjusted padding */
     margin-left: 0 !important;
-    padding-left: 0 !important; /* Remove any left padding */
 }
 
 /* Adjust height when no episode info/time */
@@ -807,12 +806,16 @@
 /*------------------------------------------------------
  * VERTICAL GALLERY MODE SLIDER
  *------------------------------------------------------*/
+/*------------------------------------------------------
+ * VERTICAL GALLERY MODE SLIDER
+ *------------------------------------------------------*/
 /* Stili per gallery mode con il nuovo sistema di pagine */
 .anilist-weekly-calendar.gallery-with-slider .day-anime-list {
     position: relative;
     padding: 14px;
     display: flex;
     flex-direction: column;
+    align-items: center;
 }
 
 /* Container delle pagine */
@@ -821,16 +824,20 @@
     position: relative;
     padding: 0;
     margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 /* Stile per la singola pagina */
 .gallery-page {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: center !important; /* Sempre centrato orizzontalmente */
     gap: 14px;
     width: 100%;
     /* No transition per evitare animazioni */
+    max-width: 600px; /* Limita la larghezza massima per evitare che si allarghi troppo */
 }
 
 /* Stile per le card in gallery mode */
@@ -846,52 +853,6 @@
     background: transparent !important;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
     transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-}
-
-/* Navigazione migliorata */
-.gallery-nav-button {
-    position: absolute;
-    z-index: 100;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background-color: rgba(0, 0, 0, 0.65) !important;
-    color: white;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.9;
-    transition: background-color 0.2s ease, transform 0.15s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-
-.gallery-nav-button:hover {
-    background-color: rgba(61, 180, 242, 0.8) !important;
-    transform: scale(1.05);
-}
-
-.gallery-nav-button:active {
-    transform: scale(0.95);
-}
-
-/* Posizionamento delle frecce */
-.gallery-nav-prev {
-    right: 6px;
-    top: 50%;
-    transform: translateY(-150%);
-}
-
-.gallery-nav-next {
-    right: 6px;
-    top: 50%;
-    transform: translateY(50%);
-}
-
-.gallery-nav-button i {
-    font-size: 16px;
-    color: white !important;
 }
 
 /* Tema chiaro per le frecce */
@@ -917,16 +878,190 @@
     color: white !important;
 }
 
-/* Nessuna animazione per il cambio di pagina */
-.gallery-page {
-    /* No animation */
+/* Rispettare il columnJustify delle preferenze utente - Più forte con !important */
+.anilist-weekly-calendar.column-justify-top .gallery-page,
+.gallery-page[data-justification="top"] {
+    justify-content: flex-start !important;
 }
 
-/* Rispettare il columnJustify delle preferenze utente */
+.anilist-weekly-calendar.column-justify-center .gallery-page,
+.gallery-page[data-justification="center"] {
+    justify-content: center !important;
+}
+
+/* Aggiunti selettori più specifici per sovrascrivere stili in conflitto */
+.anilist-weekly-calendar.extended-mode.column-justify-top .gallery-page {
+    justify-content: flex-start !important;
+}
+
+.anilist-weekly-calendar.extended-mode.column-justify-center .gallery-page {
+    justify-content: center !important;
+}
+
+/* Assicuriamo che le card in modalità galleria siano centrate orizzontalmente */
+.anilist-weekly-calendar.extended-mode .gallery-page .anime-entry {
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+/* Fix per l'allineamento delle colonne in gallery mode */
+.anilist-weekly-calendar.extended-mode .day-anime-list {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    height: 100% !important;
+}
+
+.gallery-slider-wrapper {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: 100% !important;
+    align-items: center !important;
+}
+
+/* Forza l'allineamento in base alla preferenza utente */
+.anilist-weekly-calendar.column-justify-top .gallery-slider-wrapper {
+    justify-content: flex-start !important;
+}
+
+.anilist-weekly-calendar.column-justify-center .gallery-slider-wrapper {
+    justify-content: center !important;
+}
+
+/* Wrapper per la struttura dello slider */
+.gallery-slider-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Allineamento verticale in base alle preferenze */
+.gallery-slider-wrapper.justify-top {
+    justify-content: flex-start;
+}
+
+.gallery-slider-wrapper.justify-center {
+    justify-content: center;
+}
+
+/* Container delle pagine più pulito */
+.gallery-pages-container {
+    width: 100%;
+    position: relative;
+    padding: 0;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Pagine con giustificazione esplicita */
+.gallery-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    max-width: 600px;
+}
+
+.gallery-page.justify-top {
+    justify-content: flex-start;
+}
+
+.gallery-page.justify-center {
+    justify-content: center;
+}
+
+/* Navigazione migliorata - Fix per flickering */
+.gallery-nav-button {
+    position: absolute;
+    z-index: 100;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.65) !important;
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.9;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    /* Aggiungi un'area di interazione più ampia mantenendo la dimensione visibile */
+    padding: 5px;
+    margin: -5px;
+}
+
+.gallery-nav-button:hover {
+    background-color: rgba(61, 180, 242, 0.8) !important;
+    box-shadow: 0 3px 8px rgba(61, 180, 242, 0.4);
+    /* Rimuovi la trasformazione di scala per evitare flickering */
+}
+
+.gallery-nav-button:active {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Ensure stable positioning */
+.gallery-nav-prev {
+    right: 6px;
+    top: 50%;
+    transform: translateY(-150%); /* Non modificare in hover/active */
+}
+
+.gallery-nav-next {
+    right: 6px;
+    top: 50%;
+    transform: translateY(50%); /* Non modificare in hover/active */
+}
+
+/* Stabile transizione dell'icona */
+.gallery-nav-button i {
+    font-size: 16px;
+    color: white !important;
+    transition: transform 0.15s ease;
+}
+
+.gallery-nav-button:hover i {
+    transform: scale(1.1); /* Sposta la trasformazione all'icona, non al pulsante */
+}
+
+.gallery-nav-button:active i {
+    transform: scale(0.9);
+}
+
+/* Fix per l'allineamento in gallery mode */
+.anilist-weekly-calendar.extended-mode .day-anime-list {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+
+.gallery-pages-container {
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+
+/* Allineamento basato sulle preferenze utente */
+.anilist-weekly-calendar.column-justify-top .day-anime-list,
+.anilist-weekly-calendar.column-justify-top .gallery-pages-container,
 .anilist-weekly-calendar.column-justify-top .gallery-page {
     justify-content: flex-start !important;
 }
 
+.anilist-weekly-calendar.column-justify-center .day-anime-list,
+.anilist-weekly-calendar.column-justify-center .gallery-pages-container,
 .anilist-weekly-calendar.column-justify-center .gallery-page {
     justify-content: center !important;
 }

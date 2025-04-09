@@ -81,7 +81,7 @@ function applyExtensionEnhancements() {
     html body .anilist-calendar-day,
     html body .day-header,
     html body .day-anime-list {
-      background-color: #151f2e !important;
+      background-color: #aaaaaa !important;
       background: #151f2e !important;
       background-image: none !important;
       color: white !important;
