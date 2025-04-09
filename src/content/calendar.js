@@ -271,7 +271,7 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
         window.location.href = `/anime/${anime.id}`;
     });
 
-    // Create image container (non mostrato in compact mode)
+    // Create image container
     const imageContainer = document.createElement('div');
     imageContainer.className = 'anime-image';
     imageContainer.style.position = 'relative';
@@ -439,12 +439,13 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
     // Start the thumbnail loading process
     loadThumbnail();
 
-    // Create plus button container
+    // Create plus button with dedicated function for better isolation
+    // Create container with correct pointer-events handling
     const plusButtonContainer = document.createElement('div');
     plusButtonContainer.className = 'plus-button-container';
     plusButtonContainer.style.pointerEvents = 'none'; // Allow clicks to pass through
 
-    // Create the plus button
+    // Create the button itself with correct pointer-events
     const plusButton = document.createElement('div');
     plusButton.className = 'plus-button';
     plusButton.style.cursor = 'pointer';
@@ -466,8 +467,9 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
     plusButton.appendChild(plusIcon);
     plusButtonContainer.appendChild(plusButton);
 
-    // Add click event listener
+    // Add click event listener with explicit propagation stopping
     plusButton.addEventListener('click', function(e) {
+        // These two lines are crucial for stopping the event from reaching the parent
         e.stopPropagation();
         e.preventDefault();
 
@@ -490,26 +492,12 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
     const infoContainer = document.createElement('div');
     infoContainer.className = 'anime-info';
 
-    // Create title element - IMPORTANTE: assicuriamoci che sia sempre visibile
     const titleEl = document.createElement('div');
     titleEl.className = 'anime-title';
     titleEl.textContent = anime.cleanTitle;
     titleEl.style.textAlign = window.AnilistCalendar.userPreferences.titleAlignment || 'left';
-    titleEl.style.display = 'block'; // Forza la visualizzazione
-    titleEl.style.visibility = 'visible'; // Assicura che sia visibile
-    titleEl.style.overflow = 'hidden';
-    titleEl.style.textOverflow = 'ellipsis';
-
-    // Se siamo in compact mode, assicuriamo che il titolo sia visibile
-    if (window.AnilistCalendar.userPreferences.layoutMode === 'compact') {
-        titleEl.style.whiteSpace = 'nowrap';
-        titleEl.style.fontSize = '12px';
-        titleEl.style.marginBottom = '4px';
-    }
-
     infoContainer.appendChild(titleEl);
 
-    // Create info row
     const infoRow = document.createElement('div');
     infoRow.className = 'anime-info-row';
 
@@ -567,6 +555,53 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
 
     infoContainer.appendChild(infoRow);
     entry.appendChild(infoContainer);
+
+    // Applica modifiche specifiche per gallery mode
+    // Controlla se siamo in modalità grid o extended (gallery)
+    const isGalleryMode = window.AnilistCalendar.userPreferences.layoutMode === 'extended' ||
+        window.AnilistCalendar.userPreferences.layoutMode === 'grid';
+
+    if (isGalleryMode) {
+        // Modifiche specifiche per gallery mode
+
+        // Assicura che l'immagine occupi tutta la card
+        imageContainer.style.position = 'absolute';
+        imageContainer.style.top = '0';
+        imageContainer.style.left = '0';
+        imageContainer.style.width = '100%';
+        imageContainer.style.height = '100%';
+
+        // Riposiziona il pulsante plus in alto a destra
+        plusButton.style.top = '10px';
+        plusButton.style.right = '10px';
+        plusButton.style.left = 'auto';
+        plusButton.style.transform = 'none';
+
+        // Assicura che le info siano sempre visibili
+        infoContainer.style.position = 'absolute';
+        infoContainer.style.bottom = '0';
+        infoContainer.style.left = '0';
+        infoContainer.style.right = '0';
+        infoContainer.style.background = 'rgba(0, 0, 0, 0.7)';
+        infoContainer.style.padding = '8px 6px';
+        infoContainer.style.zIndex = '5';
+        infoContainer.style.display = 'flex';
+        infoContainer.style.opacity = '1';
+
+        // Assicura che il titolo sia leggibile
+        titleEl.style.color = '#fff';
+        titleEl.style.textShadow = '0 1px 2px rgba(0, 0, 0, 0.9)';
+        titleEl.style.fontSize = '11px';
+        titleEl.style.fontWeight = '600';
+        titleEl.style.margin = '0 0 4px 0';
+        titleEl.style.whiteSpace = 'nowrap';
+        titleEl.style.overflow = 'hidden';
+        titleEl.style.textOverflow = 'ellipsis';
+
+        // Rimuovi l'overlay scuro che potrebbe interferire
+        overlay.style.display = 'none';
+    }
+
     container.appendChild(entry);
 };
 
@@ -875,8 +910,15 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
     const calendarGrid = document.createElement('div');
     calendarGrid.className = 'anilist-calendar-grid';
 
+    // Importante: SEMPRE mantenere il display grid per preservare il layout a tabella
+    calendarGrid.style.display = 'grid';
+
     // Limit to maximum of 7 days
     const daysToShow = orderedDays.slice(0, 7);
+
+    // Verifica se siamo in modalità gallery
+    const isGalleryMode = window.AnilistCalendar.userPreferences.layoutMode === 'extended' ||
+        window.AnilistCalendar.userPreferences.layoutMode === 'grid';
 
     // Create day columns
     daysToShow.forEach((day, index) => {
@@ -894,6 +936,10 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
         }
 
         dayCol.className = classes.join(' ');
+
+        // Assicura che la colonna del giorno mantenga la struttura corretta
+        dayCol.style.display = 'flex';
+        dayCol.style.flexDirection = 'column';
 
         // Create day header
         const dayHeader = document.createElement('div');
@@ -925,6 +971,15 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
         const animeList = document.createElement('div');
         animeList.className = 'day-anime-list';
 
+        // Specializzazione per Gallery Mode - SOLO PER GALLERY MODE
+        if (isGalleryMode) {
+            animeList.style.display = 'flex';
+            animeList.style.flexWrap = 'wrap';
+            animeList.style.justifyContent = 'flex-start';
+            animeList.style.alignItems = 'flex-start';
+            animeList.style.gap = '10px';
+        }
+
         if (schedule[day] && schedule[day].length > 0) {
             // Create entries for each anime
             schedule[day].forEach(anime => {
@@ -935,6 +990,16 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
             const emptyDay = document.createElement('div');
             emptyDay.className = 'empty-day';
             emptyDay.textContent = 'No episodes';
+
+            // Adatta lo stile per gallery mode
+            if (isGalleryMode) {
+                emptyDay.style.width = 'auto';
+                emptyDay.style.height = 'auto';
+                emptyDay.style.padding = '10px';
+                emptyDay.style.margin = '0';
+                emptyDay.style.textAlign = 'center';
+            }
+
             animeList.appendChild(emptyDay);
         }
 

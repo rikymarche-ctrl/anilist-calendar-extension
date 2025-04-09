@@ -3,9 +3,6 @@
  * Handles loading, saving, and accessing user preferences
  */
 
-// Access directly the global namespace
-// (no need to create a local variable)
-
 /**
  * Loads user preferences from storage
  * @return {Promise} Promise that resolves when preferences are loaded

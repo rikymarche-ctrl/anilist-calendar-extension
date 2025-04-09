@@ -3,9 +3,6 @@
  * Manages the settings overlay and UI elements in the content page
  */
 
-// Access directly the global namespace
-// (no need to create a local variable)
-
 /**
  * Creates settings button with fixed z-index
  * @return {HTMLElement} The created settings button
@@ -264,13 +261,13 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     const startDayOptions = [
         { value: 'today', text: 'Today', group: 'special' },
         { disabled: true, text: '─────────────', className: 'day-separator' },
-        { value: '0', text: 'Sunday', group: 'weekday' },
         { value: '1', text: 'Monday', group: 'weekday' },
         { value: '2', text: 'Tuesday', group: 'weekday' },
         { value: '3', text: 'Wednesday', group: 'weekday' },
         { value: '4', text: 'Thursday', group: 'weekday' },
         { value: '5', text: 'Friday', group: 'weekday' },
-        { value: '6', text: 'Saturday', group: 'weekday' }
+        { value: '6', text: 'Saturday', group: 'weekday' },
+        { value: '0', text: 'Sunday', group: 'weekday' }
     ];
 
     const startDaySelect = createFilteredSelect('start-day', startDayOptions, window.AnilistCalendar.userPreferences.startDay);
@@ -541,15 +538,8 @@ function createSettingRow(label, description, control) {
     return row;
 }
 
-/**
- * Creates a select element with options
- * @param {string} id - The select ID
- * @param {Array} options - The options to add
- * @param {string} selectedValue - The initially selected value
- * @return {HTMLElement} The created select element wrapper
- */
 function createSelect(id, options, selectedValue) {
-    // Crea un wrapper per garantire dimensioni uniformi
+    // Wrapper comune per garantire larghezza uniforme
     const wrapper = document.createElement('div');
     wrapper.className = 'select-wrapper';
 
@@ -557,77 +547,82 @@ function createSelect(id, options, selectedValue) {
     select.id = id;
     select.className = 'settings-select';
 
-    // Find the selected option for placement at the top
-    const selectedOption = options.find(opt => opt.value === selectedValue);
+    // Funzione per popolare il select, escludendo l'opzione attualmente selezionata
+    function populateSelect(selectedVal) {
+        select.innerHTML = '';
 
-    if (selectedOption) {
-        // Place selected option at the top
-        const topOption = document.createElement('option');
-        topOption.value = selectedValue;
-        topOption.textContent = selectedOption.text;
-        topOption.selected = true;
-        select.appendChild(topOption);
+        // Trova l'opzione corrispondente al valore selezionato
+        const selectedOption = options.find(opt => opt.value === selectedVal);
+        if (selectedOption) {
+            // Inserisce in cima l'opzione selezionata
+            const topOption = document.createElement('option');
+            topOption.value = selectedVal;
+            topOption.textContent = selectedOption.text;
+            topOption.selected = true;
+            select.appendChild(topOption);
+        }
 
-        // Add all other options
+        // Se il valore selezionato è "today", omette anche il separatore
+        let skipNextSeparator = selectedVal === 'today';
+
+        // Aggiunge le altre opzioni, escludendo quella già selezionata
         options.forEach(option => {
-            if (option.value !== selectedValue) {
-                const optElement = document.createElement('option');
-                optElement.value = option.value;
-                optElement.textContent = option.text;
-                select.appendChild(optElement);
-            }
-        });
-    } else {
-        // If no match found, add all options normally
-        options.forEach((option) => {
-            const optionElement = document.createElement('option');
-            optionElement.value = option.value;
-            optionElement.textContent = option.text;
+            if (option.value === selectedVal) return;
 
-            // Add separator class if specified
-            if (option.separator) {
-                optionElement.className = 'option-separator';
+            if (option.separator || option.disabled) {
+                if (skipNextSeparator) {
+                    skipNextSeparator = false;
+                    return;
+                }
+                const separatorOption = document.createElement('option');
+                separatorOption.disabled = true;
+                separatorOption.className = option.className || 'day-separator';
+                separatorOption.textContent = option.text || '─────────────';
+                select.appendChild(separatorOption);
+                return;
             }
 
-            // Store short text for timezone display
+            const optElement = document.createElement('option');
+            optElement.value = option.value;
+            optElement.textContent = option.text;
             if (option.shortText) {
-                optionElement.dataset.short = option.shortText;
+                optElement.dataset.short = option.shortText;
             }
-
-            // Select if it matches
-            if (option.value === selectedValue) {
-                optionElement.selected = true;
-            }
-
-            select.appendChild(optionElement);
+            select.appendChild(optElement);
         });
     }
 
-    // Set the selected value
-    select.value = selectedValue;
+    // Popola inizialmente il select
+    populateSelect(selectedValue);
 
-    // Special handling for timezone select - display short version
+    // Aggiornamento del menu al cambio di selezione
+    select.addEventListener('change', function() {
+        const newValue = this.value;
+        populateSelect(newValue);
+    });
+
+    // Per il campo "timezone", non aggiungiamo alcuna proprietà grafica inline:
+    // rimane a carico del CSS garantire l'aspetto (ricorda di rimuovere eventuali inline style nel codice che lo istanzia)
     if (id === 'timezone') {
         select.addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
-            const shortText = selectedOption.dataset.short;
-            if (shortText) {
-                // Store original text for reference
-                if (!selectedOption.dataset.originalText) {
-                    selectedOption.dataset.originalText = selectedOption.textContent;
+            if (selectedOption && selectedOption.dataset.short) {
+                // Ripristina il testo completo per tutte le opzioni
+                for (let i = 0; i < this.options.length; i++) {
+                    const opt = this.options[i];
+                    const tz = options.find(o => o.value === opt.value);
+                    if (tz) {
+                        opt.textContent = tz.text;
+                    }
                 }
-                // Display only the short version when selected
-                selectedOption.textContent = shortText;
+                // Imposta il testo abbreviato per la voce selezionata
+                selectedOption.textContent = selectedOption.dataset.short;
             }
         });
-
-        // Apply short text to initial selection
-        const selectedOption = select.options[select.selectedIndex];
-        if (selectedOption && selectedOption.dataset.short) {
-            // Store original text
-            selectedOption.dataset.originalText = selectedOption.textContent;
-            // Set short text
-            selectedOption.textContent = selectedOption.dataset.short;
+        // Applica la versione abbreviata all'avvio, se definita
+        const initialOption = select.options[select.selectedIndex];
+        if (initialOption && initialOption.dataset.short) {
+            initialOption.textContent = initialOption.dataset.short;
         }
     }
 
@@ -635,15 +630,8 @@ function createSelect(id, options, selectedValue) {
     return wrapper;
 }
 
-/**
- * Crea un elemento select che filtra correttamente le opzioni, escludendo quella selezionata
- * @param {string} id - L'ID del select
- * @param {Array} options - Le opzioni da aggiungere
- * @param {string} selectedValue - Il valore inizialmente selezionato
- * @return {HTMLElement} Il wrapper contenente l'elemento select creato
- */
 function createFilteredSelect(id, options, selectedValue) {
-    // Creo un wrapper per garantire dimensioni uniformi
+    // Wrapper per larghezza uniforme
     const wrapper = document.createElement('div');
     wrapper.className = 'select-wrapper';
 
@@ -651,68 +639,55 @@ function createFilteredSelect(id, options, selectedValue) {
     select.id = id;
     select.className = 'settings-select';
 
-    // Funzione per popolare il select escludendo il valore selezionato
+    // Funzione interna per popolare il select con esclusione del valore selezionato
     function populateSelect(selectedVal) {
-        // Svuota il select
         select.innerHTML = '';
 
-        // Trova l'opzione selezionata
+        // Cerca e inserisce l'opzione attualmente selezionata in cima
         const selectedOption = options.find(opt => opt.value === selectedVal);
-        if (!selectedOption) return;
+        if (selectedOption) {
+            const currentOption = document.createElement('option');
+            currentOption.value = selectedVal;
+            currentOption.textContent = selectedOption.text;
+            currentOption.selected = true;
+            select.appendChild(currentOption);
+        }
 
-        // Crea l'opzione selezionata
-        const currentOption = document.createElement('option');
-        currentOption.value = selectedVal;
-        currentOption.textContent = selectedOption.text;
-        currentOption.selected = true;
-        select.appendChild(currentOption);
+        // Salta il separatore se "today" è selezionato
+        let skipNextSeparator = selectedVal === 'today';
+        options.forEach(option => {
+            if (option.value === selectedVal) return;
 
-        // Aggiungi le altre opzioni, escludendo quella selezionata
-        // e gestendo i separatori in modo speciale
-        let isAfterSeparator = false;
-        let skipNextSeparator = selectedVal === 'today'; // Skip separator if 'today' is selected
-
-        options.forEach((option) => {
-            // Skip l'opzione selezionata
-            if (option.value === selectedVal) {
-                return;
-            }
-
-            // Se questo è un separatore
             if (option.separator || option.disabled) {
-                // Se stiamo già skippando i separatori, salta questo
                 if (skipNextSeparator) {
                     skipNextSeparator = false;
                     return;
                 }
-
                 const separatorOption = document.createElement('option');
                 separatorOption.disabled = true;
                 separatorOption.className = option.className || 'day-separator';
                 separatorOption.textContent = option.text || '─────────────';
                 select.appendChild(separatorOption);
-                isAfterSeparator = true;
                 return;
             }
 
-            // Aggiungi le opzioni normali
             const optionElement = document.createElement('option');
             optionElement.value = option.value;
             optionElement.textContent = option.text;
-
-            // Se è un gruppo speciale (come weekday o special) aggiungi data-attribute
             if (option.group) {
                 optionElement.dataset.group = option.group;
             }
-
+            if (option.shortText) {
+                optionElement.dataset.short = option.shortText;
+            }
             select.appendChild(optionElement);
         });
     }
 
-    // Popola inizialmente il select
+    // Popola il select con il valore iniziale
     populateSelect(selectedValue);
 
-    // Gestisci il cambio di selezione
+    // Aggiornamento del menu quando il valore cambia
     select.addEventListener('change', function() {
         const newValue = this.value;
         populateSelect(newValue);
