@@ -807,141 +807,104 @@
 /*------------------------------------------------------
  * VERTICAL GALLERY MODE SLIDER
  *------------------------------------------------------*/
-/* Stili per gallery mode con slider verticale */
+/* Stili per gallery mode con il nuovo sistema di pagine */
 .anilist-weekly-calendar.gallery-with-slider .day-anime-list {
     position: relative;
-    overflow: hidden;
-    padding: 14px !important;
-}
-
-.gallery-slider-container {
-    position: relative;
-    min-height: 160px;
-    overflow: hidden;
-    margin: 0 auto;
-    width: calc(100% - 30px) !important; /* Lascia spazio per gli indicatori a destra */
-    /* Maschera per nascondere le ombre che potrebbero fuoriuscire */
-    mask-image: linear-gradient(to bottom, transparent 0px, black 1px, black calc(100% - 1px), transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 1px, black calc(100% - 1px), transparent 100%);
-}
-
-.vertical-slider {
-    height: auto;
-    overflow: hidden;
-    padding: 1px 0; /* Piccolo padding per evitare l'ombra */
-}
-
-.vertical-track {
-    position: absolute;
-    top: 0;
-    left: 0;
+    padding: 14px;
     display: flex;
-    flex-direction: column !important;
-    flex-wrap: nowrap !important;
+    flex-direction: column;
+}
+
+/* Container delle pagine */
+.gallery-pages-container {
+    width: 100%;
+    position: relative;
+    padding: 0;
+    margin: 0 auto;
+}
+
+/* Stile per la singola pagina */
+.gallery-page {
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
     gap: 14px;
     width: 100%;
-    transition: transform 0.3s ease;
+    /* No transition per evitare animazioni */
 }
 
-/* Contenitore per le card uniformi */
-.gallery-slider-container .anime-entry {
-    margin: 0;
+/* Stile per le card in gallery mode */
+.anilist-weekly-calendar.extended-mode .anime-entry {
+    flex-direction: column;
+    width: 105px !important;
+    height: 160px !important;
+    padding: 0 !important;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0 0 14px 0 !important;
+    position: relative;
+    background: transparent !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
 }
 
-/* Navigazione più visibile */
+/* Navigazione migliorata */
 .gallery-nav-button {
     position: absolute;
-    z-index: 100; /* Aumentato per assicurare visibilità */
-    width: 34px; /* Più grande */
-    height: 34px; /* Più grande */
+    z-index: 100;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.65) !important; /* Più scuro e visibile */
+    background-color: rgba(0, 0, 0, 0.65) !important;
     color: white;
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0.9; /* Più visibile di default */
-    transition: opacity 0.2s ease, background-color 0.2s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); /* Aggiunto ombra */
+    opacity: 0.9;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .gallery-nav-button:hover {
-    opacity: 1;
-    background: rgba(61, 180, 242, 0.8) !important; /* Blu più visibile in hover */
+    background-color: rgba(61, 180, 242, 0.8) !important;
+    transform: scale(1.05);
+}
+
+.gallery-nav-button:active {
+    transform: scale(0.95);
+}
+
+/* Posizionamento delle frecce */
+.gallery-nav-prev {
+    right: 6px;
+    top: 50%;
+    transform: translateY(-150%);
+}
+
+.gallery-nav-next {
+    right: 6px;
+    top: 50%;
+    transform: translateY(50%);
 }
 
 .gallery-nav-button i {
-    font-size: 16px; /* Icona più grande */
+    font-size: 16px;
     color: white !important;
 }
 
-/* Posizionamento migliorato per i navigatori verticali */
-.vertical-nav.gallery-nav-prev {
-    top: 10px;
-    right: 6px !important;
-    left: auto !important;
-    transform: none !important;
-}
-
-.vertical-nav.gallery-nav-next {
-    bottom: 10px;
-    right: 6px !important;
-    left: auto !important;
-    transform: none !important;
-}
-
-/* Indicatore migliorato */
-.gallery-scroll-indicator {
-    position: absolute;
-    display: flex;
-    justify-content: center;
-    gap: 5px;
-    padding: 5px 0;
-    z-index: 90;
-}
-
-/* Indicatore verticale spostato a destra e distanziato */
-.vertical-indicator {
-    flex-direction: column;
-    right: 6px !important;
-    top: 50%;
-    bottom: unset;
-    left: unset;
-    transform: translateY(-50%);
-    padding: 0 5px;
-    gap: 8px; /* Spaziatura aumentata tra i pallini */
-}
-
-.gallery-scroll-dot {
-    width: 8px; /* Dimensioni aumentate */
-    height: 8px; /* Dimensioni aumentate */
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.4);
-    transition: background 0.2s ease, transform 0.2s ease;
-}
-
-.gallery-scroll-dot.active {
-    background: rgba(61, 180, 242, 0.9); /* Più brillante quando attivo */
-    transform: scale(1.2); /* Leggermente più grande quando attivo */
-    box-shadow: 0 0 4px rgba(61, 180, 242, 0.5);
-}
-
-/* Stile light theme per gli elementi di navigazione */
+/* Tema chiaro per le frecce */
 .site-theme-light .gallery-nav-button,
 [data-theme='light'] .gallery-nav-button {
-    background: rgba(200, 200, 200, 0.75) !important;
+    background-color: rgba(200, 200, 200, 0.75) !important;
     color: #333;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .site-theme-light .gallery-nav-button:hover,
 [data-theme='light'] .gallery-nav-button:hover {
-    background: rgba(61, 180, 242, 0.7) !important;
-    color: white;
+    background-color: rgba(61, 180, 242, 0.7) !important;
 }
 
 .site-theme-light .gallery-nav-button i,
@@ -954,19 +917,16 @@
     color: white !important;
 }
 
-.site-theme-light .gallery-scroll-dot,
-[data-theme='light'] .gallery-scroll-dot {
-    background: rgba(0, 0, 0, 0.25);
+/* Nessuna animazione per il cambio di pagina */
+.gallery-page {
+    /* No animation */
 }
 
-.site-theme-light .gallery-scroll-dot.active,
-[data-theme='light'] .gallery-scroll-dot.active {
-    background: rgba(53, 119, 177, 0.9);
-    box-shadow: 0 0 4px rgba(53, 119, 177, 0.4);
+/* Rispettare il columnJustify delle preferenze utente */
+.anilist-weekly-calendar.column-justify-top .gallery-page {
+    justify-content: flex-start !important;
 }
 
-/* Assicura che tutte le card in modalità gallery abbiano dimensioni e margini uniformi */
-.anilist-weekly-calendar.extended-mode .anime-entry {
-    margin: 0 0 14px 0 !important;
-    height: 160px !important;
+.anilist-weekly-calendar.column-justify-center .gallery-page {
+    justify-content: center !important;
 }

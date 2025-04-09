@@ -1416,153 +1416,115 @@ window.AnilistCalendar.calendar.setupGallerySlider = function(dayContainer, anim
     // Numero di card totali
     const totalCards = animeList.children.length;
 
-    // Assicurati che ogni card abbia l'altezza corretta
-    const animeEntries = Array.from(animeList.children);
-    animeEntries.forEach(entry => {
-        entry.style.margin = '0 0 14px 0'; // Margine uniforme per tutte le card
-        entry.style.height = '160px';
-    });
-
-    // Gap tra le card
-    const cardGap = 14;
-    // Altezza di ogni card (incluso il gap)
-    const cardHeight = 160 + cardGap;
-
-    // Calcola il numero di pagine, basandosi sul numero di card per pagina
+    // Calcola il numero di pagine
     const totalPages = Math.ceil(totalCards / maxCards);
 
-    // Crea container e track per lo slider verticale
-    const sliderContainer = document.createElement('div');
-    sliderContainer.className = 'gallery-slider-container vertical-slider';
+    // Creiamo un container per il nostro sistema di pagine
+    const pagesContainer = document.createElement('div');
+    pagesContainer.className = 'gallery-pages-container';
+    pagesContainer.style.position = 'relative';
+    pagesContainer.style.width = '100%';
+    pagesContainer.style.margin = '0 auto';
+    pagesContainer.style.height = 'auto';
 
-    // Imposta l'altezza del container in base al numero di card da mostrare
-    // Sottrai 14px (gap dell'ultima card) dall'altezza totale
-    const containerHeight = (maxCards * cardHeight) - cardGap;
-    sliderContainer.style.height = `${containerHeight}px`;
-    sliderContainer.style.maxHeight = `${containerHeight}px`;
-    sliderContainer.style.overflow = 'hidden';
-    sliderContainer.style.position = 'relative';
-    sliderContainer.style.margin = '0 auto';
-    sliderContainer.style.width = 'calc(100% - 30px)'; // Lascia spazio per gli indicatori
+    // Raccogli tutte le card in un array
+    const cards = Array.from(animeList.children);
 
-    // Aggiungi un padding in alto per eliminare l'ombra della sezione precedente
-    sliderContainer.style.paddingTop = '1px';
+    // Assicurati che ogni card abbia dimensioni uniformi
+    cards.forEach(card => {
+        card.style.margin = '0 0 14px 0';
+        card.style.height = '160px';
+        card.style.width = '105px'; // Larghezza fissa per le card
+    });
 
-    // Aggiungi una mask per le ombre
-    sliderContainer.style.maskImage = 'linear-gradient(to bottom, transparent 0px, black 1px, black calc(100% - 1px), transparent 100%)';
-    sliderContainer.style.webkitMaskImage = 'linear-gradient(to bottom, transparent 0px, black 1px, black calc(100% - 1px), transparent 100%)';
+    // Ottieni la preferenza di giustificazione dell'utente
+    const columnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
 
-    const sliderTrack = document.createElement('div');
-    sliderTrack.className = 'gallery-slider-track vertical-track';
+    // Creiamo una pagina per ogni gruppo di card
+    for (let i = 0; i < totalPages; i++) {
+        const page = document.createElement('div');
+        page.className = 'gallery-page';
+        page.style.display = i === 0 ? 'flex' : 'none'; // Mostra solo la prima pagina
+        page.style.flexDirection = 'column';
+        page.style.gap = '14px';
+        page.style.width = '100%';
+        // Applica la giustificazione in base alle preferenze dell'utente
+        page.style.justifyContent = columnJustify === 'center' ? 'center' : 'flex-start';
+        page.style.alignItems = 'center';
+        page.dataset.pageIndex = i;
 
-    // Imposta la direzione del flusso in verticale
-    sliderTrack.style.display = 'flex';
-    sliderTrack.style.flexDirection = 'column';
-    sliderTrack.style.flexWrap = 'nowrap'; // Importante: non wrappare le card
-    sliderTrack.style.alignItems = 'center';
-    sliderTrack.style.justifyContent = 'flex-start';
-    sliderTrack.style.gap = `${cardGap}px`;
-    sliderTrack.style.width = '100%';
-    sliderTrack.style.transition = 'transform 0.3s ease';
-    sliderTrack.style.padding = '0';
-    sliderTrack.style.margin = '0 auto';
-    sliderTrack.style.position = 'absolute'; // Posizionamento assoluto
-    sliderTrack.style.top = '0';
-    sliderTrack.style.left = '0';
+        // Aggiungi le card per questa pagina
+        const startIdx = i * maxCards;
+        const endIdx = Math.min(startIdx + maxCards, totalCards);
 
-    // Sposta tutte le card nel track dello slider
-    while (animeList.firstChild) {
-        const entry = animeList.firstChild;
-        entry.style.width = '100%'; // Assicura la larghezza piena
-        sliderTrack.appendChild(entry);
-    }
-
-    // Aggiungi il track al container
-    sliderContainer.appendChild(sliderTrack);
-
-    // Aggiungi il container all'anime list
-    animeList.appendChild(sliderContainer);
-
-    // Aggiungi pulsanti di navigazione
-    if (totalPages > 1) {
-        // Pulsante precedente (up)
-        const prevButton = document.createElement('button');
-        prevButton.className = 'gallery-nav-button gallery-nav-prev vertical-nav';
-        prevButton.innerHTML = '<i class="fa fa-chevron-up"></i>';
-        // Posiziona la freccia sulla stessa colonna dei puntini
-        prevButton.style.left = 'auto';
-        prevButton.style.right = '6px';
-        prevButton.style.top = '10px';
-        prevButton.style.transform = 'none';
-        prevButton.style.zIndex = '100';
-        prevButton.style.opacity = '0.9';
-        prevButton.style.width = '34px';
-        prevButton.style.height = '34px';
-        prevButton.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.3)';
-        sliderContainer.appendChild(prevButton);
-
-        // Pulsante successivo (down)
-        const nextButton = document.createElement('button');
-        nextButton.className = 'gallery-nav-button gallery-nav-next vertical-nav';
-        nextButton.innerHTML = '<i class="fa fa-chevron-down"></i>';
-        // Posiziona la freccia sulla stessa colonna dei puntini
-        nextButton.style.left = 'auto';
-        nextButton.style.right = '6px';
-        nextButton.style.bottom = '10px';
-        nextButton.style.transform = 'none';
-        nextButton.style.zIndex = '100';
-        nextButton.style.opacity = '0.9';
-        nextButton.style.width = '34px';
-        nextButton.style.height = '34px';
-        nextButton.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.3)';
-        sliderContainer.appendChild(nextButton);
-
-        // Indicatore di scorrimento (dots)
-        const scrollIndicator = document.createElement('div');
-        scrollIndicator.className = 'gallery-scroll-indicator vertical-indicator';
-        scrollIndicator.style.flexDirection = 'column';
-        scrollIndicator.style.right = '6px';
-        scrollIndicator.style.top = '50%';
-        scrollIndicator.style.transform = 'translateY(-50%)';
-        scrollIndicator.style.gap = '8px';
-        scrollIndicator.style.zIndex = '90';
-
-        // Crea pallini indicatori
-        for (let i = 0; i < totalPages; i++) {
-            const dot = document.createElement('div');
-            dot.className = 'gallery-scroll-dot';
-            if (i === 0) {
-                dot.classList.add('active');
-                dot.style.transform = 'scale(1.2)';
-                dot.style.boxShadow = '0 0 4px rgba(61, 180, 242, 0.5)';
-            }
-            scrollIndicator.appendChild(dot);
+        for (let j = startIdx; j < endIdx; j++) {
+            page.appendChild(cards[j]);
         }
 
-        sliderContainer.appendChild(scrollIndicator);
+        pagesContainer.appendChild(page);
+    }
 
+    // Sostituisci il contenuto originale con il nostro container di pagine
+    animeList.innerHTML = '';
+    animeList.appendChild(pagesContainer);
+
+    // Aggiungi le frecce di navigazione se ci sono più pagine
+    if (totalPages > 1) {
         // Stato corrente
         let currentPage = 0;
 
+        // Freccia su (pagina precedente)
+        const prevButton = document.createElement('button');
+        prevButton.className = 'gallery-nav-button gallery-nav-prev';
+        prevButton.innerHTML = '<i class="fa fa-chevron-up"></i>';
+        prevButton.style.position = 'absolute';
+        prevButton.style.zIndex = '100';
+        prevButton.style.right = '6px';
+        prevButton.style.top = '50%';
+        prevButton.style.transform = 'translateY(-150%)'; // Posiziona sopra il centro
+        prevButton.style.width = '34px';
+        prevButton.style.height = '34px';
+        prevButton.style.borderRadius = '50%';
+        prevButton.style.backgroundColor = 'rgba(0, 0, 0, 0.65)';
+        prevButton.style.color = 'white';
+        prevButton.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.3)';
+        prevButton.style.border = 'none';
+        prevButton.style.cursor = 'pointer';
+        prevButton.style.display = 'none'; // Nascondi all'inizio (prima pagina)
+        prevButton.style.alignItems = 'center';
+        prevButton.style.justifyContent = 'center';
+
+        // Freccia giù (pagina successiva)
+        const nextButton = document.createElement('button');
+        nextButton.className = 'gallery-nav-button gallery-nav-next';
+        nextButton.innerHTML = '<i class="fa fa-chevron-down"></i>';
+        nextButton.style.position = 'absolute';
+        nextButton.style.zIndex = '100';
+        nextButton.style.right = '6px';
+        nextButton.style.top = '50%';
+        nextButton.style.transform = 'translateY(50%)'; // Posiziona sotto il centro
+        nextButton.style.width = '34px';
+        nextButton.style.height = '34px';
+        nextButton.style.borderRadius = '50%';
+        nextButton.style.backgroundColor = 'rgba(0, 0, 0, 0.65)';
+        nextButton.style.color = 'white';
+        nextButton.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.3)';
+        nextButton.style.border = 'none';
+        nextButton.style.cursor = 'pointer';
+        nextButton.style.display = 'flex'; // Mostra (perché siamo sulla prima pagina)
+        nextButton.style.alignItems = 'center';
+        nextButton.style.justifyContent = 'center';
+
         // Funzione per aggiornare la visualizzazione
         const updateView = () => {
-            // Calcola l'offset esatto in pixel in base al numero di card per pagina
-            // Moltiplica il numero della pagina corrente per l'altezza di maxCards card
-            const translateY = -currentPage * (maxCards * cardHeight);
-            sliderTrack.style.transform = `translateY(${translateY}px)`;
-
-            // Aggiorna l'indicatore
-            const dots = scrollIndicator.querySelectorAll('.gallery-scroll-dot');
-            dots.forEach((dot, i) => {
-                dot.classList.toggle('active', i === currentPage);
-                if (i === currentPage) {
-                    dot.style.transform = 'scale(1.2)';
-                    dot.style.boxShadow = '0 0 4px rgba(61, 180, 242, 0.5)';
-                } else {
-                    dot.style.transform = 'scale(1)';
-                    dot.style.boxShadow = 'none';
-                }
+            // Nascondi tutte le pagine
+            const pages = pagesContainer.querySelectorAll('.gallery-page');
+            pages.forEach(page => {
+                page.style.display = 'none';
             });
+
+            // Mostra la pagina corrente
+            pages[currentPage].style.display = 'flex';
 
             // Aggiorna visibilità pulsanti
             prevButton.style.display = currentPage === 0 ? 'none' : 'flex';
@@ -1572,21 +1534,26 @@ window.AnilistCalendar.calendar.setupGallerySlider = function(dayContainer, anim
         // Handler per i pulsanti
         prevButton.addEventListener('click', (e) => {
             e.stopPropagation();
+            e.preventDefault(); // Previene qualsiasi comportamento predefinito
             if (currentPage > 0) {
                 currentPage--;
                 updateView();
             }
+            return false; // Ulteriore prevenzione di eventi di bubbling
         });
 
         nextButton.addEventListener('click', (e) => {
             e.stopPropagation();
+            e.preventDefault(); // Previene qualsiasi comportamento predefinito
             if (currentPage < totalPages - 1) {
                 currentPage++;
                 updateView();
             }
+            return false; // Ulteriore prevenzione di eventi di bubbling
         });
 
-        // Inizializza la visualizzazione
-        updateView();
+        // Aggiungi le frecce al container
+        animeList.appendChild(prevButton);
+        animeList.appendChild(nextButton);
     }
 };
