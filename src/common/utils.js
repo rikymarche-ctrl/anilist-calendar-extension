@@ -3,8 +3,15 @@
  * Common utility functions used throughout the extension
  */
 
-// Access directly the global namespace
-// (no need to create a local variable)
+// Assicuriamoci che lo spazio dei nomi sia inizializzato
+if (!window.AnilistCalendar) {
+    window.AnilistCalendar = {};
+}
+
+// Assicuriamoci che esista l'oggetto utils
+if (!window.AnilistCalendar.utils) {
+    window.AnilistCalendar.utils = {};
+}
 
 /**
  * Logs debug messages to console when debug mode is enabled
@@ -12,7 +19,23 @@
  * @param {any} data - Optional data to log with the message
  */
 window.AnilistCalendar.utils.log = function(message, data = null) {
-    if (!window.AnilistCalendar.DEBUG_MODE) return;
+    // Controlla se esiste DEBUG_MODE, altrimenti imposta un valore predefinito
+    const debugMode = window.AnilistCalendar.DEBUG_MODE !== undefined ? window.AnilistCalendar.DEBUG_MODE : true;
+
+    if (!debugMode) return;
+
+    if (data) {
+        console.log(`[Anilist Calendar] ${message}`, data);
+    } else {
+        console.log(`[Anilist Calendar] ${message}`);
+    }
+};
+
+/**
+ * Fallback logging function that uses console.log directly
+ * This ensures we always abbiamo una funzione di log disponibile
+ */
+window.AnilistCalendar.utils.safeLog = function(message, data = null) {
     if (data) {
         console.log(`[Anilist Calendar] ${message}`, data);
     } else {
@@ -54,6 +77,8 @@ window.AnilistCalendar.utils.preloadFontAwesomeIcons = function() {
     <i class="fa fa-check"></i>
     <i class="fa fa-cog"></i>
     <i class="fa fa-spinner fa-spin"></i>
+    <i class="fa fa-chevron-left"></i>
+    <i class="fa fa-chevron-right"></i>
   `;
     document.body.appendChild(preloadDiv);
 
@@ -146,4 +171,40 @@ window.AnilistCalendar.utils.calculateTimeComponents = function(diff) {
         minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
         seconds: Math.floor((diff % (1000 * 60)) / 1000)
     };
+};
+
+/**
+ * Convert time from Japan timezone to another timezone
+ * @param {Date} japanTime - Date object in Japan time
+ * @param {number} targetOffset - Target timezone offset in hours
+ * @return {Date} Date object in target timezone
+ */
+window.AnilistCalendar.utils.convertJapanTimeToTimezone = function(japanTime, targetOffset) {
+    // Japan is UTC+9
+    const japanOffset = 9;
+    const offsetDiff = targetOffset - japanOffset;
+
+    // Create a new date with the offset difference applied
+    const convertedTime = new Date(japanTime.getTime() + (offsetDiff * 60 * 60 * 1000));
+    return convertedTime;
+};
+
+/**
+ * Check if a time in Japan has already occurred
+ * @param {Date} japanTime - Date object in Japan time
+ * @return {boolean} True if the time has already occurred in Japan
+ */
+window.AnilistCalendar.utils.hasTimeOccurredInJapan = function(japanTime) {
+    // Get current time
+    const now = new Date();
+
+    // Convert current time to Japan time (UTC+9)
+    const localTimezoneOffset = now.getTimezoneOffset() * -1 / 60; // Convert to hours
+    const offsetDiff = localTimezoneOffset - 9; // Difference from Japan (UTC+9)
+
+    // Adjust current time to Japan time
+    const nowInJapan = new Date(now.getTime() - (offsetDiff * 60 * 60 * 1000));
+
+    // Compare with the provided Japan time
+    return japanTime <= nowInJapan;
 };

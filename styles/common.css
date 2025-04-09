@@ -51,16 +51,16 @@
 .anilist-calendar-day,
 .day-header,
 .day-anime-list {
-    background-color: var(--cal-background);
-    color: var(--cal-text);
+    background-color: var(--cal-background) !important;
+    color: var(--cal-text) !important;
 }
 
 .day-name, .day-number {
-    color: var(--cal-text);
+    color: var(--cal-text) !important;
 }
 
 .separator {
-    color: var(--cal-text-light);
+    color: var(--cal-text-light) !important;
 }
 
 /* Current day styling */
@@ -131,7 +131,7 @@
     font-size: 0.9em;
 }
 
-/* Settings buttons */
+/* Settings buttons - FIX FOR BLUE COLOR ON HOVER */
 .calendar-settings-btn, .header-settings-btn {
     background: transparent;
     border: none;
@@ -141,8 +141,8 @@
     justify-content: center;
     cursor: pointer;
     color: var(--cal-text-light);
-    transition: opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s ease;
-    opacity: 0;
+    transition: opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0.7; /* Higher base opacity */
 }
 
 .calendar-settings-btn {
@@ -159,16 +159,15 @@
     z-index: 10;
 }
 
-.header-settings-btn i {
-    font-size: 14px;
-    transition: color 0.25s ease;
-}
-
+/* CRITICAL FIX: Make icon blue on hover with !important */
 .header-settings-btn:hover i,
 .calendar-settings-btn:hover i {
-    color: var(--cal-blue);
+    color: #3db4f2 !important;
 }
 
+/* Ensure visibility on hover */
+.header-settings-btn:hover,
+.calendar-settings-btn:hover,
 .section-header:hover .header-settings-btn,
 .calendar-header:hover .calendar-settings-btn,
 .anilist-weekly-calendar:hover .calendar-settings-btn,
@@ -198,4 +197,28 @@
 [data-theme='light'] .day-header,
 [data-theme='light'] .day-anime-list {
     background-color: var(--cal-background) !important;
+}
+
+/* Forzare sfondo e colori - Ottimizzato */
+html body .anilist-weekly-calendar,
+html body .anilist-calendar-grid,
+html body .anilist-calendar-day,
+html body .day-header,
+html body .day-anime-list {
+    background: #151f2e none !important;
+    color: white !important;
+}
+
+html body.site-theme-light .anilist-weekly-calendar,
+html body.site-theme-light .anilist-calendar-grid,
+html body.site-theme-light .anilist-calendar-day,
+html body.site-theme-light .day-header,
+html body.site-theme-light .day-anime-list,
+html body[data-theme="light"] .anilist-weekly-calendar,
+html body[data-theme="light"] .anilist-calendar-grid,
+html body[data-theme="light"] .anilist-calendar-day,
+html body[data-theme="light"] .day-header,
+html body[data-theme="light"] .day-anime-list {
+    background: #f9fafb !important;
+    color: #1f2937 !important;
 }

@@ -222,18 +222,34 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     //-----------------------------------------------------
     // Layout mode setting
     const currentLayoutMode = window.AnilistCalendar.userPreferences.layoutMode;
-    const layoutModeSelect = createFilteredSelect('layout-mode', [
+    const layoutModeWrapper = createFilteredSelect('layout-mode', [
         { value: 'standard', text: 'Standard' },
         { value: 'compact', text: 'Compact' },
         { value: 'extended', text: 'Gallery' }
     ], currentLayoutMode);
 
+    // Get the select element directly from the wrapper
+    const layoutModeSelect = layoutModeWrapper.querySelector('select');
+
     const layoutModeRow = createSettingRow(
         'Layout style',
         'Choose how anime entries are displayed',
-        layoutModeSelect
+        layoutModeWrapper
     );
     layoutContent.appendChild(layoutModeRow);
+
+    // Max cards per day setting (only visible in Gallery mode)
+    const maxCardsPerDayRow = createSettingRow(
+        'Max cards per day',
+        'Maximum number of cards to show per day in Gallery mode (0 = unlimited)',
+        createNumberInput('max-cards-per-day', window.AnilistCalendar.userPreferences.maxCardsPerDay || 0, 0, 30, 1)
+    );
+
+    // Set initial visibility based on current layout mode
+    maxCardsPerDayRow.style.display =
+        (currentLayoutMode === 'extended' || currentLayoutMode === 'grid') ? 'flex' : 'none';
+
+    layoutContent.appendChild(maxCardsPerDayRow);
 
     // Title alignment setting
     const titleAlignmentRow = createSettingRow(
@@ -246,6 +262,17 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     layoutContent.appendChild(titleAlignmentRow);
 
+    // NEW SETTING: Column justification
+    const columnJustifyRow = createSettingRow(
+        'Column justify',
+        'Choose how columns are justified in the calendar',
+        createSelect('column-justify', [
+            { value: 'top', text: 'Top aligned' },
+            { value: 'center', text: 'Center aligned' }
+        ], window.AnilistCalendar.userPreferences.columnJustify || 'top')
+    );
+    layoutContent.appendChild(columnJustifyRow);
+
     // Hide empty days setting
     const hideEmptyDaysRow = createSettingRow(
         'Hide empty days',
@@ -253,6 +280,16 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         createToggle('hide-empty-days', window.AnilistCalendar.userPreferences.hideEmptyDays)
     );
     layoutContent.appendChild(hideEmptyDaysRow);
+
+    // Add event listener directly to the select element we already have
+    if (layoutModeSelect) {
+        layoutModeSelect.addEventListener('change', function() {
+            const isGalleryMode = this.value === 'extended' || this.value === 'grid';
+            maxCardsPerDayRow.style.display = isGalleryMode ? 'flex' : 'none';
+        });
+    } else {
+        console.error("Layout mode select element not found");
+    }
 
     //-----------------------------------------------------
     // CALENDAR TAB CONTENT
@@ -313,7 +350,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     const timezoneSelect = document.createElement('select');
     timezoneSelect.id = 'timezone';
     timezoneSelect.className = 'settings-select';
-    timezoneSelect.style.width = '180px'; // Wider for timezone options
+    timezoneSelect.style.textAlign = 'center';
 
     // Create options with full text in dropdown but display short version when selected
     for (const tz of window.AnilistCalendar.TIMEZONE_OPTIONS) {
@@ -321,6 +358,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         option.value = tz.value;
         option.textContent = tz.text;
         option.dataset.shortText = tz.shortText; // Store short text in data attribute
+        option.style.textAlign = 'center';
         if (tz.value === window.AnilistCalendar.userPreferences.timezone) {
             option.selected = true;
             // Display short version for selected item
@@ -349,10 +387,15 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         }
     });
 
+    // Create a standard wrapper for the timezone select
+    const timezoneWrapper = document.createElement('div');
+    timezoneWrapper.className = 'select-wrapper';
+    timezoneWrapper.appendChild(timezoneSelect);
+
     const timezoneRow = createSettingRow(
         'Timezone',
         'Adjust anime airing times to your timezone',
-        timezoneSelect
+        timezoneWrapper
     );
     timeContent.appendChild(timezoneRow);
 
@@ -385,23 +428,47 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     } else {
         saveButton.style.backgroundColor = '#3db4f2';
     }
-    saveButton.addEventListener('click', () => {
-        // Get values directly from form elements
-        const startDay = document.getElementById('start-day')?.value || window.AnilistCalendar.userPreferences.startDay;
-        const hideEmptyDays = document.getElementById('hide-empty-days')?.checked ?? window.AnilistCalendar.userPreferences.hideEmptyDays;
-        const layoutMode = document.getElementById('layout-mode')?.value || window.AnilistCalendar.userPreferences.layoutMode;
-        const timeFormat = document.getElementById('time-format')?.value || window.AnilistCalendar.userPreferences.timeFormat;
-        const showTime = document.getElementById('show-time')?.checked ?? window.AnilistCalendar.userPreferences.showTime;
-        const showEpisodeNumbers = document.getElementById('show-episode-numbers')?.checked ?? window.AnilistCalendar.userPreferences.showEpisodeNumbers;
-        const timezone = document.getElementById('timezone')?.value || window.AnilistCalendar.userPreferences.timezone;
-        const titleAlignment = document.getElementById('title-alignment')?.value || window.AnilistCalendar.userPreferences.titleAlignment;
 
-        // Store previous values for comparison
+    // COMPLETELY REWRITTEN SAVE BUTTON LOGIC WITH BETTER MULTIPLE CHANGES HANDLING
+    saveButton.addEventListener('click', () => {
+        // Save current values for comparison
+        const prevStartDay = window.AnilistCalendar.userPreferences.startDay;
+        const prevHideEmptyDays = window.AnilistCalendar.userPreferences.hideEmptyDays;
+        const prevLayoutMode = window.AnilistCalendar.userPreferences.layoutMode;
         const prevTimeFormat = window.AnilistCalendar.userPreferences.timeFormat;
+        const prevShowTime = window.AnilistCalendar.userPreferences.showTime;
+        const prevShowEpisodeNumbers = window.AnilistCalendar.userPreferences.showEpisodeNumbers;
         const prevTimezone = window.AnilistCalendar.userPreferences.timezone;
         const prevTitleAlignment = window.AnilistCalendar.userPreferences.titleAlignment;
+        const prevColumnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
+        const prevMaxCardsPerDay = window.AnilistCalendar.userPreferences.maxCardsPerDay || 0;
 
-        // Update preferences
+        // Get new values from form
+        const startDay = document.getElementById('start-day').value;
+        const hideEmptyDays = document.getElementById('hide-empty-days').checked;
+        const layoutMode = document.getElementById('layout-mode').value;
+        const timeFormat = document.getElementById('time-format').value;
+        const showTime = document.getElementById('show-time').checked;
+        const showEpisodeNumbers = document.getElementById('show-episode-numbers').checked;
+        const timezone = document.getElementById('timezone').value;
+        const titleAlignment = document.getElementById('title-alignment').value;
+        const columnJustify = document.getElementById('column-justify').value;
+        const maxCardsPerDay = parseInt(document.getElementById('max-cards-per-day').value) || 0;
+
+        // Count what changed
+        const changes = [];
+        if (prevLayoutMode !== layoutMode) changes.push('layout');
+        if (prevColumnJustify !== columnJustify) changes.push('column justification');
+        if (prevStartDay !== startDay) changes.push('start day');
+        if (prevTimezone !== timezone) changes.push('timezone');
+        if (prevTimeFormat !== timeFormat) changes.push('time format');
+        if (prevTitleAlignment !== titleAlignment) changes.push('title alignment');
+        if (prevHideEmptyDays !== hideEmptyDays) changes.push('empty days visibility');
+        if (prevShowTime !== showTime) changes.push('time display');
+        if (prevShowEpisodeNumbers !== showEpisodeNumbers) changes.push('episode numbers');
+        if (prevMaxCardsPerDay !== maxCardsPerDay) changes.push('max cards per day');
+
+        // Update preferences object
         window.AnilistCalendar.userPreferences.startDay = startDay;
         window.AnilistCalendar.userPreferences.hideEmptyDays = hideEmptyDays;
         window.AnilistCalendar.userPreferences.layoutMode = layoutMode;
@@ -410,12 +477,32 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         window.AnilistCalendar.userPreferences.showEpisodeNumbers = showEpisodeNumbers;
         window.AnilistCalendar.userPreferences.timezone = timezone;
         window.AnilistCalendar.userPreferences.titleAlignment = titleAlignment;
+        window.AnilistCalendar.userPreferences.columnJustify = columnJustify;
+        window.AnilistCalendar.userPreferences.maxCardsPerDay = maxCardsPerDay;
 
         // Save to storage
         window.AnilistCalendar.settings.saveUserPreferences();
 
+        // Determine message based on what changed
+        let notificationMessage = '';
+
+        if (changes.length === 0) {
+            // No changes made
+            notificationMessage = 'No changes detected';
+        } else if (changes.length === 1) {
+            // Only one setting changed
+            const capitalized = changes[0].charAt(0).toUpperCase() + changes[0].slice(1);
+            notificationMessage = `${capitalized} updated!`;
+        } else if (changes.length > 1 && changes.length <= 3) {
+            // 2-3 settings changed - list them specifically
+            notificationMessage = `Updated: ${changes.join(', ')}`;
+        } else {
+            // More than 3 settings changed
+            notificationMessage = `Multiple settings updated (${changes.length})`;
+        }
+
         // Show notification
-        window.AnilistCalendar.utils.showNotification('Settings saved!', 'success');
+        window.AnilistCalendar.utils.showNotification(notificationMessage, 'success');
 
         // Close overlay
         overlayContainer.classList.remove('active');
@@ -423,8 +510,13 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
             overlayContainer.remove();
         }, 300);
 
-        // Update UI without page refresh
-        window.AnilistCalendar.calendar.updateUIWithSettings(prevTimeFormat, prevTimezone, prevTitleAlignment);
+        // Update UI without page refresh - PASSAGGIO CORRETTO DI TUTTI I PARAMETRI
+        window.AnilistCalendar.calendar.updateUIWithSettings(
+            prevTimeFormat,
+            prevTimezone,
+            prevTitleAlignment,
+            prevColumnJustify
+        );
     });
 
     saveContainer.appendChild(saveButton);
@@ -547,14 +639,18 @@ function createSelect(id, options, selectedValue) {
     select.id = id;
     select.className = 'settings-select';
 
-    // Funzione per popolare il select, escludendo l'opzione attualmente selezionata
+    // Add inline styles to ensure options are centered
+    select.style.textAlign = 'center';
+
+    // Funzione per popolare il select senza mostrare l'opzione selezionata
     function populateSelect(selectedVal) {
         select.innerHTML = '';
 
         // Trova l'opzione corrispondente al valore selezionato
         const selectedOption = options.find(opt => opt.value === selectedVal);
+
+        // Crea un'opzione nascosta che sarà effettivamente selezionata
         if (selectedOption) {
-            // Inserisce in cima l'opzione selezionata
             const topOption = document.createElement('option');
             topOption.value = selectedVal;
             topOption.textContent = selectedOption.text;
@@ -567,7 +663,7 @@ function createSelect(id, options, selectedValue) {
 
         // Aggiunge le altre opzioni, escludendo quella già selezionata
         options.forEach(option => {
-            if (option.value === selectedVal) return;
+            if (option.value === selectedVal) return; // Skip already selected option
 
             if (option.separator || option.disabled) {
                 if (skipNextSeparator) {
@@ -578,6 +674,7 @@ function createSelect(id, options, selectedValue) {
                 separatorOption.disabled = true;
                 separatorOption.className = option.className || 'day-separator';
                 separatorOption.textContent = option.text || '─────────────';
+                separatorOption.style.textAlign = 'center';
                 select.appendChild(separatorOption);
                 return;
             }
@@ -585,6 +682,8 @@ function createSelect(id, options, selectedValue) {
             const optElement = document.createElement('option');
             optElement.value = option.value;
             optElement.textContent = option.text;
+            optElement.style.textAlign = 'center';
+
             if (option.shortText) {
                 optElement.dataset.short = option.shortText;
             }
@@ -601,24 +700,16 @@ function createSelect(id, options, selectedValue) {
         populateSelect(newValue);
     });
 
-    // Per il campo "timezone", non aggiungiamo alcuna proprietà grafica inline:
-    // rimane a carico del CSS garantire l'aspetto (ricorda di rimuovere eventuali inline style nel codice che lo istanzia)
+    // Gestione speciale per timezone
     if (id === 'timezone') {
         select.addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             if (selectedOption && selectedOption.dataset.short) {
-                // Ripristina il testo completo per tutte le opzioni
-                for (let i = 0; i < this.options.length; i++) {
-                    const opt = this.options[i];
-                    const tz = options.find(o => o.value === opt.value);
-                    if (tz) {
-                        opt.textContent = tz.text;
-                    }
-                }
                 // Imposta il testo abbreviato per la voce selezionata
                 selectedOption.textContent = selectedOption.dataset.short;
             }
         });
+
         // Applica la versione abbreviata all'avvio, se definita
         const initialOption = select.options[select.selectedIndex];
         if (initialOption && initialOption.dataset.short) {
@@ -638,6 +729,9 @@ function createFilteredSelect(id, options, selectedValue) {
     const select = document.createElement('select');
     select.id = id;
     select.className = 'settings-select';
+
+    // Add inline styles to ensure options are centered
+    select.style.textAlign = 'center';
 
     // Funzione interna per popolare il select con esclusione del valore selezionato
     function populateSelect(selectedVal) {
@@ -667,6 +761,7 @@ function createFilteredSelect(id, options, selectedValue) {
                 separatorOption.disabled = true;
                 separatorOption.className = option.className || 'day-separator';
                 separatorOption.textContent = option.text || '─────────────';
+                separatorOption.style.textAlign = 'center';
                 select.appendChild(separatorOption);
                 return;
             }
@@ -674,6 +769,8 @@ function createFilteredSelect(id, options, selectedValue) {
             const optionElement = document.createElement('option');
             optionElement.value = option.value;
             optionElement.textContent = option.text;
+            optionElement.style.textAlign = 'center';
+
             if (option.group) {
                 optionElement.dataset.group = option.group;
             }
@@ -694,6 +791,32 @@ function createFilteredSelect(id, options, selectedValue) {
     });
 
     wrapper.appendChild(select);
+    return wrapper;
+}
+
+/**
+ * Creates a number input
+ * @param {string} id - The input ID
+ * @param {number} value - The initial value
+ * @param {number} min - The minimum value
+ * @param {number} max - The maximum value
+ * @param {number} step - The step value
+ * @return {HTMLElement} The created number input
+ */
+function createNumberInput(id, value, min, max, step) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'number-input-wrapper';
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.id = id;
+    input.className = 'settings-number-input';
+    input.min = min;
+    input.max = max;
+    input.step = step;
+    input.value = value;
+
+    wrapper.appendChild(input);
     return wrapper;
 }
 

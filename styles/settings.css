@@ -229,17 +229,14 @@
     text-align: left;
 }
 
-/* Wrapper per assicurare dimensioni uniformi */
+/* FIXED: Standardized wrapper for consistent select width */
 .select-wrapper {
-    width: 160px;
+    width: 160px !important;
     display: inline-block;
 }
 
-/* Timezone select ha una larghezza maggiore */
-.timezone-select-wrapper {
-    width: 180px;
-    display: inline-block;
-}
+/* FIXED: Removed timezone-specific width override */
+/* All selects now have the same width */
 
 .settings-select {
     padding: 8px 10px;
@@ -247,8 +244,8 @@
     border: 1px solid rgba(100, 100, 100, 0.4);
     background-color: #151f2e;
     color: #ffffff;
-    width: 100%; /* Occupa tutto lo spazio del wrapper */
-    text-align: center;
+    width: 100%; /* Occupies full wrapper width */
+    text-align: center !important;
     appearance: menulist;
 }
 
@@ -261,7 +258,7 @@
 }
 
 .settings-select option {
-    text-align: center;
+    text-align: center !important;
     padding: 8px;
     background-color: #151f2e;
     color: #ffffff;
@@ -272,6 +269,7 @@
 [data-theme='light'] .settings-select option {
     background-color: #ffffff;
     color: #2e3c4f;
+    text-align: center !important;
 }
 
 /* Separator for Today option */
@@ -486,6 +484,30 @@ input:checked + .slider:before {
     background-color: rgba(247, 154, 99, 0.95);
 }
 
+/* Stili per input numerici nelle impostazioni */
+.number-input-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-number-input {
+    width: 70px;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(100, 100, 100, 0.4);
+    background-color: #151f2e;
+    color: #ffffff;
+    text-align: center;
+}
+
+.site-theme-light .settings-number-input,
+[data-theme='light'] .settings-number-input {
+    background-color: #ffffff;
+    color: #2e3c4f;
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
 /* Responsive settings for small screens */
 @media screen and (max-width: 600px) {
     .settings-row {
@@ -493,9 +515,14 @@ input:checked + .slider:before {
         align-items: flex-start;
     }
 
+
     .settings-select, .toggle-switch {
         margin-top: 10px;
         width: 100%;
+    }
+
+    .select-wrapper {
+        width: 100% !important;
     }
 
     .settings-panel {

@@ -28,6 +28,11 @@ AniCal.main.initialize = function() {
         // Apply custom enhancements
         applyExtensionEnhancements();
 
+        // Detect and apply current theme
+        AniCal.detectTheme();
+        AniCal.applyTheme();
+        AniCal.setupThemeObserver();
+
         // Preload FontAwesome icons
         AniCal.utils.preloadFontAwesomeIcons();
 
@@ -112,6 +117,34 @@ function applyExtensionEnhancements() {
       border-bottom: 1px solid #3db4f2;
       margin-bottom: 6px;
       padding-bottom: 6px;
+    }
+    
+    /* Light theme overrides */
+    html body.site-theme-light .anilist-weekly-calendar,
+    html body.site-theme-light .anilist-calendar-grid,
+    html body.site-theme-light .anilist-calendar-day,
+    html body.site-theme-light .day-header,
+    html body.site-theme-light .day-anime-list,
+    html body[data-theme="light"] .anilist-weekly-calendar,
+    html body[data-theme="light"] .anilist-calendar-grid,
+    html body[data-theme="light"] .anilist-calendar-day,
+    html body[data-theme="light"] .day-header,
+    html body[data-theme="light"] .day-anime-list {
+      background-color: #f9fafb !important;
+      background: #f9fafb !important;
+      color: #1f2937 !important;
+    }
+    
+    html body.site-theme-light .day-name,
+    html body.site-theme-light .day-number,
+    html body[data-theme="light"] .day-name,
+    html body[data-theme="light"] .day-number {
+      color: #1f2937 !important;
+    }
+    
+    html body.site-theme-light .separator,
+    html body[data-theme="light"] .separator {
+      color: rgba(0, 0, 0, 0.5) !important;
     }
   `;
     document.head.appendChild(styleForceBackground);
@@ -319,6 +352,10 @@ AniCal.main.findAndReplaceAiringSection = function() {
 
             AniCal.utils.log("Found container for Airing section, replacing with calendar", container);
             replaceAiringSection(container, airingElement, true);
+
+            // Ensure theme is applied after creating calendar
+            AniCal.applyTheme();
+
             return true;
         } else {
             AniCal.utils.log("Container for Airing section not found");

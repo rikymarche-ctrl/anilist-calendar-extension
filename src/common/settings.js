@@ -19,6 +19,8 @@ window.AnilistCalendar.settings.loadUserPreferences = async function() {
                 `${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_episode_numbers`,
                 `${window.AnilistCalendar.STORAGE_KEY_PREFIX}timezone`,
                 `${window.AnilistCalendar.STORAGE_KEY_PREFIX}title_alignment`,
+                `${window.AnilistCalendar.STORAGE_KEY_PREFIX}column_justify`,
+                `${window.AnilistCalendar.STORAGE_KEY_PREFIX}max_cards_per_day`,
                 // Legacy keys for backwards compatibility
                 `${window.AnilistCalendar.STORAGE_KEY_PREFIX}compact_mode`,
                 `${window.AnilistCalendar.STORAGE_KEY_PREFIX}grid_mode`,
@@ -48,6 +50,12 @@ window.AnilistCalendar.settings.loadUserPreferences = async function() {
                 }
                 if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}title_alignment`] !== undefined) {
                     window.AnilistCalendar.userPreferences.titleAlignment = result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}title_alignment`];
+                }
+                if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}column_justify`] !== undefined) {
+                    window.AnilistCalendar.userPreferences.columnJustify = result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}column_justify`];
+                }
+                if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}max_cards_per_day`] !== undefined) {
+                    window.AnilistCalendar.userPreferences.maxCardsPerDay = result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}max_cards_per_day`];
                 }
 
                 // Handle backward compatibility with older settings
@@ -90,7 +98,9 @@ window.AnilistCalendar.settings.saveUserPreferences = function() {
             [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_time`]: window.AnilistCalendar.userPreferences.showTime,
             [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_episode_numbers`]: window.AnilistCalendar.userPreferences.showEpisodeNumbers,
             [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}timezone`]: window.AnilistCalendar.userPreferences.timezone,
-            [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}title_alignment`]: window.AnilistCalendar.userPreferences.titleAlignment
+            [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}title_alignment`]: window.AnilistCalendar.userPreferences.titleAlignment,
+            [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}column_justify`]: window.AnilistCalendar.userPreferences.columnJustify || 'top',
+            [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}max_cards_per_day`]: window.AnilistCalendar.userPreferences.maxCardsPerDay || 0
         };
 
         // Add backward compatibility entries

@@ -271,43 +271,101 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
         window.location.href = `/anime/${anime.id}`;
     });
 
-    // Create image container
-    const imageContainer = document.createElement('div');
-    imageContainer.className = 'anime-image';
-    imageContainer.style.position = 'relative';
-    imageContainer.style.overflow = 'hidden';
-    imageContainer.style.backgroundColor = '#1A1A2E';
+    // Check what layout mode we're using
+    const isCompactMode = window.AnilistCalendar.userPreferences.layoutMode === 'compact';
+    const isGalleryMode = window.AnilistCalendar.userPreferences.layoutMode === 'extended' ||
+        window.AnilistCalendar.userPreferences.layoutMode === 'grid';
 
-    // Add the dedicated overlay element
-    const overlay = document.createElement('div');
-    overlay.className = 'anime-image-overlay';
-    imageContainer.appendChild(overlay);
+    // Add compact mode plus button if in compact mode
+    if (isCompactMode) {
+        const compactPlusContainer = document.createElement('div');
+        compactPlusContainer.className = 'compact-plus-container';
 
-    // IMPROVED THUMBNAIL HANDLING FOR ANILIST STRUCTURE
-    const loadThumbnail = () => {
-        // Priority 1: Use original cover element if available
-        if (window.AnilistCalendar.state.originalCoverImages[anime.id]) {
-            window.AnilistCalendar.utils.log(`Using original cover for anime ID: ${anime.id}`);
-            const originalElement = window.AnilistCalendar.state.originalCoverImages[anime.id];
+        const compactPlusButton = document.createElement('div');
+        compactPlusButton.className = 'compact-plus-button';
+        compactPlusButton.setAttribute('title', 'Mark as watched');
 
-            // Check if this is a link with background-image (AniList struttura)
-            if (originalElement.tagName.toLowerCase() === 'a' && originalElement.classList.contains('cover')) {
-                // Get URL from either data-src or background-image
-                let imageUrl = '';
+        // Create plus icon
+        const iconElement = document.createElement('i');
+        iconElement.className = 'fa fa-plus';
 
-                if (originalElement.dataset.src) {
-                    imageUrl = originalElement.dataset.src;
-                } else if (originalElement.style.backgroundImage) {
-                    const bgImgMatch = originalElement.style.backgroundImage.match(/url\(['"]?(.*?)['"]?\)/);
-                    if (bgImgMatch && bgImgMatch[1]) {
-                        imageUrl = bgImgMatch[1];
+        // Add click handler
+        compactPlusButton.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            window.AnilistCalendar.calendar.handlePlusButtonClick(e, anime);
+            return false;
+        });
+
+        compactPlusButton.appendChild(iconElement);
+        compactPlusContainer.appendChild(compactPlusButton);
+        entry.appendChild(compactPlusContainer);
+    } else {
+        // Create image container for non-compact modes
+        const imageContainer = document.createElement('div');
+        imageContainer.className = 'anime-image';
+        imageContainer.style.position = 'relative';
+        imageContainer.style.overflow = 'hidden';
+        imageContainer.style.backgroundColor = '#1A1A2E';
+
+        // Add the dedicated overlay element
+        const overlay = document.createElement('div');
+        overlay.className = 'anime-image-overlay';
+        imageContainer.appendChild(overlay);
+
+        // IMPROVED THUMBNAIL HANDLING FOR ANILIST STRUCTURE
+        const loadThumbnail = () => {
+            // Priority 1: Use original cover element if available
+            if (window.AnilistCalendar.state.originalCoverImages[anime.id]) {
+                window.AnilistCalendar.utils.log(`Using original cover for anime ID: ${anime.id}`);
+                const originalElement = window.AnilistCalendar.state.originalCoverImages[anime.id];
+
+                // Check if this is a link with background-image (AniList struttura)
+                if (originalElement.tagName.toLowerCase() === 'a' && originalElement.classList.contains('cover')) {
+                    // Get URL from either data-src or background-image
+                    let imageUrl = '';
+
+                    if (originalElement.dataset.src) {
+                        imageUrl = originalElement.dataset.src;
+                    } else if (originalElement.style.backgroundImage) {
+                        const bgImgMatch = originalElement.style.backgroundImage.match(/url\(['"]?(.*?)['"]?\)/);
+                        if (bgImgMatch && bgImgMatch[1]) {
+                            imageUrl = bgImgMatch[1];
+                        }
+                    }
+
+                    if (imageUrl) {
+                        // Creiamo elemento img con URL trovato
+                        const img = document.createElement('img');
+                        img.src = imageUrl;
+                        img.alt = anime.cleanTitle;
+                        img.style.width = '100%';
+                        img.style.height = '100%';
+                        img.style.objectFit = 'cover';
+                        img.style.position = 'absolute';
+                        img.style.top = '0';
+                        img.style.left = '0';
+                        img.style.zIndex = '1';
+
+                        // Add load and error handlers
+                        img.onload = () => {
+                            imageContainer.classList.remove('loading');
+                            imageContainer.style.backgroundColor = 'transparent';
+                        };
+
+                        img.onerror = () => {
+                            img.remove();
+                            loadDirectImageUrl();
+                        };
+
+                        imageContainer.appendChild(img);
+                        return;
                     }
                 }
-
-                if (imageUrl) {
-                    // Creiamo elemento img con URL trovato
+                // Se è un elemento img standard
+                else if (originalElement.tagName.toLowerCase() === 'img') {
                     const img = document.createElement('img');
-                    img.src = imageUrl;
+                    img.src = originalElement.src;
                     img.alt = anime.cleanTitle;
                     img.style.width = '100%';
                     img.style.height = '100%';
@@ -317,7 +375,6 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
                     img.style.left = '0';
                     img.style.zIndex = '1';
 
-                    // Add load and error handlers
                     img.onload = () => {
                         imageContainer.classList.remove('loading');
                         imageContainer.style.backgroundColor = 'transparent';
@@ -332,274 +389,349 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
                     return;
                 }
             }
-            // Se è un elemento img standard
-            else if (originalElement.tagName.toLowerCase() === 'img') {
-                const img = document.createElement('img');
-                img.src = originalElement.src;
-                img.alt = anime.cleanTitle;
-                img.style.width = '100%';
-                img.style.height = '100%';
-                img.style.objectFit = 'cover';
-                img.style.position = 'absolute';
-                img.style.top = '0';
-                img.style.left = '0';
-                img.style.zIndex = '1';
 
-                img.onload = () => {
-                    imageContainer.classList.remove('loading');
-                    imageContainer.style.backgroundColor = 'transparent';
-                };
+            // Priority 2: Try direct URL loading as fallback
+            loadDirectImageUrl();
+        };
 
-                img.onerror = () => {
-                    img.remove();
-                    loadDirectImageUrl();
-                };
-
-                imageContainer.appendChild(img);
+        // Function to load image from direct URL
+        const loadDirectImageUrl = () => {
+            if (!anime.coverImage || anime.coverImage.length < 10) {
+                showFallbackImage();
                 return;
             }
-        }
 
-        // Priority 2: Try direct URL loading as fallback
-        loadDirectImageUrl();
-    };
+            imageContainer.classList.add('loading');
 
-    // Function to load image from direct URL
-    const loadDirectImageUrl = () => {
-        if (!anime.coverImage || anime.coverImage.length < 10) {
-            showFallbackImage();
-            return;
-        }
+            // Try to clean up the URL first
+            let imageUrl = anime.coverImage;
 
-        imageContainer.classList.add('loading');
+            // Remove any quotes and escape characters
+            imageUrl = imageUrl.replace(/["'\\]/g, '');
 
-        // Try to clean up the URL first
-        let imageUrl = anime.coverImage;
-
-        // Remove any quotes and escape characters
-        imageUrl = imageUrl.replace(/["'\\]/g, '');
-
-        // Fix potential protocol issues
-        if (imageUrl.startsWith('//')) {
-            imageUrl = 'https:' + imageUrl;
-        } else if (!imageUrl.startsWith('http')) {
-            imageUrl = 'https://' + imageUrl;
-        }
-
-        // Create image element
-        const img = document.createElement('img');
-        img.alt = anime.cleanTitle;
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.objectFit = 'cover';
-        img.style.position = 'absolute';
-        img.style.top = '0';
-        img.style.left = '0';
-        img.style.zIndex = '1';
-        img.setAttribute('loading', 'eager');
-        img.setAttribute('decoding', 'async');
-        img.setAttribute('crossorigin', 'anonymous');
-
-        // Handle successful load
-        img.onload = () => {
-            imageContainer.classList.remove('loading');
-            imageContainer.style.backgroundColor = 'transparent';
-        };
-
-        // Handle error with direct fallback - no retry delay
-        img.onerror = () => {
-            window.AnilistCalendar.utils.log(`Error loading image for ${anime.cleanTitle}`);
-            img.remove();
-            showFallbackImage();
-        };
-
-        // Set source and append to container
-        img.src = imageUrl;
-        imageContainer.appendChild(img);
-    };
-
-    // Function to show fallback image
-    const showFallbackImage = () => {
-        imageContainer.classList.remove('loading');
-        imageContainer.classList.add('error');
-
-        const initialLetter = document.createElement('div');
-        initialLetter.textContent = anime.cleanTitle.charAt(0).toUpperCase();
-        initialLetter.style.position = 'absolute';
-        initialLetter.style.top = '50%';
-        initialLetter.style.left = '50%';
-        initialLetter.style.transform = 'translate(-50%, -50%)';
-        initialLetter.style.fontSize = '20px';
-        initialLetter.style.fontWeight = 'bold';
-        initialLetter.style.color = '#5C728A';
-        initialLetter.style.zIndex = '2';
-        imageContainer.appendChild(initialLetter);
-    };
-
-    // Start the thumbnail loading process
-    loadThumbnail();
-
-    // Create plus button with dedicated function for better isolation
-    // Create container with correct pointer-events handling
-    const plusButtonContainer = document.createElement('div');
-    plusButtonContainer.className = 'plus-button-container';
-    plusButtonContainer.style.pointerEvents = 'none'; // Allow clicks to pass through
-
-    // Create the button itself with correct pointer-events
-    const plusButton = document.createElement('div');
-    plusButton.className = 'plus-button';
-    plusButton.style.cursor = 'pointer';
-    plusButton.style.zIndex = '20';
-    plusButton.style.pointerEvents = 'auto'; // Explicitly capture clicks
-
-    // Create plus icon container
-    const plusIcon = document.createElement('div');
-    plusIcon.className = 'plus-icon';
-
-    // Create the Font Awesome icon
-    const iconElement = document.createElement('i');
-    iconElement.className = 'fa fa-plus';
-    iconElement.style.fontSize = '14px';
-    iconElement.style.color = 'white';
-
-    // Build the DOM structure
-    plusIcon.appendChild(iconElement);
-    plusButton.appendChild(plusIcon);
-    plusButtonContainer.appendChild(plusButton);
-
-    // Add click event listener with explicit propagation stopping
-    plusButton.addEventListener('click', function(e) {
-        // These two lines are crucial for stopping the event from reaching the parent
-        e.stopPropagation();
-        e.preventDefault();
-
-        // Visual feedback
-        plusIcon.style.transform = 'scale(0.85)';
-        setTimeout(() => {
-            plusIcon.style.transform = 'scale(1)';
-        }, 300);
-
-        // Handle the actual functionality
-        window.AnilistCalendar.calendar.handlePlusButtonClick(e, anime);
-        return false; // Ensure no default behavior
-    });
-
-    // Add this container to the image container
-    imageContainer.appendChild(plusButtonContainer);
-    entry.appendChild(imageContainer);
-
-    // Container for information (title, progress, countdown)
-    const infoContainer = document.createElement('div');
-    infoContainer.className = 'anime-info';
-
-    const titleEl = document.createElement('div');
-    titleEl.className = 'anime-title';
-    titleEl.textContent = anime.cleanTitle;
-    titleEl.style.textAlign = window.AnilistCalendar.userPreferences.titleAlignment || 'left';
-    infoContainer.appendChild(titleEl);
-
-    const infoRow = document.createElement('div');
-    infoRow.className = 'anime-info-row';
-
-    if (window.AnilistCalendar.userPreferences.showEpisodeNumbers) {
-        const episodeNumber = document.createElement('div');
-        episodeNumber.className = 'episode-number';
-
-        // Display progress string if available, otherwise use standard format
-        if (anime.episodeProgressString && anime.episodeProgressString.trim().length > 0) {
-            episodeNumber.textContent = 'Ep ' + anime.episodeProgressString;
-        } else {
-            episodeNumber.textContent = 'Ep ' + anime.episodeInfo;
-        }
-
-        // If episodes behind indicator is present, show it BEFORE episode text
-        if (anime.episodesBehind > 0) {
-            const behindIndicator = document.createElement('span');
-            behindIndicator.className = 'behind-indicator';
-            behindIndicator.title = `${anime.episodesBehind} episode(s) behind`;
-            episodeNumber.prepend(behindIndicator); // Place at the beginning
-        }
-
-        infoRow.appendChild(episodeNumber);
-    }
-
-    if (window.AnilistCalendar.userPreferences.showTime) {
-        const timeDisplay = document.createElement('div');
-        timeDisplay.className = 'anime-time';
-
-        if (window.AnilistCalendar.userPreferences.timeFormat === 'countdown') {
-            timeDisplay.classList.add('countdown-mode');
-            const now = new Date();
-            const targetTime = new Date(anime.airingDate);
-            const diff = targetTime - now;
-
-            if (diff <= 0) {
-                timeDisplay.textContent = "Aired";
-            } else {
-                const { days, hours, minutes } = window.AnilistCalendar.utils.calculateTimeComponents(diff);
-                timeDisplay.textContent = days > 0 ?
-                    `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}` :
-                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            // Fix potential protocol issues
+            if (imageUrl.startsWith('//')) {
+                imageUrl = 'https:' + imageUrl;
+            } else if (!imageUrl.startsWith('http')) {
+                imageUrl = 'https://' + imageUrl;
             }
+
+            // Create image element
+            const img = document.createElement('img');
+            img.alt = anime.cleanTitle;
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            img.style.position = 'absolute';
+            img.style.top = '0';
+            img.style.left = '0';
+            img.style.zIndex = '1';
+            img.setAttribute('loading', 'eager');
+            img.setAttribute('decoding', 'async');
+            img.setAttribute('crossorigin', 'anonymous');
+
+            // Handle successful load
+            img.onload = () => {
+                imageContainer.classList.remove('loading');
+                imageContainer.style.backgroundColor = 'transparent';
+            };
+
+            // Handle error with direct fallback - no retry delay
+            img.onerror = () => {
+                window.AnilistCalendar.utils.log(`Error loading image for ${anime.cleanTitle}`);
+                img.remove();
+                showFallbackImage();
+            };
+
+            // Set source and append to container
+            img.src = imageUrl;
+            imageContainer.appendChild(img);
+        };
+
+        // Function to show fallback image
+        const showFallbackImage = () => {
+            imageContainer.classList.remove('loading');
+            imageContainer.classList.add('error');
+
+            const initialLetter = document.createElement('div');
+            initialLetter.textContent = anime.cleanTitle.charAt(0).toUpperCase();
+            initialLetter.style.position = 'absolute';
+            initialLetter.style.top = '50%';
+            initialLetter.style.left = '50%';
+            initialLetter.style.transform = 'translate(-50%, -50%)';
+            initialLetter.style.fontSize = '20px';
+            initialLetter.style.fontWeight = 'bold';
+            initialLetter.style.color = '#5C728A';
+            initialLetter.style.zIndex = '2';
+            imageContainer.appendChild(initialLetter);
+        };
+
+        // Start the thumbnail loading process
+        loadThumbnail();
+
+        // Create plus button with dedicated function for better isolation
+        // Create container with correct pointer-events handling
+        const plusButtonContainer = document.createElement('div');
+        plusButtonContainer.className = 'plus-button-container';
+        plusButtonContainer.style.pointerEvents = 'none'; // Allow clicks to pass through
+
+        // Create the button itself with correct pointer-events
+        const plusButton = document.createElement('div');
+        plusButton.className = 'plus-button';
+        plusButton.style.cursor = 'pointer';
+        plusButton.style.zIndex = '20';
+        plusButton.style.pointerEvents = 'auto'; // Explicitly capture clicks
+
+        // Create plus icon container
+        const plusIcon = document.createElement('div');
+        plusIcon.className = 'plus-icon';
+
+        // Create the Font Awesome icon
+        const iconElement = document.createElement('i');
+        iconElement.className = 'fa fa-plus';
+        iconElement.style.fontSize = '14px';
+        iconElement.style.color = 'white';
+
+        // Build the DOM structure
+        plusIcon.appendChild(iconElement);
+        plusButton.appendChild(plusIcon);
+        plusButtonContainer.appendChild(plusButton);
+
+        // Position the plus button based on layout mode
+        if (isGalleryMode) {
+            // For gallery mode, center the plus button
+            plusButton.style.top = '50%';
+            plusButton.style.left = '50%';
+            plusButton.style.transform = 'translate(-50%, -50%)';
         } else {
-            timeDisplay.textContent = anime.formattedTime;
+            // Standard layout - default position
+            plusButton.style.top = '50%';
+            plusButton.style.left = '50%';
+            plusButton.style.transform = 'translate(-50%, -50%)';
         }
 
-        if (anime.dayChanged) {
-            timeDisplay.classList.add('day-adjusted');
-            timeDisplay.title = `Originally scheduled for ${anime.originalDay}`;
-        }
+        // Add click event listener with explicit propagation stopping
+        plusButton.addEventListener('click', function(e) {
+            // These two lines are crucial for stopping the event from reaching the parent
+            e.stopPropagation();
+            e.preventDefault();
 
-        infoRow.appendChild(timeDisplay);
+            // Visual feedback - only transform the icon, not the background
+            const iconEl = plusIcon.querySelector('i');
+            if (iconEl) {
+                iconEl.style.transform = 'scale(0.85)';
+                setTimeout(() => {
+                    iconEl.style.transform = 'scale(1)';
+                }, 300);
+            }
+
+            // Handle the actual functionality
+            window.AnilistCalendar.calendar.handlePlusButtonClick(e, anime);
+            return false; // Ensure no default behavior
+        });
+
+        // Add this container to the image container
+        imageContainer.appendChild(plusButtonContainer);
+        entry.appendChild(imageContainer);
     }
 
-    infoContainer.appendChild(infoRow);
-    entry.appendChild(infoContainer);
-
-    // Applica modifiche specifiche per gallery mode
-    // Controlla se siamo in modalità grid o extended (gallery)
-    const isGalleryMode = window.AnilistCalendar.userPreferences.layoutMode === 'extended' ||
-        window.AnilistCalendar.userPreferences.layoutMode === 'grid';
-
+    // Create information panels - different approach for gallery mode vs standard
     if (isGalleryMode) {
-        // Modifiche specifiche per gallery mode
+        // NEW APPROACH: Create separate top and bottom panels for gallery mode
 
-        // Assicura che l'immagine occupi tutta la card
-        imageContainer.style.position = 'absolute';
-        imageContainer.style.top = '0';
-        imageContainer.style.left = '0';
-        imageContainer.style.width = '100%';
-        imageContainer.style.height = '100%';
+        // TOP PANEL FOR TITLE
+        const titlePanel = document.createElement('div');
+        titlePanel.className = 'title-panel';
 
-        // Riposiziona il pulsante plus in alto a destra
-        plusButton.style.top = '10px';
-        plusButton.style.right = '10px';
-        plusButton.style.left = 'auto';
-        plusButton.style.transform = 'none';
+        const titleEl = document.createElement('div');
+        titleEl.className = 'anime-title';
+        titleEl.textContent = anime.cleanTitle;
+        titleEl.style.textAlign = 'center';
 
-        // Assicura che le info siano sempre visibili
-        infoContainer.style.position = 'absolute';
-        infoContainer.style.bottom = '0';
-        infoContainer.style.left = '0';
-        infoContainer.style.right = '0';
-        infoContainer.style.background = 'rgba(0, 0, 0, 0.7)';
-        infoContainer.style.padding = '8px 6px';
-        infoContainer.style.zIndex = '5';
-        infoContainer.style.display = 'flex';
-        infoContainer.style.opacity = '1';
+        titlePanel.appendChild(titleEl);
+        entry.appendChild(titlePanel);
 
-        // Assicura che il titolo sia leggibile
-        titleEl.style.color = '#fff';
-        titleEl.style.textShadow = '0 1px 2px rgba(0, 0, 0, 0.9)';
-        titleEl.style.fontSize = '11px';
-        titleEl.style.fontWeight = '600';
-        titleEl.style.margin = '0 0 4px 0';
-        titleEl.style.whiteSpace = 'nowrap';
-        titleEl.style.overflow = 'hidden';
-        titleEl.style.textOverflow = 'ellipsis';
+        // BOTTOM PANEL FOR INFO ROW
+        if (window.AnilistCalendar.userPreferences.showEpisodeNumbers || window.AnilistCalendar.userPreferences.showTime) {
+            const infoPanel = document.createElement('div');
+            infoPanel.className = 'info-panel';
 
-        // Rimuovi l'overlay scuro che potrebbe interferire
-        overlay.style.display = 'none';
+            const infoRow = document.createElement('div');
+            infoRow.className = 'anime-info-row';
+
+            // Add episode number if enabled
+            if (window.AnilistCalendar.userPreferences.showEpisodeNumbers) {
+                const episodeNumber = document.createElement('div');
+                episodeNumber.className = 'episode-number';
+
+                // Display progress string if available, otherwise use standard format
+                if (anime.episodeProgressString && anime.episodeProgressString.trim().length > 0) {
+                    episodeNumber.textContent = 'Ep ' + anime.episodeProgressString;
+                } else {
+                    episodeNumber.textContent = 'Ep ' + anime.episodeInfo;
+                }
+
+                // If episodes behind indicator is present, show it BEFORE episode text
+                if (anime.episodesBehind > 0) {
+                    const behindIndicator = document.createElement('span');
+                    behindIndicator.className = 'behind-indicator';
+                    behindIndicator.title = `${anime.episodesBehind} episode(s) behind`;
+                    episodeNumber.prepend(behindIndicator); // Place at the beginning
+                }
+
+                infoRow.appendChild(episodeNumber);
+            }
+
+            // Add time display if enabled
+            if (window.AnilistCalendar.userPreferences.showTime) {
+                const timeDisplay = document.createElement('div');
+                timeDisplay.className = 'anime-time';
+
+                if (window.AnilistCalendar.userPreferences.timeFormat === 'countdown') {
+                    timeDisplay.classList.add('countdown-mode');
+                    const now = new Date();
+
+                    // Correggi il problema del timezone per il countdown
+                    // Invece di usare direttamente airingDate, calcoliamo se l'episodio è effettivamente uscito
+                    // basandoci sull'orario originale giapponese
+
+                    // Converti l'orario attuale nel fuso orario giapponese (UTC+9)
+                    const currentTimeInJapan = new Date();
+                    // Calcola la differenza tra il fuso locale e UTC
+                    const localUTCOffset = currentTimeInJapan.getTimezoneOffset() * -1 / 60;
+                    // Calcola la differenza in ore tra il fuso locale e il Giappone (UTC+9)
+                    const offsetFromJapan = localUTCOffset - 9;
+                    // Aggiungi l'offset per ottenere l'ora giapponese
+                    currentTimeInJapan.setHours(currentTimeInJapan.getHours() - offsetFromJapan);
+
+                    // Usa l'airingTime originale (prima dell'aggiustamento timezone)
+                    const originalAiringTime = new Date(anime.airingDate.getTime());
+                    // Rimuovi l'aggiustamento del timezone applicato in precedenza
+                    const userTimezoneOffset = window.AnilistCalendar.settings.getSelectedTimezoneOffset();
+                    const japanOffset = window.AnilistCalendar.JAPAN_TIMEZONE_OFFSET;
+                    const offsetDiff = userTimezoneOffset - japanOffset;
+                    const japaneseAiringTime = new Date(originalAiringTime.getTime() - (offsetDiff * 60 * 60 * 1000));
+
+                    // Controlla se l'episodio è realmente uscito in Giappone
+                    const hasAiredInJapan = japaneseAiringTime < currentTimeInJapan;
+
+                    // Visualizza correttamente "Aired" solo se è effettivamente uscito in Giappone
+                    if (hasAiredInJapan) {
+                        timeDisplay.textContent = "Aired";
+                    } else {
+                        // Calcola countdown corretto
+                        const targetTime = new Date(anime.airingDate);
+                        const diff = targetTime - now;
+
+                        const { days, hours, minutes } = window.AnilistCalendar.utils.calculateTimeComponents(diff);
+                        timeDisplay.textContent = days > 0 ?
+                            `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}` :
+                            `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                    }
+                } else {
+                    timeDisplay.textContent = anime.formattedTime;
+                }
+
+                // Removed day changed indicator as requested by user
+
+                infoRow.appendChild(timeDisplay);
+            }
+
+            infoPanel.appendChild(infoRow);
+            entry.appendChild(infoPanel);
+        }
+    } else {
+        // STANDARD APPROACH: Use the normal info container for standard/compact mode
+        const infoContainer = document.createElement('div');
+        infoContainer.className = 'anime-info';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'anime-title';
+        titleEl.textContent = anime.cleanTitle;
+        titleEl.style.textAlign = window.AnilistCalendar.userPreferences.titleAlignment || 'left';
+        infoContainer.appendChild(titleEl);
+
+        const infoRow = document.createElement('div');
+        infoRow.className = 'anime-info-row';
+
+        if (window.AnilistCalendar.userPreferences.showEpisodeNumbers) {
+            const episodeNumber = document.createElement('div');
+            episodeNumber.className = 'episode-number';
+
+            // Display progress string if available, otherwise use standard format
+            if (anime.episodeProgressString && anime.episodeProgressString.trim().length > 0) {
+                episodeNumber.textContent = 'Ep ' + anime.episodeProgressString;
+            } else {
+                episodeNumber.textContent = 'Ep ' + anime.episodeInfo;
+            }
+
+            // If episodes behind indicator is present, show it BEFORE episode text
+            if (anime.episodesBehind > 0) {
+                const behindIndicator = document.createElement('span');
+                behindIndicator.className = 'behind-indicator';
+                behindIndicator.title = `${anime.episodesBehind} episode(s) behind`;
+                episodeNumber.prepend(behindIndicator); // Place at the beginning
+            }
+
+            infoRow.appendChild(episodeNumber);
+        }
+
+        if (window.AnilistCalendar.userPreferences.showTime) {
+            const timeDisplay = document.createElement('div');
+            timeDisplay.className = 'anime-time';
+
+            if (window.AnilistCalendar.userPreferences.timeFormat === 'countdown') {
+                timeDisplay.classList.add('countdown-mode');
+                const now = new Date();
+
+                // Correggi il problema del timezone per il countdown
+                // Invece di usare direttamente airingDate, calcoliamo se l'episodio è effettivamente uscito
+                // basandoci sull'orario originale giapponese
+
+                // Converti l'orario attuale nel fuso orario giapponese (UTC+9)
+                const currentTimeInJapan = new Date();
+                // Calcola la differenza tra il fuso locale e UTC
+                const localUTCOffset = currentTimeInJapan.getTimezoneOffset() * -1 / 60;
+                // Calcola la differenza in ore tra il fuso locale e il Giappone (UTC+9)
+                const offsetFromJapan = localUTCOffset - 9;
+                // Aggiungi l'offset per ottenere l'ora giapponese
+                currentTimeInJapan.setHours(currentTimeInJapan.getHours() - offsetFromJapan);
+
+                // Usa l'airingTime originale (prima dell'aggiustamento timezone)
+                const originalAiringTime = new Date(anime.airingDate.getTime());
+                // Rimuovi l'aggiustamento del timezone applicato in precedenza
+                const userTimezoneOffset = window.AnilistCalendar.settings.getSelectedTimezoneOffset();
+                const japanOffset = window.AnilistCalendar.JAPAN_TIMEZONE_OFFSET;
+                const offsetDiff = userTimezoneOffset - japanOffset;
+                const japaneseAiringTime = new Date(originalAiringTime.getTime() - (offsetDiff * 60 * 60 * 1000));
+
+                // Controlla se l'episodio è realmente uscito in Giappone
+                const hasAiredInJapan = japaneseAiringTime < currentTimeInJapan;
+
+                // Visualizza correttamente "Aired" solo se è effettivamente uscito in Giappone
+                if (hasAiredInJapan) {
+                    timeDisplay.textContent = "Aired";
+                } else {
+                    // Calcola countdown corretto
+                    const targetTime = new Date(anime.airingDate);
+                    const diff = targetTime - now;
+
+                    const { days, hours, minutes } = window.AnilistCalendar.utils.calculateTimeComponents(diff);
+                    timeDisplay.textContent = days > 0 ?
+                        `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}` :
+                        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                }
+            } else {
+                timeDisplay.textContent = anime.formattedTime;
+            }
+
+            // Removed day changed indicator as requested by user
+
+            infoRow.appendChild(timeDisplay);
+        }
+
+        infoContainer.appendChild(infoRow);
+        entry.appendChild(infoContainer);
     }
 
     container.appendChild(entry);
@@ -882,6 +1014,26 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
         window.AnilistCalendar.state.calendarContainer.classList.add('days-count-7');
     }
 
+    // Apply column justification class
+    window.AnilistCalendar.state.calendarContainer.classList.remove(
+        'column-justify-top', 'column-justify-center'
+    );
+    const columnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
+    window.AnilistCalendar.state.calendarContainer.classList.add(`column-justify-${columnJustify}`);
+
+    // Apply layout mode class
+    window.AnilistCalendar.state.calendarContainer.classList.remove(
+        'standard-mode', 'compact-mode', 'extended-mode', 'gallery-with-slider'
+    );
+    window.AnilistCalendar.state.calendarContainer.classList.add(`${window.AnilistCalendar.userPreferences.layoutMode}-mode`);
+
+    // If using gallery mode with max cards limit, add the slider class
+    if ((window.AnilistCalendar.userPreferences.layoutMode === 'extended' ||
+            window.AnilistCalendar.userPreferences.layoutMode === 'grid') &&
+        window.AnilistCalendar.userPreferences.maxCardsPerDay > 0) {
+        window.AnilistCalendar.state.calendarContainer.classList.add('gallery-with-slider');
+    }
+
     // Optional header
     if (!skipHeader) {
         const headerContainer = document.createElement('div');
@@ -923,6 +1075,7 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
     // Create day columns
     daysToShow.forEach((day, index) => {
         const dayCol = document.createElement('div');
+        dayCol.id = `calendar-day-${day.toLowerCase()}`;
 
         // Add classes to properly style current day
         const classes = ['anilist-calendar-day'];
@@ -937,9 +1090,31 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
 
         dayCol.className = classes.join(' ');
 
-        // Assicura che la colonna del giorno mantenga la struttura corretta
-        dayCol.style.display = 'flex';
-        dayCol.style.flexDirection = 'column';
+        // Apply column justification based on user preference
+        const columnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
+
+        // Crea un elemento di stile per forzare la giustificazione
+        const styleForce = document.createElement('style');
+        styleForce.id = `force-column-justify-${dayCol.id}`;
+        styleForce.innerHTML = `
+            .anilist-calendar-day#${dayCol.id}.${columnJustify === 'center' ? 'force-center' : 'force-top'} {
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: ${columnJustify === 'center' ? 'center' : 'flex-start'} !important;
+            }
+        `;
+        document.head.appendChild(styleForce);
+
+        // Assegna la classe forzata appropriata alla colonna
+        dayCol.classList.add(columnJustify === 'center' ? 'force-center' : 'force-top');
+
+        // Imposta gli stili inline come ultima risorsa
+        dayCol.style.cssText = `
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: ${columnJustify === 'center' ? 'center' : 'flex-start'} !important;
+            align-items: stretch !important;
+        `;
 
         // Create day header
         const dayHeader = document.createElement('div');
@@ -967,17 +1142,21 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
     `;
         dayCol.appendChild(dayHeader);
 
-        // Create anime list for this day
+        // Create anime list for this day with proper justification in gallery mode
         const animeList = document.createElement('div');
         animeList.className = 'day-anime-list';
 
-        // Specializzazione per Gallery Mode - SOLO PER GALLERY MODE
+        // Apply specific styles for gallery mode days
         if (isGalleryMode) {
+            animeList.style.padding = '14px';
             animeList.style.display = 'flex';
             animeList.style.flexWrap = 'wrap';
-            animeList.style.justifyContent = 'flex-start';
+            animeList.style.gap = '14px';
             animeList.style.alignItems = 'flex-start';
-            animeList.style.gap = '10px';
+            animeList.style.alignContent = 'flex-start';
+
+            // Apply justification - center columns horizontally
+            animeList.style.justifyContent = 'center';
         }
 
         if (schedule[day] && schedule[day].length > 0) {
@@ -985,6 +1164,15 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
             schedule[day].forEach(anime => {
                 window.AnilistCalendar.calendar.createAnimeEntry(animeList, anime);
             });
+
+            // Setup slider for gallery mode if needed
+            if (isGalleryMode && window.AnilistCalendar.userPreferences.maxCardsPerDay > 0) {
+                window.AnilistCalendar.calendar.setupGallerySlider(
+                    dayCol,
+                    animeList,
+                    window.AnilistCalendar.userPreferences.maxCardsPerDay
+                );
+            }
         } else {
             // Create container for "No episodes" for proper positioning
             const emptyDay = document.createElement('div');
@@ -1009,6 +1197,11 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
 
     window.AnilistCalendar.state.calendarContainer.appendChild(calendarGrid);
     window.AnilistCalendar.utils.log("Calendar rendered");
+
+    // Force theme application after rendering
+    if (window.AnilistCalendar.applyTheme) {
+        window.AnilistCalendar.applyTheme();
+    }
 };
 
 /**
@@ -1016,8 +1209,9 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
  * @param {string} prevTimeFormat - Previous time format setting
  * @param {string} prevTimezone - Previous timezone setting
  * @param {string} prevTitleAlignment - Previous title alignment setting
+ * @param {string} prevColumnJustify - Previous column justification setting
  */
-window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, prevTimezone, prevTitleAlignment) {
+window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, prevTimezone, prevTitleAlignment, prevColumnJustify) {
     // Update calendar container classes
     if (window.AnilistCalendar.state.calendarContainer) {
         // Update layout mode and title alignment
@@ -1025,11 +1219,40 @@ window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, 
         window.AnilistCalendar.state.calendarContainer.classList.add(`${window.AnilistCalendar.userPreferences.layoutMode}-mode`);
         window.AnilistCalendar.state.calendarContainer.classList.add(`title-${window.AnilistCalendar.userPreferences.titleAlignment}`);
 
+        // Update column justification
+        const columnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
+        window.AnilistCalendar.state.calendarContainer.classList.add(`column-justify-${columnJustify}`);
+
+        // Add gallery slider class if needed
+        if ((window.AnilistCalendar.userPreferences.layoutMode === 'extended' ||
+                window.AnilistCalendar.userPreferences.layoutMode === 'grid') &&
+            window.AnilistCalendar.userPreferences.maxCardsPerDay > 0) {
+            window.AnilistCalendar.state.calendarContainer.classList.add('gallery-with-slider');
+        }
+
         // If title alignment changed, update all titles
         if (prevTitleAlignment !== window.AnilistCalendar.userPreferences.titleAlignment) {
             const titles = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.anime-title');
             titles.forEach(title => {
                 title.style.textAlign = window.AnilistCalendar.userPreferences.titleAlignment;
+            });
+        }
+
+        // If column justification changed, update the day columns
+        if (prevColumnJustify !== columnJustify) {
+            const dayColumns = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.anilist-calendar-day');
+            dayColumns.forEach(column => {
+                // Remove old classes
+                column.classList.remove('force-center', 'force-top');
+                // Add new class
+                column.classList.add(columnJustify === 'center' ? 'force-center' : 'force-top');
+                // Update inline style
+                column.style.cssText = `
+                    display: flex !important;
+                    flex-direction: column !important;
+                    justify-content: ${columnJustify === 'center' ? 'center' : 'flex-start'} !important;
+                    align-items: stretch !important;
+                `;
             });
         }
 
@@ -1054,7 +1277,7 @@ window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, 
 
         // FIX: Only refresh page if absolutely necessary for timezone change
         // This now checks if the timezone change would significantly affect the day calculations
-        if (prevTimezone !== window.AnilistCalendar.userPreferences.timeFormat) {
+        if (prevTimezone !== window.AnilistCalendar.userPreferences.timezone) {
             const oldOffset = getTimezoneOffset(prevTimezone);
             const newOffset = getTimezoneOffset(window.AnilistCalendar.userPreferences.timezone);
 
@@ -1104,6 +1327,15 @@ window.AnilistCalendar.calendar.startCountdownTimer = function() {
         // Get current time for reference
         const now = new Date();
 
+        // Get current time in Japan for aired check
+        const currentTimeInJapan = new Date();
+        // Calcola la differenza tra il fuso locale e UTC
+        const localUTCOffset = currentTimeInJapan.getTimezoneOffset() * -1 / 60;
+        // Calcola la differenza in ore tra il fuso locale e il Giappone (UTC+9)
+        const offsetFromJapan = localUTCOffset - 9;
+        // Aggiungi l'offset per ottenere l'ora giapponese
+        currentTimeInJapan.setHours(currentTimeInJapan.getHours() - offsetFromJapan);
+
         // Update each countdown
         countdownElements.forEach(element => {
             // Find the anime entry this countdown belongs to
@@ -1128,15 +1360,26 @@ window.AnilistCalendar.calendar.startCountdownTimer = function() {
 
             if (!animeData) return;
 
-            // Calculate remaining time
-            const targetTime = new Date(animeData.airingDate);
-            const diff = targetTime - now;
+            // Get the original airing time in Japan
+            const originalAiringTime = new Date(animeData.airingDate.getTime());
+            // Rimuovi l'aggiustamento del timezone applicato in precedenza
+            const userTimezoneOffset = window.AnilistCalendar.settings.getSelectedTimezoneOffset();
+            const japanOffset = window.AnilistCalendar.JAPAN_TIMEZONE_OFFSET;
+            const offsetDiff = userTimezoneOffset - japanOffset;
+            const japaneseAiringTime = new Date(originalAiringTime.getTime() - (offsetDiff * 60 * 60 * 1000));
 
-            if (diff <= 0) {
-                // Episode has aired
+            // Check if the episode has already aired in Japan
+            const hasAiredInJapan = japaneseAiringTime < currentTimeInJapan;
+
+            if (hasAiredInJapan) {
+                // Episode has aired in Japan
                 element.textContent = "Aired";
                 return;
             }
+
+            // Calculate remaining time
+            const targetTime = new Date(animeData.airingDate);
+            const diff = targetTime - now;
 
             // Calculate days, hours, minutes, seconds
             const {days, hours, minutes} = window.AnilistCalendar.utils.calculateTimeComponents(diff);
@@ -1158,4 +1401,108 @@ window.AnilistCalendar.calendar.calculateTimeComponents = function(diff) {
         hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
         minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
     };
+};
+
+/**
+ * Sets up slider for gallery mode when card count exceeds limit
+ * @param {HTMLElement} dayContainer - The day column container
+ * @param {HTMLElement} animeList - The container with anime entries
+ * @param {number} maxCards - Maximum number of cards to show
+ */
+window.AnilistCalendar.calendar.setupGallerySlider = function(dayContainer, animeList, maxCards) {
+    // Se non è specificato un limite o è 0, non fare nulla
+    if (!maxCards || maxCards <= 0 || !animeList || animeList.children.length <= maxCards) return;
+
+    // Numero di card totali
+    const totalCards = animeList.children.length;
+
+    // Numero di pagine
+    const totalPages = Math.ceil(totalCards / maxCards);
+
+    // Crea container e track per lo slider
+    const sliderContainer = document.createElement('div');
+    sliderContainer.className = 'gallery-slider-container';
+
+    const sliderTrack = document.createElement('div');
+    sliderTrack.className = 'gallery-slider-track';
+
+    // Sposta tutte le card nel track dello slider
+    while (animeList.firstChild) {
+        sliderTrack.appendChild(animeList.firstChild);
+    }
+
+    // Aggiungi il track al container
+    sliderContainer.appendChild(sliderTrack);
+
+    // Aggiungi il container all'anime list
+    animeList.appendChild(sliderContainer);
+
+    // Aggiungi pulsanti di navigazione
+    if (totalPages > 1) {
+        // Pulsante precedente
+        const prevButton = document.createElement('button');
+        prevButton.className = 'gallery-nav-button gallery-nav-prev';
+        prevButton.innerHTML = '<i class="fa fa-chevron-left"></i>';
+        sliderContainer.appendChild(prevButton);
+
+        // Pulsante successivo
+        const nextButton = document.createElement('button');
+        nextButton.className = 'gallery-nav-button gallery-nav-next';
+        nextButton.innerHTML = '<i class="fa fa-chevron-right"></i>';
+        sliderContainer.appendChild(nextButton);
+
+        // Indicatore di scorrimento
+        const scrollIndicator = document.createElement('div');
+        scrollIndicator.className = 'gallery-scroll-indicator';
+
+        // Crea pallini indicatori
+        for (let i = 0; i < totalPages; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'gallery-scroll-dot';
+            if (i === 0) dot.classList.add('active');
+            scrollIndicator.appendChild(dot);
+        }
+
+        sliderContainer.appendChild(scrollIndicator);
+
+        // Stato corrente
+        let currentPage = 0;
+
+        // Funzione per aggiornare la visualizzazione
+        const updateView = () => {
+            // Calcola l'offset di traslazione
+            const translateX = -currentPage * 100;
+            sliderTrack.style.transform = `translateX(${translateX}%)`;
+
+            // Aggiorna l'indicatore
+            const dots = scrollIndicator.querySelectorAll('.gallery-scroll-dot');
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === currentPage);
+            });
+
+            // Aggiorna visibilità pulsanti
+            prevButton.style.display = currentPage === 0 ? 'none' : 'flex';
+            nextButton.style.display = currentPage === totalPages - 1 ? 'none' : 'flex';
+        };
+
+        // Handler per i pulsanti
+        prevButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentPage > 0) {
+                currentPage--;
+                updateView();
+            }
+        });
+
+        nextButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+                updateView();
+            }
+        });
+
+        // Inizializza la visualizzazione
+        updateView();
+    }
 };
