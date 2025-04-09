@@ -804,8 +804,13 @@ function createFilteredSelect(id, options, selectedValue) {
  * @return {HTMLElement} The created number input
  */
 function createNumberInput(id, value, min, max, step) {
+    // Usa lo stesso wrapper degli altri controlli per mantenere uniformità
     const wrapper = document.createElement('div');
-    wrapper.className = 'number-input-wrapper';
+    wrapper.className = 'select-wrapper';
+
+    // Stile inline per garantire la larghezza corretta anche se il CSS non è caricato completamente
+    wrapper.style.width = '160px';
+    wrapper.style.display = 'inline-block';
 
     const input = document.createElement('input');
     input.type = 'number';
@@ -815,6 +820,29 @@ function createNumberInput(id, value, min, max, step) {
     input.max = max;
     input.step = step;
     input.value = value;
+
+    // Stili inline per garantire coerenza con gli elementi select
+    input.style.width = '100%';
+    input.style.boxSizing = 'border-box';
+    input.style.padding = '8px 10px';
+    input.style.borderRadius = '4px';
+    input.style.textAlign = 'center';
+
+    // Applica stili specifici per tema chiaro/scuro
+    const isLightTheme = document.body.classList.contains('site-theme-light') ||
+        document.documentElement.classList.contains('site-theme-light') ||
+        document.body.getAttribute('data-theme') === 'light' ||
+        document.documentElement.getAttribute('data-theme') === 'light';
+
+    if (isLightTheme) {
+        input.style.backgroundColor = '#ffffff';
+        input.style.color = '#2e3c4f';
+        input.style.border = '1px solid rgba(0, 0, 0, 0.1)';
+    } else {
+        input.style.backgroundColor = '#151f2e';
+        input.style.color = '#ffffff';
+        input.style.border = '1px solid rgba(100, 100, 100, 0.4)';
+    }
 
     wrapper.appendChild(input);
     return wrapper;

@@ -487,210 +487,15 @@
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 10px;
-    justify-content: flex-start;
-    padding: 10px;
+    gap: 14px;
+    justify-content: center !important; /* Centered columns! */
+    padding: 14px;
 }
 
 .anilist-weekly-calendar.extended-mode .anime-entry {
     flex-direction: column;
-    width: 120px;
-    height: 180px;
-    padding: 0;
-    border-radius: 4px;
-    overflow: hidden;
-    background: transparent !important;
-    margin: 0;
-    position: relative;
-}
-
-.anilist-weekly-calendar.extended-mode .anime-image {
-    width: 100% !important;
-    height: 100% !important;
-    margin: 0;
-    border-radius: 4px;
-    display: block !important;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-}
-
-/* Plus button styles - Fixed so only the icon scales */
-.plus-button-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 10;
-    pointer-events: none; /* Allow clicks to pass through to underlying elements */
-}
-
-.plus-button {
-    position: absolute;
-    top: 50%; /* Center vertically */
-    left: 50%; /* Center horizontally */
-    transform: translate(-50%, -50%) !important; /* Center precisely */
-    width: 26px;
-    height: 26px;
-    background-color: transparent !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    cursor: pointer;
-    border-radius: 50%; /* Make it circular */
-    z-index: 20;
-    pointer-events: auto; /* Ensure clicks are captured */
-}
-
-/* Positioning for plus button in gallery mode */
-.anilist-weekly-calendar.extended-mode .plus-button,
-.anilist-weekly-calendar.grid-mode .plus-button {
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) !important;
-}
-
-.plus-icon-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    transition: transform 0.15s ease;
-    background-color: transparent; /* Remove background */
-    transform: none;
-}
-
-/* Add a circular background directly to the icon */
-.plus-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background-color: rgba(0, 0, 0, 0.7); /* Darker background */
-    transition: all 0.15s ease;
-}
-
-/* Animation style for clicking plus icon - FIX: only scale the icon, not the bg */
-.plus-icon:hover {
-    background-color: rgba(61, 180, 242, 0.6); /* Blue background on hover */
-}
-
-.plus-icon i {
-    transition: transform 0.15s ease, color 0.2s ease;
-}
-
-.plus-icon:active i {
-    transform: scale(0.85);
-}
-
-.plus-icon i:hover {
-    color: white !important; /* White icon on hover */
-}
-
-.plus-button:hover .plus-icon {
-    background-color: rgba(61, 180, 242, 0.6); /* Ensure hover works through parent */
-}
-
-.plus-button:hover i {
-    color: white !important; /* Ensure hover works through parent */
-}
-
-.plus-button i {
-    font-size: 14px;
-    color: white;
-    pointer-events: none; /* Ensure icon doesn't interfere with clicks */
-}
-
-/* Only change color when hovering the plus button itself */
-.plus-button:hover i {
-    color: white !important;
-}
-
-/* Full overlay on image hover - DEPRECATED: Using new overlay system instead */
-.anime-image::before {
-    display: none !important; /* Disable this method completely */
-    content: none !important;
-}
-
-/* Only show plus button when hovering the image */
-.anime-image:hover .plus-button {
-    opacity: 1;
-}
-
-/* Completely rebuild the hover effect system */
-.anime-image {
-    position: relative;
-    overflow: hidden;
-}
-
-/* Create a separate overlay element */
-.anime-image-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
-    opacity: 0;
-    z-index: 3;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-}
-
-/* Show overlay on hover */
-.anime-image:hover .anime-image-overlay {
-    opacity: 0.7;
-}
-
-.anime-entry:hover .plus-button {
-    opacity: 1;
-}
-
-.anime-image.loading {
-    background: linear-gradient(90deg, rgba(21, 34, 50, 0.5) 25%, rgba(26, 44, 61, 0.5) 50%, rgba(21, 34, 50, 0.5) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-}
-
-.anime-image.error::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(26, 26, 46, 0.5);
-    z-index: 1;
-}
-
-/*------------------------------------------------------
- * GRID MODE / GALLERY MODE - SMOOTH ANIMATIONS
- *------------------------------------------------------*/
-/* Styles specific to gallery display */
-.anilist-weekly-calendar.grid-mode .day-anime-list,
-.anilist-weekly-calendar.extended-mode .day-anime-list {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 14px;
-    justify-content: center !important; /* Centered columns! */
-    padding: 14px;
-    width: 100%;
-}
-
-/* Standard AniList-like card dimensions - UPDATED FOR SIZE */
-.anilist-weekly-calendar.grid-mode .anime-entry,
-.anilist-weekly-calendar.extended-mode .anime-entry {
     width: 105px !important; /* Ridotta da 115px */
-    height: 153px !important; /* Ridotta da 163px */
+    height: 160px !important; /* Dimensione standard per tutte le card */
     padding: 0;
     border-radius: 4px;
     overflow: hidden;
@@ -701,14 +506,12 @@
     transition: transform 0.2s ease, box-shadow 0.2s ease !important;
 }
 
-.anilist-weekly-calendar.grid-mode .anime-entry:hover,
 .anilist-weekly-calendar.extended-mode .anime-entry:hover {
     transform: translateY(-2px) !important; /* Ridotto da -3px per un effetto più sottile */
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25) !important; /* Shadow ridotto */
 }
 
 /* Full-cover image */
-.anilist-weekly-calendar.grid-mode .anime-image,
 .anilist-weekly-calendar.extended-mode .anime-image {
     width: 100% !important;
     height: 100% !important;
@@ -723,7 +526,6 @@
 }
 
 /* Black overlay for hover effect */
-.anilist-weekly-calendar.grid-mode .anime-image-overlay,
 .anilist-weekly-calendar.extended-mode .anime-image-overlay {
     position: absolute;
     top: 0;
@@ -736,13 +538,11 @@
     transition: opacity 0.2s ease;
 }
 
-.anilist-weekly-calendar.grid-mode .anime-entry:hover .anime-image-overlay,
 .anilist-weekly-calendar.extended-mode .anime-entry:hover .anime-image-overlay {
     opacity: 1;
 }
 
 /* Top panel for title - UPDATED ANIMATION */
-.anilist-weekly-calendar.grid-mode .title-panel,
 .anilist-weekly-calendar.extended-mode .title-panel {
     position: absolute;
     top: 0;
@@ -756,7 +556,6 @@
 }
 
 /* Bottom panel for info - UPDATED ANIMATION */
-.anilist-weekly-calendar.grid-mode .info-panel,
 .anilist-weekly-calendar.extended-mode .info-panel {
     position: absolute;
     bottom: 0;
@@ -770,15 +569,12 @@
 }
 
 /* Animate panels on hover with smooth easing */
-.anilist-weekly-calendar.grid-mode .anime-entry:hover .title-panel,
 .anilist-weekly-calendar.extended-mode .anime-entry:hover .title-panel,
-.anilist-weekly-calendar.grid-mode .anime-entry:hover .info-panel,
 .anilist-weekly-calendar.extended-mode .anime-entry:hover .info-panel {
     transform: translateY(0);
 }
 
 /* Text styling for title panel */
-.anilist-weekly-calendar.grid-mode .title-panel .anime-title,
 .anilist-weekly-calendar.extended-mode .title-panel .anime-title {
     font-size: 12px;
     font-weight: 600;
@@ -795,7 +591,6 @@
 }
 
 /* Info row layout for bottom panel */
-.anilist-weekly-calendar.grid-mode .info-panel .anime-info-row,
 .anilist-weekly-calendar.extended-mode .info-panel .anime-info-row {
     display: flex;
     justify-content: space-between;
@@ -804,7 +599,6 @@
 }
 
 /* Episode text styling */
-.anilist-weekly-calendar.grid-mode .info-panel .episode-number,
 .anilist-weekly-calendar.extended-mode .info-panel .episode-number {
     font-size: 10px;
     color: rgba(255, 255, 255, 0.9);
@@ -816,7 +610,6 @@
 }
 
 /* Time text styling */
-.anilist-weekly-calendar.grid-mode .info-panel .anime-time,
 .anilist-weekly-calendar.extended-mode .info-panel .anime-time {
     font-size: 10px;
     color: rgba(255, 255, 255, 0.9);
@@ -828,7 +621,6 @@
 }
 
 /* Plus button positioning */
-.anilist-weekly-calendar.grid-mode .plus-button,
 .anilist-weekly-calendar.extended-mode .plus-button {
     position: absolute;
     top: 50%;
@@ -839,13 +631,11 @@
     z-index: 10;
 }
 
-.anilist-weekly-calendar.grid-mode .anime-entry:hover .plus-button,
 .anilist-weekly-calendar.extended-mode .anime-entry:hover .plus-button {
     opacity: 1;
 }
 
 /* Fix for images */
-.anilist-weekly-calendar.grid-mode .anime-image img,
 .anilist-weekly-calendar.extended-mode .anime-image img {
     width: 100%;
     height: 100%;
@@ -890,7 +680,6 @@
 }
 
 /* Empty day styling */
-.anilist-weekly-calendar.grid-mode .empty-day,
 .anilist-weekly-calendar.extended-mode .empty-day {
     width: auto;
     height: auto;
@@ -898,124 +687,286 @@
     margin: 0;
 }
 
-/* Stili per input numerici nelle impostazioni */
-.number-input-wrapper {
+/* Plus button styling - Fixed so only the icon scales */
+.plus-button-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none; /* Allow clicks to pass through to underlying elements */
+}
+
+.plus-button {
+    position: absolute;
+    top: 50%; /* Center vertically */
+    left: 50%; /* Center horizontally */
+    transform: translate(-50%, -50%) !important; /* Center precisely */
+    width: 26px;
+    height: 26px;
+    background-color: transparent !important;
     display: flex;
     align-items: center;
     justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    cursor: pointer;
+    border-radius: 50%; /* Make it circular */
+    z-index: 20;
+    pointer-events: auto; /* Ensure clicks are captured */
 }
 
-.settings-number-input {
-    width: 70px;
-    padding: 8px;
-    border-radius: 4px;
-    border: 1px solid rgba(100, 100, 100, 0.4);
-    background-color: #151f2e;
-    color: #ffffff;
-    text-align: center;
+.plus-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.7); /* Darker background */
+    transition: all 0.15s ease;
 }
 
-.site-theme-light .settings-number-input,
-[data-theme='light'] .settings-number-input {
-    background-color: #ffffff;
-    color: #2e3c4f;
-    border-color: rgba(0, 0, 0, 0.1);
+/* Animation style for clicking plus icon - FIX: only scale the icon, not the bg */
+.plus-icon:hover {
+    background-color: rgba(61, 180, 242, 0.6); /* Blue background on hover */
 }
 
-/* Stili per gallery mode con slider */
+.plus-icon i {
+    transition: transform 0.15s ease, color 0.2s ease;
+}
+
+.plus-icon:active i {
+    transform: scale(0.85);
+}
+
+.plus-icon i:hover {
+    color: white !important; /* White icon on hover */
+}
+
+.plus-button:hover .plus-icon {
+    background-color: rgba(61, 180, 242, 0.6); /* Ensure hover works through parent */
+}
+
+.plus-button:hover i {
+    color: white !important; /* Ensure hover works through parent */
+}
+
+.plus-button i {
+    font-size: 14px;
+    color: white;
+    pointer-events: none; /* Ensure icon doesn't interfere with clicks */
+}
+
+/* Only show plus button when hovering the image */
+.anime-image:hover .plus-button {
+    opacity: 1;
+}
+
+/* Create a separate overlay element */
+.anime-image-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    opacity: 0;
+    z-index: 3;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+/* Show overlay on hover */
+.anime-image:hover .anime-image-overlay {
+    opacity: 0.7;
+}
+
+.anime-entry:hover .plus-button {
+    opacity: 1;
+}
+
+.anime-image.loading {
+    background: linear-gradient(90deg, rgba(21, 34, 50, 0.5) 25%, rgba(26, 44, 61, 0.5) 50%, rgba(21, 34, 50, 0.5) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+.anime-image.error::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(26, 26, 46, 0.5);
+    z-index: 1;
+}
+
+/*------------------------------------------------------
+ * VERTICAL GALLERY MODE SLIDER
+ *------------------------------------------------------*/
+/* Stili per gallery mode con slider verticale */
 .anilist-weekly-calendar.gallery-with-slider .day-anime-list {
     position: relative;
     overflow: hidden;
+    padding: 14px !important;
 }
 
 .gallery-slider-container {
-    width: 100%;
-    overflow: hidden;
     position: relative;
     min-height: 160px;
+    overflow: hidden;
+    margin: 0 auto;
+    width: calc(100% - 30px) !important; /* Lascia spazio per gli indicatori a destra */
+    /* Maschera per nascondere le ombre che potrebbero fuoriuscire */
+    mask-image: linear-gradient(to bottom, transparent 0px, black 1px, black calc(100% - 1px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 1px, black calc(100% - 1px), transparent 100%);
 }
 
-.gallery-slider-track {
+.vertical-slider {
+    height: auto;
+    overflow: hidden;
+    padding: 1px 0; /* Piccolo padding per evitare l'ombra */
+}
+
+.vertical-track {
+    position: absolute;
+    top: 0;
+    left: 0;
     display: flex;
-    flex-wrap: nowrap;
-    transition: transform 0.3s ease;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
     width: 100%;
+    transition: transform 0.3s ease;
 }
 
+/* Contenitore per le card uniformi */
+.gallery-slider-container .anime-entry {
+    margin: 0;
+}
+
+/* Navigazione più visibile */
 .gallery-nav-button {
     position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 10;
-    width: 30px;
-    height: 30px;
+    z-index: 100; /* Aumentato per assicurare visibilità */
+    width: 34px; /* Più grande */
+    height: 34px; /* Più grande */
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.65) !important; /* Più scuro e visibile */
     color: white;
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0.7;
-    transition: opacity 0.2s ease;
+    opacity: 0.9; /* Più visibile di default */
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); /* Aggiunto ombra */
 }
 
 .gallery-nav-button:hover {
     opacity: 1;
-    background: rgba(61, 180, 242, 0.6);
+    background: rgba(61, 180, 242, 0.8) !important; /* Blu più visibile in hover */
 }
 
-.gallery-nav-prev {
-    left: 5px;
+.gallery-nav-button i {
+    font-size: 16px; /* Icona più grande */
+    color: white !important;
 }
 
-.gallery-nav-next {
-    right: 5px;
+/* Posizionamento migliorato per i navigatori verticali */
+.vertical-nav.gallery-nav-prev {
+    top: 10px;
+    right: 6px !important;
+    left: auto !important;
+    transform: none !important;
 }
 
+.vertical-nav.gallery-nav-next {
+    bottom: 10px;
+    right: 6px !important;
+    left: auto !important;
+    transform: none !important;
+}
+
+/* Indicatore migliorato */
 .gallery-scroll-indicator {
     position: absolute;
-    bottom: 5px;
-    left: 0;
-    right: 0;
     display: flex;
     justify-content: center;
     gap: 5px;
     padding: 5px 0;
+    z-index: 90;
+}
+
+/* Indicatore verticale spostato a destra e distanziato */
+.vertical-indicator {
+    flex-direction: column;
+    right: 6px !important;
+    top: 50%;
+    bottom: unset;
+    left: unset;
+    transform: translateY(-50%);
+    padding: 0 5px;
+    gap: 8px; /* Spaziatura aumentata tra i pallini */
 }
 
 .gallery-scroll-dot {
-    width: 6px;
-    height: 6px;
+    width: 8px; /* Dimensioni aumentate */
+    height: 8px; /* Dimensioni aumentate */
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
-    transition: background 0.2s ease;
+    background: rgba(255, 255, 255, 0.4);
+    transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .gallery-scroll-dot.active {
-    background: rgba(61, 180, 242, 0.8);
+    background: rgba(61, 180, 242, 0.9); /* Più brillante quando attivo */
+    transform: scale(1.2); /* Leggermente più grande quando attivo */
+    box-shadow: 0 0 4px rgba(61, 180, 242, 0.5);
 }
 
-/* Site theme light slider override */
+/* Stile light theme per gli elementi di navigazione */
 .site-theme-light .gallery-nav-button,
 [data-theme='light'] .gallery-nav-button {
-    background: rgba(200, 200, 200, 0.5);
+    background: rgba(200, 200, 200, 0.75) !important;
     color: #333;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .site-theme-light .gallery-nav-button:hover,
 [data-theme='light'] .gallery-nav-button:hover {
-    background: rgba(61, 180, 242, 0.6);
+    background: rgba(61, 180, 242, 0.7) !important;
     color: white;
+}
+
+.site-theme-light .gallery-nav-button i,
+[data-theme='light'] .gallery-nav-button i {
+    color: #333 !important;
+}
+
+.site-theme-light .gallery-nav-button:hover i,
+[data-theme='light'] .gallery-nav-button:hover i {
+    color: white !important;
 }
 
 .site-theme-light .gallery-scroll-dot,
 [data-theme='light'] .gallery-scroll-dot {
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.25);
 }
 
 .site-theme-light .gallery-scroll-dot.active,
 [data-theme='light'] .gallery-scroll-dot.active {
-    background: rgba(53, 119, 177, 0.8);
+    background: rgba(53, 119, 177, 0.9);
+    box-shadow: 0 0 4px rgba(53, 119, 177, 0.4);
+}
+
+/* Assicura che tutte le card in modalità gallery abbiano dimensioni e margini uniformi */
+.anilist-weekly-calendar.extended-mode .anime-entry {
+    margin: 0 0 14px 0 !important;
+    height: 160px !important;
 }
