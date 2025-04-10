@@ -1,10 +1,6 @@
-/*
- * Anilist Weekly Schedule Extension - Calendar Styles
- *
- * This file contains styles for the calendar layout, days, anime entries
- * and responsive design adjustments.
- */
-
+/* =====================================================================
+   Anilist Weekly Schedule Extension - Calendar Styles
+   ===================================================================== */
 /*------------------------------------------------------
  * CALENDAR CONTAINER
  *------------------------------------------------------*/
@@ -375,7 +371,7 @@
 }
 
 /*------------------------------------------------------
- * FULL WIDTH IMAGES MODE (OPTIONAL STYLE)
+ * FULL WIDTH IMAGES MODE
  *------------------------------------------------------*/
 /* Applied only when .full-width-images class is present */
 .anilist-weekly-calendar.full-width-images .anime-entry {
@@ -425,7 +421,7 @@
     top: 0;
     left: 0; /* Start from left edge instead of 50px */
     z-index: 2;
-    padding: 6px 10px !important;
+    padding: 2px 10px !important; /* Further reduced top padding */
     width: 100% !important; /* Full width */
     max-width: 100% !important; /* Full width */
     background: transparent !important;
@@ -443,35 +439,57 @@
     transition: opacity 0.2s ease;
 }
 
-/* Titolo più chiaro senza pannello di sfondo */
+/* Titolo più chiaro senza pannello di sfondo - Ridotto font size e aumentato line-clamp */
 .anilist-weekly-calendar.full-width-images .anime-title {
     color: #FFFFFF !important;
     font-weight: 600;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
-    font-size: 14px; /* Leggermente più grande */
-    padding: 3px 0 !important; /* Padding solo verticale, non laterale */
-    display: block; /* Block per occupare tutta la larghezza */
+    font-size: 13px; /* Ridotto da 14px */
+    padding: 1px 0 !important; /* Ridotto padding verticale */
+    display: -webkit-box !important; /* Usa box per supportare line-clamp */
+    -webkit-line-clamp: 3 !important; /* Aumentato da 2 a 3 per dare più spazio */
+    -webkit-box-orient: vertical !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 4.5em !important; /* Aumentato per 3 linee */
     max-width: 100%;
-    margin-bottom: 4px !important;
+    margin-top: 2px !important; /* Spostato più in alto */
+    margin-bottom: 2px !important; /* Ridotto spazio dopo il titolo */
+    line-height: 1.4 !important;
 }
 
 /* Rispetta l'allineamento scelto dall'utente */
-.title-left.anilist-weekly-calendar.full-width-images .anime-title,
+.anilist-weekly-calendar.full-width-images.title-left .anime-title,
+.anilist-weekly-calendar.full-width-images .anime-title.text-left,
 .title-left .anilist-weekly-calendar.full-width-images .anime-title {
     text-align: left !important;
 }
 
-.title-center.anilist-weekly-calendar.full-width-images .anime-title,
+.anilist-weekly-calendar.full-width-images.title-center .anime-title,
+.anilist-weekly-calendar.full-width-images .anime-title.text-center,
 .title-center .anilist-weekly-calendar.full-width-images .anime-title {
     text-align: center !important;
 }
 
+/* Assicuriamoci che l'allineamento per full-width-images abbia priorità */
+.anilist-weekly-calendar.full-width-images .text-left {
+    text-align: left !important;
+}
+
+.anilist-weekly-calendar.full-width-images .text-center {
+    text-align: center !important;
+}
+
+/* Sposta la riga info più in basso */
 .anilist-weekly-calendar.full-width-images .anime-info-row {
-    margin-top: auto;
-    padding: 3px 5px !important;
+    margin-top: auto !important;
+    margin-bottom: 2px !important; /* Ridotto per posizionare più in basso */
+    padding: 2px 5px !important; /* Ridotto padding verticale */
     display: inline-flex;
     width: auto !important;
     align-items: center;
+    background-color: transparent; /* Rimosso sfondo */
+    border-radius: 0;
 }
 
 .anilist-weekly-calendar.full-width-images .episode-number,
@@ -480,57 +498,61 @@
     text-shadow: 0 1px 2px rgba(0, 0, 0, 1);
     background: transparent;
     font-weight: 600;
+    font-size: 11px; /* Ridotto leggermente */
 }
 
-/* Plus button in full-width mode needs higher z-index */
-.anilist-weekly-calendar.full-width-images .plus-button-container {
-    z-index: 20; /* Very high z-index to ensure it's always on top */
-    pointer-events: auto; /* Ensure button clicks are captured */
+/*------------------------------------------------------
+ * TITLE ALIGNMENT FIXES - COMPLETE SOLUTION
+ *------------------------------------------------------*/
+/* Base rules */
+body .anime-title.text-left {
+    text-align: left !important;
 }
 
-.anilist-weekly-calendar.full-width-images .plus-button {
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    z-index: 25; /* Even higher z-index */
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+body .anime-title.text-center {
+    text-align: center !important;
 }
 
-.anilist-weekly-calendar.full-width-images .anime-entry:hover .plus-button {
-    opacity: 1;
+/* Rules for standard mode */
+body .anilist-weekly-calendar.standard-mode .anime-title.text-left,
+body .anilist-weekly-calendar.standard-mode.title-left .anime-title {
+    text-align: left !important;
+    padding-left: 6px !important;
 }
 
-/* Ensure plus icon is more visible */
-.anilist-weekly-calendar.full-width-images .plus-icon {
-    background-color: rgba(0, 0, 0, 0.7); /* Darker background */
-    width: 30px; /* Slightly larger */
-    height: 30px; /* Slightly larger */
+body .anilist-weekly-calendar.standard-mode .anime-title.text-center,
+body .anilist-weekly-calendar.standard-mode.title-center .anime-title {
+    text-align: center !important;
+    padding: 0 6px !important;
 }
 
-.anilist-weekly-calendar.full-width-images .plus-icon:hover {
-    background-color: rgba(61, 180, 242, 0.9); /* Higher opacity for blue hover state */
-    transform: scale(1.1); /* Slightly bigger on hover */
+/* Rules for compact mode - override any other rules */
+body .anilist-weekly-calendar.compact-mode .anime-title.text-left,
+body .anilist-weekly-calendar.compact-mode.title-left .anime-title {
+    text-align: left !important;
+    padding-left: 2px !important;
 }
 
-/* Subtle zoom effect on hover */
-.anilist-weekly-calendar.full-width-images .anime-entry:hover .anime-image img {
-    transform: scale(1.03);
-    transition: transform 0.3s ease;
+body .anilist-weekly-calendar.compact-mode .anime-title.text-center,
+body .anilist-weekly-calendar.compact-mode.title-center .anime-title {
+    text-align: center !important;
+    padding: 0 2px !important;
 }
 
-.anilist-weekly-calendar.full-width-images .anime-image img {
-    transition: transform 0.3s ease;
+/* Override per il padding specifico della compact mode */
+body .anilist-weekly-calendar.compact-mode .anime-title {
+    padding-left: inherit; /* Rimuove il padding-left fisso */
 }
 
-/* Light theme adjustments */
-.site-theme-light.anilist-weekly-calendar.full-width-images .anime-entry::before,
-[data-theme='light'].anilist-weekly-calendar.full-width-images .anime-entry::before,
-.site-theme-light .anilist-weekly-calendar.full-width-images .anime-entry::before,
-[data-theme='light'] .anilist-weekly-calendar.full-width-images .anime-entry::before {
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.25) 100%);
-    /* Same opacity as dark theme */
+/* EXTRA: regole ancora più specifiche come ultima risorsa */
+html body .anilist-weekly-calendar.standard-mode[class*="title-left"] .anime-title,
+html body .anilist-weekly-calendar.compact-mode[class*="title-left"] .anime-title {
+    text-align: left !important;
+}
+
+html body .anilist-weekly-calendar.standard-mode[class*="title-center"] .anime-title,
+html body .anilist-weekly-calendar.compact-mode[class*="title-center"] .anime-title {
+    text-align: center !important;
 }
 
 /*------------------------------------------------------
