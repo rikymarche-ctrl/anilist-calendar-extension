@@ -1,11 +1,12 @@
-/*
- * Anilist Weekly Schedule Extension - Common Styles
- *
- * This file contains common styles used across the extension,
- * including theme variables, animations, and utility styles.
- */
+/* =====================================================================
+   Anilist Weekly Schedule Extension - Common Styles
+   ===================================================================== */
 
-/* Theme variables */
+/* -----------------------------------------------------------
+   1. THEME VARIABLES
+   ----------------------------------------------------------- */
+
+/* Default (Dark) Theme */
 .anilist-weekly-calendar {
     --cal-text: #e5e7eb;
     --cal-text-light: #9ca3af;
@@ -18,7 +19,7 @@
     --cal-anime-hover: rgba(40, 55, 70, 0.8);
 }
 
-/* Light theme overrides - Match Anilist's light theme colors */
+/* Light Theme Overrides */
 .site-theme-light .anilist-weekly-calendar,
 [data-theme='light'] .anilist-weekly-calendar {
     --cal-text: #1f2937;
@@ -32,7 +33,7 @@
     --cal-anime-hover: rgba(230, 230, 240, 0.9);
 }
 
-/* High contrast theme overrides */
+/* High Contrast Theme */
 .high-contrast .anilist-weekly-calendar {
     --cal-text: #ffffff;
     --cal-text-light: #dddddd;
@@ -45,7 +46,10 @@
     --cal-anime-hover: rgba(40, 40, 40, 0.9);
 }
 
-/* Apply theme variables */
+/* -----------------------------------------------------------
+   2. GLOBAL STYLES
+   ----------------------------------------------------------- */
+
 .anilist-weekly-calendar,
 .anilist-calendar-grid,
 .anilist-calendar-day,
@@ -55,18 +59,16 @@
     color: var(--cal-text) !important;
 }
 
-.day-name, .day-number {
+.day-name,
+.day-number,
+.separator {
     color: var(--cal-text) !important;
 }
 
-.separator {
-    color: var(--cal-text-light) !important;
-}
-
-/* Current day styling */
+/* Current day highlight */
 .anilist-calendar-day.current-day .day-header {
     border-bottom: 2px solid var(--cal-blue);
-    background-color: rgba(61, 180, 242, 0.05); /* Subtle highlight */
+    background-color: rgba(61, 180, 242, 0.05);
 }
 
 .anilist-calendar-day.current-day .day-number,
@@ -76,33 +78,63 @@
     font-weight: 600;
 }
 
-/* Today column styling for when 'today' is selected as start day */
+/* Today column header */
 .anilist-calendar-day.today-column .day-header {
     background-color: rgba(61, 180, 242, 0.05);
     border-bottom: 2px solid var(--cal-blue);
 }
 
-/*------------------------------------------------------
- * ANIMATIONS
- *------------------------------------------------------*/
-@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-@keyframes fadeInButton { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-@keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
-@keyframes click-feedback { 0% { transform: scale(1); } 50% { transform: scale(0.98); box-shadow: 0 0 8px rgba(61, 180, 242, 0.35); } 100% { transform: scale(1); } }
-@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+/* -----------------------------------------------------------
+   3. ANIMATIONS
+   ----------------------------------------------------------- */
 
-/* Added push-up animation for entries */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeInButton {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+@keyframes click-feedback {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.98); box-shadow: 0 0 8px rgba(61, 180, 242, 0.35); }
+    100% { transform: scale(1); }
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
 @keyframes pushUp {
     0% { transform: translateY(0); }
     50% { transform: translateY(-5px); }
     100% { transform: translateY(0); }
 }
 
-/*------------------------------------------------------
- * HEADER & TIMEZONE DISPLAY
- *------------------------------------------------------*/
+/* -----------------------------------------------------------
+   4. HEADER & TIMEZONE DISPLAY
+   ----------------------------------------------------------- */
+
 .airing-replaced-header {
     display: inline-block;
     margin: 0;
@@ -131,7 +163,10 @@
     font-size: 0.9em;
 }
 
-/* Settings buttons - FIX FOR BLUE COLOR ON HOVER */
+/* -----------------------------------------------------------
+   5. SETTINGS BUTTONS
+   ----------------------------------------------------------- */
+
 .calendar-settings-btn, .header-settings-btn {
     background: transparent;
     border: none;
@@ -142,7 +177,7 @@
     cursor: pointer;
     color: var(--cal-text-light);
     transition: opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1);
-    opacity: 0.7; /* Higher base opacity */
+    opacity: 0.7;
 }
 
 .calendar-settings-btn {
@@ -159,13 +194,11 @@
     z-index: 10;
 }
 
-/* CRITICAL FIX: Make icon blue on hover with !important */
 .header-settings-btn:hover i,
 .calendar-settings-btn:hover i {
     color: #3db4f2 !important;
 }
 
-/* Ensure visibility on hover */
 .header-settings-btn:hover,
 .calendar-settings-btn:hover,
 .section-header:hover .header-settings-btn,
@@ -173,52 +206,4 @@
 .anilist-weekly-calendar:hover .calendar-settings-btn,
 .anilist-weekly-calendar:hover .header-settings-btn {
     opacity: 1;
-}
-
-/* Base background fix */
-.anilist-weekly-calendar,
-.anilist-calendar-grid,
-.anilist-calendar-day,
-.day-header,
-.day-anime-list {
-    background-color: var(--cal-background) !important;
-    color: var(--cal-text) !important;
-}
-
-/* Light theme background */
-.site-theme-light .anilist-weekly-calendar,
-.site-theme-light .anilist-calendar-grid,
-.site-theme-light .anilist-calendar-day,
-.site-theme-light .day-header,
-.site-theme-light .day-anime-list,
-[data-theme='light'] .anilist-weekly-calendar,
-[data-theme='light'] .anilist-calendar-grid,
-[data-theme='light'] .anilist-calendar-day,
-[data-theme='light'] .day-header,
-[data-theme='light'] .day-anime-list {
-    background-color: var(--cal-background) !important;
-}
-
-/* Forzare sfondo e colori - Ottimizzato */
-html body .anilist-weekly-calendar,
-html body .anilist-calendar-grid,
-html body .anilist-calendar-day,
-html body .day-header,
-html body .day-anime-list {
-    background: #151f2e none !important;
-    color: white !important;
-}
-
-html body.site-theme-light .anilist-weekly-calendar,
-html body.site-theme-light .anilist-calendar-grid,
-html body.site-theme-light .anilist-calendar-day,
-html body.site-theme-light .day-header,
-html body.site-theme-light .day-anime-list,
-html body[data-theme="light"] .anilist-weekly-calendar,
-html body[data-theme="light"] .anilist-calendar-grid,
-html body[data-theme="light"] .anilist-calendar-day,
-html body[data-theme="light"] .day-header,
-html body[data-theme="light"] .day-anime-list {
-    background: #f9fafb !important;
-    color: #1f2937 !important;
 }

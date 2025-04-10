@@ -1432,9 +1432,6 @@ window.AnilistCalendar.calendar.setupGallerySlider = function(dayContainer, anim
     // Svuota l'animeList ma mantieni le proprietà di stile
     animeList.innerHTML = '';
 
-    // Ottieni la preferenza di giustificazione dell'utente
-    const columnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
-
     // Creiamo un container per le pagine che eredita l'allineamento
     const pagesContainer = document.createElement('div');
     pagesContainer.className = 'gallery-pages-container';

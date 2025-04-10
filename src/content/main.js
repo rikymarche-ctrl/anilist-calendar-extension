@@ -25,9 +25,6 @@ AniCal.main.initialize = function() {
         AniCal.state.originalCoverImages = {};
         AniCal.state.isCalendarInitialized = false; // Reset initialization flag
 
-        // Apply custom enhancements
-        applyExtensionEnhancements();
-
         // Detect and apply current theme
         AniCal.detectTheme();
         AniCal.applyTheme();
@@ -68,87 +65,6 @@ AniCal.main.initialize = function() {
         console.error("Anilist Weekly Calendar: Error during initialization", err);
     }
 };
-
-/**
- * Applies custom enhancements to the site
- */
-function applyExtensionEnhancements() {
-    const styleForceBackground = document.createElement('style');
-    styleForceBackground.id = "anilist-calendar-force-background";
-    styleForceBackground.innerHTML = `
-    html body .anilist-weekly-calendar,
-    html body .anilist-calendar-grid,
-    html body .anilist-calendar-day,
-    html body .day-header,
-    html body .day-anime-list {
-      background-color: #aaaaaa !important;
-      background: #151f2e !important;
-      background-image: none !important;
-      color: white !important;
-    }
-    
-    html body .day-name, 
-    html body .day-number {
-      color: white !important;
-    }
-    
-    html body .separator {
-      color: rgba(255, 255, 255, 0.7) !important;
-    }
-    
-    .anime-entry:hover .anime-image::before {
-      z-index: 3;
-    }
-    
-    .blue-border-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      border: 2px solid #3db4f2;
-      box-sizing: border-box;
-      z-index: 3;
-      pointer-events: none;
-    }
-
-    /* Add separator for Today option in dropdown */
-    .option-separator {
-      border-bottom: 1px solid #3db4f2;
-      margin-bottom: 6px;
-      padding-bottom: 6px;
-    }
-    
-    /* Light theme overrides */
-    html body.site-theme-light .anilist-weekly-calendar,
-    html body.site-theme-light .anilist-calendar-grid,
-    html body.site-theme-light .anilist-calendar-day,
-    html body.site-theme-light .day-header,
-    html body.site-theme-light .day-anime-list,
-    html body[data-theme="light"] .anilist-weekly-calendar,
-    html body[data-theme="light"] .anilist-calendar-grid,
-    html body[data-theme="light"] .anilist-calendar-day,
-    html body[data-theme="light"] .day-header,
-    html body[data-theme="light"] .day-anime-list {
-      background-color: #f9fafb !important;
-      background: #f9fafb !important;
-      color: #1f2937 !important;
-    }
-    
-    html body.site-theme-light .day-name,
-    html body.site-theme-light .day-number,
-    html body[data-theme="light"] .day-name,
-    html body[data-theme="light"] .day-number {
-      color: #1f2937 !important;
-    }
-    
-    html body.site-theme-light .separator,
-    html body[data-theme="light"] .separator {
-      color: rgba(0, 0, 0, 0.5) !important;
-    }
-  `;
-    document.head.appendChild(styleForceBackground);
-}
 
 /**
  * Error handler for global errors
