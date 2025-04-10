@@ -4,22 +4,22 @@
  */
 
 /**
- * Crea il pulsante delle impostazioni con z-index fisso.
+ * Crea il pulsante delle impostazioni.
  * @return {HTMLElement} Il pulsante delle impostazioni creato.
  */
 window.AnilistCalendar.settingsUI.createSettingsButton = function() {
     const settingsButton = document.createElement('button');
     settingsButton.className = 'calendar-settings-btn header-settings-btn';
     settingsButton.title = 'Open settings';
-    settingsButton.innerHTML = '<i class="fa fa-cog" style="font-size: 14px;"></i>';
+    settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
 
-    // Apre l’overlay delle impostazioni al click
+    // Apre l'overlay delle impostazioni al click
     settingsButton.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
 
         try {
-            // Mostra l’overlay delle impostazioni
+            // Mostra l'overlay delle impostazioni
             window.AnilistCalendar.settingsUI.createSettingsOverlay();
         } catch (err) {
             window.AnilistCalendar.utils.log("Error creating settings overlay:", err);
@@ -55,7 +55,7 @@ window.AnilistCalendar.settingsUI.initSettingsButtonEvents = function() {
             const settingsBtn = document.querySelector('.header-settings-btn');
             if (settingsBtn) {
                 setTimeout(() => {
-                    settingsBtn.style.opacity = '1';
+                    settingsBtn.classList.add('visible');
                 }, 0);
             }
         }
@@ -98,7 +98,7 @@ window.AnilistCalendar.settingsUI.initSettingsButtonEvents = function() {
                 const settingsBtn = document.querySelector('.header-settings-btn');
                 if (settingsBtn) {
                     setTimeout(() => {
-                        settingsBtn.style.opacity = '0';
+                        settingsBtn.classList.remove('visible');
                     }, 0);
                 }
             }
@@ -144,15 +144,6 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     const settingsPanel = document.createElement('div');
     settingsPanel.className = 'settings-panel';
 
-    if (isLightTheme) {
-        settingsPanel.style.backgroundColor = '#f8f9fa';
-        settingsPanel.style.color = '#23252b';
-        settingsPanel.style.borderColor = 'rgba(0, 0, 0, 0.1)';
-    } else {
-        settingsPanel.style.backgroundColor = '#121c28';
-        settingsPanel.style.color = '#FFFFFF';
-    }
-
     // Aggiunge header
     const header = document.createElement('div');
     header.className = 'settings-header';
@@ -179,18 +170,17 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     const tabsContainer = document.createElement('div');
     tabsContainer.className = 'settings-tabs';
 
-    // Crea i pulsanti dei tab con styling adeguato per il tema
+    // Crea i pulsanti dei tab
     const layoutTab = createTabButton('Layout', 'layout-tab', true);
     const calendarTab = createTabButton('Calendar', 'calendar-tab');
     const timeTab = createTabButton('Time', 'time-tab');
 
     if (isLightTheme) {
         [layoutTab, calendarTab, timeTab].forEach(tab => {
-            tab.style.color = tab.classList.contains('active') ? '#3577b1' : '#5c728a';
-        });
-    } else {
-        [layoutTab, calendarTab, timeTab].forEach(tab => {
-            tab.style.color = tab.classList.contains('active') ? '#3db4f2' : '#9ca3af';
+            tab.classList.add('theme-light');
+            if (tab.classList.contains('active')) {
+                tab.classList.add('active-light');
+            }
         });
     }
 
@@ -240,12 +230,14 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         createNumberInput('max-cards-per-day', window.AnilistCalendar.userPreferences.maxCardsPerDay || 0, 0, 30, 1)
     );
 
-    maxCardsPerDayRow.style.display =
-        (currentLayoutMode === 'extended' || currentLayoutMode === 'grid') ? 'flex' : 'none';
+    maxCardsPerDayRow.classList.add('setting-row-hidden');
+    if (currentLayoutMode === 'extended' || currentLayoutMode === 'grid') {
+        maxCardsPerDayRow.classList.remove('setting-row-hidden');
+    }
 
     layoutContent.appendChild(maxCardsPerDayRow);
 
-    // Impostazione dell’allineamento del titolo
+    // Impostazione dell'allineamento del titolo
     const titleAlignmentRow = createSettingRow(
         'Title alignment',
         'Choose how anime titles are aligned',
@@ -278,7 +270,11 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     if (layoutModeSelect) {
         layoutModeSelect.addEventListener('change', function() {
             const isGalleryMode = this.value === 'extended' || this.value === 'grid';
-            maxCardsPerDayRow.style.display = isGalleryMode ? 'flex' : 'none';
+            if (isGalleryMode) {
+                maxCardsPerDayRow.classList.remove('setting-row-hidden');
+            } else {
+                maxCardsPerDayRow.classList.add('setting-row-hidden');
+            }
         });
     } else {
         console.error("Layout mode select element not found");
@@ -320,7 +316,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     //-----------------------------------------------------
     // CONTENUTO DEL TAB TIME & TIMEZONE
     //-----------------------------------------------------
-    // Impostazione per mostrare l’orario
+    // Impostazione per mostrare l'orario
     const showTimeRow = createSettingRow(
         'Show time',
         'Display time information for each anime',
@@ -328,7 +324,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     timeContent.appendChild(showTimeRow);
 
-    // Impostazione per il formato dell’orario
+    // Impostazione per il formato dell'orario
     const timeFormatRow = createSettingRow(
         'Time format',
         'Choose between countdown or release time',
@@ -343,14 +339,13 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     const timezoneSelect = document.createElement('select');
     timezoneSelect.id = 'timezone';
     timezoneSelect.className = 'settings-select';
-    timezoneSelect.style.textAlign = 'center';
 
     for (const tz of window.AnilistCalendar.TIMEZONE_OPTIONS) {
         const option = document.createElement('option');
         option.value = tz.value;
         option.textContent = tz.text;
         option.dataset.shortText = tz.shortText;
-        option.style.textAlign = 'center';
+        option.className = 'timezone-option';
         if (tz.value === window.AnilistCalendar.userPreferences.timezone) {
             option.selected = true;
             option.textContent = tz.shortText;
@@ -394,16 +389,19 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     calendarTab.addEventListener('click', () => switchTab('calendar-tab'));
     timeTab.addEventListener('click', () => switchTab('time-tab'));
 
-    // Bottone di salvataggio con styling diretto in base al tema
+    // Bottone di salvataggio
     const saveContainer = document.createElement('div');
     saveContainer.className = 'settings-save-container';
-    saveContainer.style.backgroundColor = isLightTheme ? '#f8f9fa' : '#121c28';
+    if (isLightTheme) {
+        saveContainer.classList.add('theme-light');
+    }
 
     const saveButton = document.createElement('button');
     saveButton.className = 'settings-save-btn';
+    if (isLightTheme) {
+        saveButton.classList.add('theme-light');
+    }
     saveButton.innerHTML = '<i class="fa fa-save"></i> Save Changes';
-
-    saveButton.style.backgroundColor = isLightTheme ? '#3577b1' : '#3db4f2';
 
     // LOGICA DEL BOTTONE SAVE RISCRITTA COMPLETAMENTE PER GESTIRE MEGLIO LE MODIFICHE MULTIPLE
     saveButton.addEventListener('click', () => {
@@ -444,7 +442,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         if (prevShowEpisodeNumbers !== showEpisodeNumbers) changes.push('episode numbers');
         if (prevMaxCardsPerDay !== maxCardsPerDay) changes.push('max cards per day');
 
-        // Aggiorna l’oggetto delle preferenze
+        // Aggiorna l'oggetto delle preferenze
         window.AnilistCalendar.userPreferences.startDay = startDay;
         window.AnilistCalendar.userPreferences.hideEmptyDays = hideEmptyDays;
         window.AnilistCalendar.userPreferences.layoutMode = layoutMode;
@@ -475,13 +473,13 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         // Mostra la notifica
         window.AnilistCalendar.utils.showNotification(notificationMessage, 'success');
 
-        // Chiude l’overlay
+        // Chiude l'overlay
         overlayContainer.classList.remove('active');
         setTimeout(() => {
             overlayContainer.remove();
         }, 300);
 
-        // Aggiorna l’UI senza ricaricare la pagina
+        // Aggiorna l'UI senza ricaricare la pagina
         window.AnilistCalendar.calendar.updateUIWithSettings(
             prevTimeFormat,
             prevTimezone,
@@ -493,16 +491,16 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     saveContainer.appendChild(saveButton);
     settingsPanel.appendChild(saveContainer);
 
-    // Aggiunge il pannello al container dell’overlay
+    // Aggiunge il pannello al container dell'overlay
     overlayContainer.appendChild(settingsPanel);
     document.body.appendChild(overlayContainer);
 
-    // Attiva l’overlay con animazione
+    // Attiva l'overlay con animazione
     setTimeout(() => {
         overlayContainer.classList.add('active');
     }, 10);
 
-    // Chiude l’overlay cliccando fuori dal pannello
+    // Chiude l'overlay cliccando fuori dal pannello
     overlayContainer.addEventListener('click', (e) => {
         if (e.target === overlayContainer) {
             overlayContainer.classList.remove('active');
@@ -517,11 +515,8 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         const tabs = document.querySelectorAll('.settings-tab');
         tabs.forEach(tab => {
             tab.classList.remove('active');
-            tab.style.backgroundColor = 'transparent';
             if (isLightTheme) {
-                tab.style.color = '#5c728a';
-            } else {
-                tab.style.color = '#9ca3af';
+                tab.classList.remove('active-light');
             }
         });
 
@@ -530,16 +525,17 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
 
         const activeTab = document.getElementById(tabId);
         activeTab.classList.add('active');
-        activeTab.style.backgroundColor = 'rgba(61, 180, 242, 0.1)';
-        activeTab.style.color = isLightTheme ? '#3577b1' : '#3db4f2';
+        if (isLightTheme) {
+            activeTab.classList.add('active-light');
+        }
         document.getElementById(tabId + '-content').classList.add('active');
     }
 };
 
 /**
- * Crea un pulsante per i tab con styling specifico del tema.
+ * Crea un pulsante per i tab.
  * @param {string} text - Il testo del tab.
- * @param {string} id - L’ID del tab.
+ * @param {string} id - L'ID del tab.
  * @param {boolean} isActive - Se il tab è inizialmente attivo.
  * @return {HTMLElement} Il pulsante del tab creato.
  */
@@ -550,16 +546,15 @@ function createTabButton(text, id, isActive = false) {
     button.className = 'settings-tab';
     if (isActive) {
         button.classList.add('active');
-        button.style.backgroundColor = 'rgba(61, 180, 242, 0.1)';
     }
     return button;
 }
 
 /**
  * Crea una riga di impostazioni composta da etichetta, descrizione e controllo.
- * @param {string} label - L’etichetta dell’impostazione.
- * @param {string} description - La descrizione dell’impostazione.
- * @param {HTMLElement} control - L’elemento di controllo (select, toggle, ecc.).
+ * @param {string} label - L'etichetta dell'impostazione.
+ * @param {string} description - La descrizione dell'impostazione.
+ * @param {HTMLElement} control - L'elemento di controllo (select, toggle, ecc.).
  * @return {HTMLElement} La riga di impostazioni creata.
  */
 function createSettingRow(label, description, control) {
@@ -567,6 +562,7 @@ function createSettingRow(label, description, control) {
     row.className = 'settings-row';
 
     const labelContainer = document.createElement('div');
+    labelContainer.className = 'settings-label-container';
 
     const labelText = document.createElement('div');
     labelText.className = 'settings-label';
@@ -587,8 +583,8 @@ function createSettingRow(label, description, control) {
 
 /**
  * Helper per popolare le opzioni in un elemento select, eliminando il codice duplicato.
- * @param {HTMLSelectElement} select - L’elemento select da popolare.
- * @param {Array} options - L’array di opzioni.
+ * @param {HTMLSelectElement} select - L'elemento select da popolare.
+ * @param {Array} options - L'array di opzioni.
  * @param {string} selectedVal - Il valore attualmente selezionato.
  * @param {Function} [extraAttrsCallback] - Funzione opzionale per impostare attributi extra sugli elementi option.
  */
@@ -599,6 +595,7 @@ function populateOptions(select, options, selectedVal, extraAttrsCallback) {
         const optionEl = document.createElement('option');
         optionEl.value = selectedVal;
         optionEl.textContent = selectedOption.text;
+        optionEl.className = 'option-selected';
         optionEl.selected = true;
         select.appendChild(optionEl);
     }
@@ -615,7 +612,6 @@ function populateOptions(select, options, selectedVal, extraAttrsCallback) {
             separatorOption.disabled = true;
             separatorOption.className = option.className || 'day-separator';
             separatorOption.textContent = option.text || '─────────────';
-            separatorOption.style.textAlign = 'center';
             select.appendChild(separatorOption);
             return;
         }
@@ -623,7 +619,7 @@ function populateOptions(select, options, selectedVal, extraAttrsCallback) {
         const optElement = document.createElement('option');
         optElement.value = option.value;
         optElement.textContent = option.text;
-        optElement.style.textAlign = 'center';
+        optElement.className = 'option-standard';
         if (extraAttrsCallback && typeof extraAttrsCallback === 'function') {
             extraAttrsCallback(option, optElement);
         }
@@ -633,7 +629,7 @@ function populateOptions(select, options, selectedVal, extraAttrsCallback) {
 
 /**
  * Crea un elemento select generico.
- * @param {string} id - L’ID del select.
+ * @param {string} id - L'ID del select.
  * @param {Array} options - Le opzioni da includere.
  * @param {string} selectedValue - Il valore inizialmente selezionato.
  * @return {HTMLElement} Il wrapper contenente il select.
@@ -644,7 +640,6 @@ function createSelect(id, options, selectedValue) {
     const select = document.createElement('select');
     select.id = id;
     select.className = 'settings-select';
-    select.style.textAlign = 'center';
 
     function populate(selectedVal) {
         populateOptions(select, options, selectedVal, (option, elem) => {
@@ -678,7 +673,7 @@ function createSelect(id, options, selectedValue) {
 
 /**
  * Crea un elemento select filtrato.
- * @param {string} id - L’ID del select.
+ * @param {string} id - L'ID del select.
  * @param {Array} options - Le opzioni da includere.
  * @param {string} selectedValue - Il valore inizialmente selezionato.
  * @return {HTMLElement} Il wrapper contenente il select.
@@ -689,7 +684,6 @@ function createFilteredSelect(id, options, selectedValue) {
     const select = document.createElement('select');
     select.id = id;
     select.className = 'settings-select';
-    select.style.textAlign = 'center';
 
     function populate(selectedVal) {
         populateOptions(select, options, selectedVal, (option, elem) => {
@@ -713,18 +707,16 @@ function createFilteredSelect(id, options, selectedValue) {
 
 /**
  * Crea un input di tipo number.
- * @param {string} id - L’ID dell’input.
+ * @param {string} id - L'ID dell'input.
  * @param {number} value - Il valore iniziale.
  * @param {number} min - Il valore minimo.
  * @param {number} max - Il valore massimo.
- * @param {number} step - L’incremento.
- * @return {HTMLElement} L’elemento input creato.
+ * @param {number} step - L'incremento.
+ * @return {HTMLElement} L'elemento input creato.
  */
 function createNumberInput(id, value, min, max, step) {
     const wrapper = document.createElement('div');
-    wrapper.className = 'select-wrapper';
-    wrapper.style.width = '160px';
-    wrapper.style.display = 'inline-block';
+    wrapper.className = 'number-input-wrapper';
 
     const input = document.createElement('input');
     input.type = 'number';
@@ -735,36 +727,15 @@ function createNumberInput(id, value, min, max, step) {
     input.step = step.toString();
     input.value = value.toString();
 
-    input.style.width = '100%';
-    input.style.boxSizing = 'border-box';
-    input.style.padding = '8px 10px';
-    input.style.borderRadius = '4px';
-    input.style.textAlign = 'center';
-
-    const isLightTheme = document.body.classList.contains('site-theme-light') ||
-        document.documentElement.classList.contains('site-theme-light') ||
-        document.body.getAttribute('data-theme') === 'light' ||
-        document.documentElement.getAttribute('data-theme') === 'light';
-
-    if (isLightTheme) {
-        input.style.backgroundColor = '#ffffff';
-        input.style.color = '#2e3c4f';
-        input.style.border = '1px solid rgba(0, 0, 0, 0.1)';
-    } else {
-        input.style.backgroundColor = '#151f2e';
-        input.style.color = '#ffffff';
-        input.style.border = '1px solid rgba(100, 100, 100, 0.4)';
-    }
-
     wrapper.appendChild(input);
     return wrapper;
 }
 
 /**
  * Crea un interruttore toggle.
- * @param {string} id - L’ID del toggle.
+ * @param {string} id - L'ID del toggle.
  * @param {boolean} checked - Se il toggle è inizialmente attivo.
- * @return {HTMLElement} L’elemento toggle creato.
+ * @return {HTMLElement} L'elemento toggle creato.
  */
 function createToggle(id, checked) {
     const toggle = document.createElement('label');
@@ -777,11 +748,16 @@ function createToggle(id, checked) {
 
     const slider = document.createElement('span');
     slider.className = 'slider';
-
-    slider.style.backgroundColor = checked ? '#3db4f2' : '#2c3e50';
+    if (checked) {
+        slider.classList.add('checked');
+    }
 
     input.addEventListener('change', function() {
-        slider.style.backgroundColor = this.checked ? '#3db4f2' : '#2c3e50';
+        if (this.checked) {
+            slider.classList.add('checked');
+        } else {
+            slider.classList.remove('checked');
+        }
     });
 
     toggle.appendChild(input);

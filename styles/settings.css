@@ -514,4 +514,165 @@ input:checked + .slider:before {
         height: auto;
         max-height: 80vh;
     }
+
+
+
+
+
+
+
+    /* Classi per la visibilità del pulsante delle impostazioni */
+    .header-settings-btn {
+        opacity: 0;
+        transition: opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .header-settings-btn.visible {
+        opacity: 1;
+    }
+
+    /* Stili per gli elementi di tema chiaro */
+    .settings-tab.theme-light {
+        color: #5c728a;
+    }
+
+    .settings-tab.theme-light:hover {
+        color: #3577b1;
+    }
+
+    .settings-tab.theme-light.active-light {
+        color: #3577b1;
+        background-color: rgba(61, 180, 242, 0.1);
+    }
+
+    .settings-save-btn.theme-light {
+        background-color: #3577b1;
+        box-shadow: 0 2px 8px rgba(53, 119, 177, 0.3);
+    }
+
+    .settings-save-btn.theme-light:hover {
+        background-color: #2868a0;
+        box-shadow: 0 4px 12px rgba(53, 119, 177, 0.4);
+    }
+
+    .settings-save-container.theme-light {
+        background-color: #f8f9fa;
+    }
+
+    /* Mostrare/nascondere riga impostazioni in base al layout */
+    .setting-row-hidden {
+        display: none;
+    }
+
+    /* Centratura per le opzioni nelle select */
+    .settings-select,
+    .option-standard,
+    .option-selected,
+    .timezone-option {
+        text-align: center;
+    }
+
+    /* Contenitore delle etichette nelle impostazioni */
+    .settings-label-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+    }
+
+    /* Stile per slider del toggle con e senza check */
+    .slider.checked {
+        background-color: #3db4f2;
+    }
+
+    .site-theme-light .slider.checked,
+    [data-theme='light'] .slider.checked {
+        background-color: #3577b1;
+    }
+
+    /* Dimensioni per wrapper degli input numerici */
+    .number-input-wrapper {
+        width: 160px;
+        display: inline-block;
+    }
+
+
+    /* Aggiungere questi stili a calendar.css */
+
+    /* Miglioriamo il layout delle gallery-page */
+    .gallery-page {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        width: 100%;
+        max-width: 600px;
+        padding: 10px 0;
+        /* Aggiungiamo transizione per renderla più fluida */
+        transition: opacity 0.15s ease;
+    }
+
+    /* Stile per nascondere le pagine che non sono attive */
+    .hidden-page {
+        display: none !important;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    /* Posizioniamo meglio i pulsanti di navigazione */
+    .gallery-nav-prev,
+    .gallery-nav-next {
+        position: absolute;
+        right: 10px;
+        z-index: 100;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background-color: rgba(0, 0, 0, 0.65) !important;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.9;
+        transition: background-color 0.2s ease, opacity 0.2s ease;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        border: none;
+        outline: none;
+    }
+
+    .gallery-nav-prev {
+        top: 30%;
+    }
+
+    .gallery-nav-next {
+        top: 70%;
+    }
+
+    .gallery-nav-button:hover {
+        background-color: rgba(61, 180, 242, 0.8) !important;
+        opacity: 1;
+    }
+
+    .gallery-nav-button.nav-hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    /* Migliora la visualizzazione in tema chiaro */
+    .site-theme-light .gallery-nav-button,
+    [data-theme='light'] .gallery-nav-button {
+        background-color: rgba(200, 200, 200, 0.9) !important;
+        color: #333;
+    }
+
+    .site-theme-light .gallery-nav-button:hover,
+    [data-theme='light'] .gallery-nav-button:hover {
+        background-color: rgba(61, 180, 242, 0.8) !important;
+        color: white;
+    }
+
+    /* Container dei pulsanti di navigazione */
+    .gallery-with-nav {
+        position: relative;
+    }
 }

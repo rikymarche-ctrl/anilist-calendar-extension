@@ -8,13 +8,7 @@ function createConfiguredImage(src, anime, imageContainer, options = {}) {
     const img = document.createElement('img');
     img.src = src;
     img.alt = anime.cleanTitle;
-    img.style.width = '100%';
-    img.style.height = '100%';
-    img.style.objectFit = 'cover';
-    img.style.position = 'absolute';
-    img.style.top = '0';
-    img.style.left = '0';
-    img.style.zIndex = '1';
+    img.className = 'anime-cover-image';
 
     if (options.loading) {
         img.setAttribute('loading', options.loading);
@@ -28,7 +22,7 @@ function createConfiguredImage(src, anime, imageContainer, options = {}) {
 
     img.onload = () => {
         imageContainer.classList.remove('loading');
-        imageContainer.style.backgroundColor = 'transparent';
+        imageContainer.classList.remove('loading-background');
     };
 
     img.onerror = () => {
@@ -391,9 +385,7 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
     } else {
         const imageContainer = document.createElement('div');
         imageContainer.className = 'anime-image';
-        imageContainer.style.position = 'relative';
-        imageContainer.style.overflow = 'hidden';
-        imageContainer.style.backgroundColor = '#1A1A2E';
+        imageContainer.classList.add('loading-background');
 
         const overlay = document.createElement('div');
         overlay.className = 'anime-image-overlay';
@@ -429,14 +421,7 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
 
             const initialLetter = document.createElement('div');
             initialLetter.textContent = anime.cleanTitle.charAt(0).toUpperCase();
-            initialLetter.style.position = 'absolute';
-            initialLetter.style.top = '50%';
-            initialLetter.style.left = '50%';
-            initialLetter.style.transform = 'translate(-50%, -50%)';
-            initialLetter.style.fontSize = '20px';
-            initialLetter.style.fontWeight = 'bold';
-            initialLetter.style.color = '#5C728A';
-            initialLetter.style.zIndex = '2';
+            initialLetter.className = 'anime-image-fallback-letter';
             imageContainer.appendChild(initialLetter);
         };
 
@@ -471,38 +456,28 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
 
         const plusButtonContainer = document.createElement('div');
         plusButtonContainer.className = 'plus-button-container';
-        plusButtonContainer.style.pointerEvents = 'none';
 
         const plusButton = document.createElement('div');
         plusButton.className = 'plus-button';
-        plusButton.style.cursor = 'pointer';
-        plusButton.style.zIndex = '20';
-        plusButton.style.pointerEvents = 'auto';
 
         const plusIcon = document.createElement('div');
         plusIcon.className = 'plus-icon';
 
         const iconElement = document.createElement('i');
         iconElement.className = 'fa fa-plus';
-        iconElement.style.fontSize = '14px';
-        iconElement.style.color = 'white';
 
         plusIcon.appendChild(iconElement);
         plusButton.appendChild(plusIcon);
         plusButtonContainer.appendChild(plusButton);
-
-        plusButton.style.top = '50%';
-        plusButton.style.left = '50%';
-        plusButton.style.transform = 'translate(-50%, -50%)';
 
         plusButton.addEventListener('click', function(e) {
             e.stopPropagation();
             e.preventDefault();
             const iconEl = plusIcon.querySelector('i');
             if (iconEl) {
-                iconEl.style.transform = 'scale(0.85)';
+                iconEl.classList.add('plus-icon-clicked');
                 setTimeout(() => {
-                    iconEl.style.transform = 'scale(1)';
+                    iconEl.classList.remove('plus-icon-clicked');
                 }, 300);
             }
             window.AnilistCalendar.calendar.handlePlusButtonClick(e, anime);
@@ -522,7 +497,7 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
         const titleEl = document.createElement('div');
         titleEl.className = 'anime-title';
         titleEl.textContent = anime.cleanTitle;
-        titleEl.style.textAlign = 'center';
+        titleEl.classList.add('text-center');
 
         titlePanel.appendChild(titleEl);
         entry.appendChild(titlePanel);
@@ -542,7 +517,7 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
         const titleEl = document.createElement('div');
         titleEl.className = 'anime-title';
         titleEl.textContent = anime.cleanTitle;
-        titleEl.style.textAlign = window.AnilistCalendar.userPreferences.titleAlignment || 'left';
+        titleEl.classList.add(`text-${window.AnilistCalendar.userPreferences.titleAlignment || 'left'}`);
         infoContainer.appendChild(titleEl);
 
         const infoRow = createAnimeInfoRow(anime);
@@ -821,10 +796,16 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
     );
     window.AnilistCalendar.state.calendarContainer.classList.add(`${window.AnilistCalendar.userPreferences.layoutMode}-mode`);
 
-    if ((window.AnilistCalendar.userPreferences.layoutMode === 'extended' ||
-            window.AnilistCalendar.userPreferences.layoutMode === 'grid') &&
-        window.AnilistCalendar.userPreferences.maxCardsPerDay > 0) {
+    // Imposta la modalità gallery con slider solo se è attiva la modalità gallery (extended o grid)
+    // e se maxCardsPerDay è maggiore di zero
+    const isGalleryMode = window.AnilistCalendar.userPreferences.layoutMode === 'extended' ||
+        window.AnilistCalendar.userPreferences.layoutMode === 'grid';
+    const hasMaxCards = window.AnilistCalendar.userPreferences.maxCardsPerDay > 0;
+
+    if (isGalleryMode && hasMaxCards) {
         window.AnilistCalendar.state.calendarContainer.classList.add('gallery-with-slider');
+        window.AnilistCalendar.utils.log("Gallery mode with slider enabled. Max cards per day: " +
+            window.AnilistCalendar.userPreferences.maxCardsPerDay);
     }
 
     if (!skipHeader) {
@@ -852,11 +833,8 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
 
     const calendarGrid = document.createElement('div');
     calendarGrid.className = 'anilist-calendar-grid';
-    calendarGrid.style.display = 'grid';
 
     const daysToShow = orderedDays.slice(0, 7);
-    const isGalleryMode = window.AnilistCalendar.userPreferences.layoutMode === 'extended' ||
-        window.AnilistCalendar.userPreferences.layoutMode === 'grid';
 
     daysToShow.forEach((day, index) => {
         const dayCol = document.createElement('div');
@@ -883,12 +861,6 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
         `;
         document.head.appendChild(styleForce);
         dayCol.classList.add(columnJustify === 'center' ? 'force-center' : 'force-top');
-        dayCol.style.cssText = `
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: ${columnJustify === 'center' ? 'center' : 'flex-start'} !important;
-            align-items: stretch !important;
-        `;
 
         const dayHeader = document.createElement('div');
         dayHeader.className = 'day-header';
@@ -915,15 +887,10 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
 
         const animeList = document.createElement('div');
         animeList.className = 'day-anime-list';
-        animeList.style.height = '100%';
 
         if (isGalleryMode) {
-            animeList.style.padding = '14px';
-            animeList.style.display = 'flex';
-            animeList.style.flexDirection = 'column';
-            animeList.style.gap = '14px';
-            animeList.style.alignItems = 'center';
-            animeList.style.justifyContent = columnJustify === 'center' ? 'center' : 'flex-start';
+            animeList.classList.add('gallery-anime-list');
+            animeList.classList.add(`justify-${columnJustify}`);
         }
 
         if (schedule[day] && schedule[day].length > 0) {
@@ -942,11 +909,7 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
             emptyDay.className = 'empty-day';
             emptyDay.textContent = 'No episodes';
             if (isGalleryMode) {
-                emptyDay.style.width = 'auto';
-                emptyDay.style.height = 'auto';
-                emptyDay.style.padding = '10px';
-                emptyDay.style.margin = '0';
-                emptyDay.style.textAlign = 'center';
+                emptyDay.classList.add('gallery-empty-day');
             }
             animeList.appendChild(emptyDay);
         }
@@ -988,7 +951,8 @@ window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, 
         if (prevTitleAlignment !== window.AnilistCalendar.userPreferences.titleAlignment) {
             const titles = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.anime-title');
             titles.forEach(title => {
-                title.style.textAlign = window.AnilistCalendar.userPreferences.titleAlignment;
+                title.classList.remove(`text-${prevTitleAlignment}`);
+                title.classList.add(`text-${window.AnilistCalendar.userPreferences.titleAlignment}`);
             });
         }
 
@@ -997,12 +961,12 @@ window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, 
             dayColumns.forEach(column => {
                 column.classList.remove('force-center', 'force-top');
                 column.classList.add(columnJustify === 'center' ? 'force-center' : 'force-top');
-                column.style.cssText = `
-                    display: flex !important;
-                    flex-direction: column !important;
-                    justify-content: ${columnJustify === 'center' ? 'center' : 'flex-start'} !important;
-                    align-items: stretch !important;
-                `;
+            });
+
+            const animeLists = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.day-anime-list');
+            animeLists.forEach(list => {
+                list.classList.remove('justify-top', 'justify-center');
+                list.classList.add(`justify-${columnJustify}`);
             });
         }
 
@@ -1119,71 +1083,117 @@ window.AnilistCalendar.calendar.calculateTimeComponents = function(diff) {
  * @param {number} maxCards - Maximum number of cards to show
  */
 window.AnilistCalendar.calendar.setupGallerySlider = function(dayContainer, animeList, maxCards) {
-    if (!maxCards || maxCards <= 0 || !animeList || animeList.children.length <= maxCards) return;
+    // Verifica i parametri e che ci siano abbastanza card per richiedere lo slider
+    if (!maxCards || maxCards <= 0 || !animeList) return;
 
-    const totalCards = animeList.children.length;
-    const totalPages = Math.ceil(totalCards / maxCards);
-    const originalJustify = animeList.style.justifyContent || 'flex-start';
-    const cards = Array.from(animeList.children);
+    // Ottieni tutte le card anime originali
+    const cards = Array.from(animeList.querySelectorAll('.anime-entry'));
+    const totalCards = cards.length;
+
+    // Se non ci sono abbastanza card per richiedere paginazione, esci
+    if (totalCards <= maxCards) return;
+
+    // Salva lo stile di giustificazione originale
+    const originalJustify = animeList.classList.contains('justify-center') ? 'center' : 'top';
+
+    // Pulisci il contenitore prima di aggiungere le pagine
     animeList.innerHTML = '';
 
+    // Crea il contenitore principale per lo slider
+    const sliderContainer = document.createElement('div');
+    sliderContainer.className = 'gallery-slider-wrapper';
+    sliderContainer.classList.add(`justify-${originalJustify}`);
+
+    // Crea il contenitore per le pagine
     const pagesContainer = document.createElement('div');
     pagesContainer.className = 'gallery-pages-container';
-    pagesContainer.style.width = '100%';
-    pagesContainer.style.height = '100%';
-    pagesContainer.style.display = 'flex';
-    pagesContainer.style.flexDirection = 'column';
-    pagesContainer.style.alignItems = 'center';
-    pagesContainer.style.justifyContent = originalJustify;
+    pagesContainer.classList.add(`justify-${originalJustify}`);
 
+    // Calcola il numero totale di pagine necessarie
+    const totalPages = Math.ceil(totalCards / maxCards);
+
+    // Log per debug
+    window.AnilistCalendar.utils.log(`Setting up gallery slider: ${totalCards} cards, ${maxCards} per page = ${totalPages} pages`);
+
+    // Crea le pagine e distribuisci le card
     for (let i = 0; i < totalPages; i++) {
+        // Crea il container della pagina
         const page = document.createElement('div');
         page.className = 'gallery-page';
-        page.style.display = i === 0 ? 'flex' : 'none';
-        page.style.flexDirection = 'column';
-        page.style.alignItems = 'center';
-        page.style.gap = '14px';
-        page.style.width = '100%';
-        page.style.justifyContent = originalJustify;
+        page.classList.add(`justify-${originalJustify}`);
+        page.dataset.page = i.toString(); // Converti esplicitamente in stringa
+        page.dataset.justification = originalJustify;
 
+        // Mostra solo la prima pagina inizialmente
+        if (i !== 0) {
+            page.classList.add('hidden-page');
+        }
+
+        // Calcola gli indici delle card da inserire in questa pagina
         const startIdx = i * maxCards;
         const endIdx = Math.min(startIdx + maxCards, totalCards);
+
+        // Aggiungi le card a questa pagina
         for (let j = startIdx; j < endIdx; j++) {
-            page.appendChild(cards[j]);
+            if (cards[j]) {
+                page.appendChild(cards[j]);
+            }
         }
+
+        // Aggiungi la pagina al container
         pagesContainer.appendChild(page);
     }
 
-    animeList.appendChild(pagesContainer);
+    // Aggiungi il container delle pagine al contenitore principale
+    sliderContainer.appendChild(pagesContainer);
+    animeList.appendChild(sliderContainer);
 
+    // Se ci sono più pagine, aggiungi i controlli di navigazione
     if (totalPages > 1) {
         let currentPage = 0;
 
+        // Crea il pulsante "precedente"
         const prevButton = document.createElement('button');
         prevButton.className = 'gallery-nav-button gallery-nav-prev';
         prevButton.innerHTML = '<i class="fa fa-chevron-up"></i>';
-        prevButton.style.display = 'none';
-        prevButton.style.position = 'absolute';
-        prevButton.style.right = '6px';
-        prevButton.style.zIndex = '100';
+        prevButton.setAttribute('aria-label', 'Previous page');
+        prevButton.classList.add('nav-hidden'); // Nascondi inizialmente perché siamo alla prima pagina
 
+        // Crea il pulsante "successivo"
         const nextButton = document.createElement('button');
         nextButton.className = 'gallery-nav-button gallery-nav-next';
         nextButton.innerHTML = '<i class="fa fa-chevron-down"></i>';
-        nextButton.style.position = 'absolute';
-        nextButton.style.right = '6px';
-        nextButton.style.zIndex = '100';
+        nextButton.setAttribute('aria-label', 'Next page');
 
+        // Funzione per aggiornare la visualizzazione delle pagine
         const updateView = () => {
+            // Aggiorna tutte le pagine
             const pages = pagesContainer.querySelectorAll('.gallery-page');
-            pages.forEach(page => {
-                page.style.display = 'none';
+            pages.forEach((page, idx) => {
+                if (idx === currentPage) {
+                    page.classList.remove('hidden-page');
+                } else {
+                    page.classList.add('hidden-page');
+                }
             });
-            pages[currentPage].style.display = 'flex';
-            prevButton.style.display = currentPage === 0 ? 'none' : 'flex';
-            nextButton.style.display = currentPage === totalPages - 1 ? 'none' : 'flex';
+
+            // Aggiorna i pulsanti di navigazione
+            if (currentPage === 0) {
+                prevButton.classList.add('nav-hidden');
+            } else {
+                prevButton.classList.remove('nav-hidden');
+            }
+
+            if (currentPage === totalPages - 1) {
+                nextButton.classList.add('nav-hidden');
+            } else {
+                nextButton.classList.remove('nav-hidden');
+            }
+
+            window.AnilistCalendar.utils.log(`Gallery page changed to ${currentPage + 1}/${totalPages}`);
         };
 
+        // Gestisci gli eventi di click per i pulsanti
         prevButton.addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
@@ -1204,8 +1214,42 @@ window.AnilistCalendar.calendar.setupGallerySlider = function(dayContainer, anim
             return false;
         });
 
-        animeList.style.position = 'relative';
+        // Aggiungi la classe per lo styling e i pulsanti
+        animeList.classList.add('gallery-with-nav');
         animeList.appendChild(prevButton);
         animeList.appendChild(nextButton);
+
+        // Assicurati che la visualizzazione iniziale sia corretta
+        updateView();
+
+        // Riattacca event listener per i plus button nelle card
+        const reattachEvents = () => {
+            const allPlusButtons = animeList.querySelectorAll('.plus-button, .plus-icon');
+            allPlusButtons.forEach(button => {
+                const animeEntry = button.closest('.anime-entry');
+                if (animeEntry && animeEntry.dataset.animeData) {
+                    try {
+                        const animeData = JSON.parse(animeEntry.dataset.animeData);
+
+                        // Rimuovi gli event listener esistenti
+                        const newButton = button.cloneNode(true);
+                        button.parentNode.replaceChild(newButton, button);
+
+                        // Aggiungi il nuovo event listener
+                        newButton.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            window.AnilistCalendar.calendar.handlePlusButtonClick(e, animeData);
+                            return false;
+                        });
+                    } catch (err) {
+                        window.AnilistCalendar.utils.log('Error reattaching events:', err);
+                    }
+                }
+            });
+        };
+
+        // Riattacca gli event listener
+        reattachEvents();
     }
 };
