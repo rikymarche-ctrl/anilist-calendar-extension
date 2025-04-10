@@ -185,8 +185,7 @@ window.AnilistCalendar.utils.convertJapanTimeToTimezone = function(japanTime, ta
     const offsetDiff = targetOffset - japanOffset;
 
     // Create a new date with the offset difference applied
-    const convertedTime = new Date(japanTime.getTime() + (offsetDiff * 60 * 60 * 1000));
-    return convertedTime;
+    return new Date(japanTime.getTime() + (offsetDiff * 60 * 60 * 1000));
 };
 
 /**

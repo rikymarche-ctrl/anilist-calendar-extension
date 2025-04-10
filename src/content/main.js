@@ -253,19 +253,10 @@ AniCal.main.findAndReplaceAiringSection = function() {
         const parentHeader = airingElement.closest('.section-header') || airingElement.parentNode;
         parentHeader.appendChild(settingsButton);
 
-        // Remove any margin or padding that might create unwanted space
-        if (parentHeader) {
-            parentHeader.style.marginBottom = "0";
-            parentHeader.style.paddingBottom = "6px";
-        }
-
         // Find the container that holds the anime cards
         const container = findAiringContainer(airingElement);
 
         if (container) {
-            // Remove any margin that might create space
-            container.style.marginTop = "0";
-
             AniCal.utils.log("Found container for Airing section, replacing with calendar", container);
             replaceAiringSection(container, airingElement, true);
 

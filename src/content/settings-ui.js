@@ -4,8 +4,8 @@
  */
 
 /**
- * Creates settings button with fixed z-index
- * @return {HTMLElement} The created settings button
+ * Crea il pulsante delle impostazioni con z-index fisso.
+ * @return {HTMLElement} Il pulsante delle impostazioni creato.
  */
 window.AnilistCalendar.settingsUI.createSettingsButton = function() {
     const settingsButton = document.createElement('button');
@@ -13,13 +13,13 @@ window.AnilistCalendar.settingsUI.createSettingsButton = function() {
     settingsButton.title = 'Open settings';
     settingsButton.innerHTML = '<i class="fa fa-cog" style="font-size: 14px;"></i>';
 
-    // Open settings overlay when settings button is clicked
+    // Apre l’overlay delle impostazioni al click
     settingsButton.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
 
         try {
-            // Show the settings overlay
+            // Mostra l’overlay delle impostazioni
             window.AnilistCalendar.settingsUI.createSettingsOverlay();
         } catch (err) {
             window.AnilistCalendar.utils.log("Error creating settings overlay:", err);
@@ -32,16 +32,15 @@ window.AnilistCalendar.settingsUI.createSettingsButton = function() {
 };
 
 /**
- * Initialize settings button event handlers
+ * Inizializza i gestori degli eventi per il pulsante delle impostazioni.
  */
 window.AnilistCalendar.settingsUI.initSettingsButtonEvents = function() {
     document.addEventListener('mouseover', function(e) {
-        // Find if we're hovering any calendar element or header
+        // Verifica se si sta passando sopra un elemento del calendario o header
         let element = e.target;
         let isRelevantElement = false;
 
         while (element && element !== document.body) {
-            // Only respond to hovering over the calendar container or its direct section header
             if (element.classList && (
                 element.classList.contains('anilist-weekly-calendar') ||
                 (element.classList.contains('section-header') && element.querySelector('.airing-replaced-header'))
@@ -63,7 +62,7 @@ window.AnilistCalendar.settingsUI.initSettingsButtonEvents = function() {
     });
 
     document.addEventListener('mouseout', function(e) {
-        // Only handle mouseout for relevant elements
+        // Gestisce il mouseout per elementi rilevanti
         let isRelevantElement = false;
         let fromElement = e.target;
 
@@ -78,7 +77,7 @@ window.AnilistCalendar.settingsUI.initSettingsButtonEvents = function() {
             fromElement = fromElement.parentElement;
         }
 
-        // Check that we're not moving to another relevant element
+        // Verifica che non si stia passando su un altro elemento rilevante
         if (isRelevantElement) {
             let toElement = e.relatedTarget;
             let isMovingToRelevantElement = false;
@@ -86,7 +85,7 @@ window.AnilistCalendar.settingsUI.initSettingsButtonEvents = function() {
             while (toElement && toElement !== document.body) {
                 if (toElement.classList && (
                     toElement.classList.contains('anilist-weekly-calendar') ||
-                    toElement.classList.contains('section-header') && toElement.querySelector('.airing-replaced-header') ||
+                    (toElement.classList.contains('section-header') && toElement.querySelector('.airing-replaced-header')) ||
                     toElement.classList.contains('header-settings-btn')
                 )) {
                     isMovingToRelevantElement = true;
@@ -108,16 +107,16 @@ window.AnilistCalendar.settingsUI.initSettingsButtonEvents = function() {
 };
 
 /**
- * Creates a settings overlay with organized sections and tabs
+ * Crea un overlay delle impostazioni con sezioni e tab organizzati.
  */
 window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
-    // Remove any existing overlay
+    // Rimuove eventuali overlay esistenti
     const existingOverlay = document.querySelector('.settings-overlay');
     if (existingOverlay) {
         existingOverlay.remove();
     }
 
-    // Force detect theme using multiple methods for maximum compatibility
+    // Rilevamento tema tramite più metodi per compatibilità massima
     const siteThemeFromBody = document.body.classList.contains('site-theme-light');
     const dataThemeFromBody = document.body.getAttribute('data-theme') === 'light';
     const dataThemeFromHtml = document.documentElement.getAttribute('data-theme') === 'light';
@@ -127,14 +126,13 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     const isHighContrast = document.body.classList.contains('high-contrast') ||
         document.documentElement.classList.contains('high-contrast');
 
-    // Log theme detection for debugging
+    // Log per il rilevamento del tema
     window.AnilistCalendar.utils.log(`Theme detection: Light theme: ${isLightTheme} (body class: ${siteThemeFromBody}, data-theme: ${dataThemeFromBody}, html data-theme: ${dataThemeFromHtml}, html class: ${htmlClass}), High contrast: ${isHighContrast}`);
 
-    // Create overlay container
+    // Crea il container dell'overlay
     const overlayContainer = document.createElement('div');
     overlayContainer.className = 'settings-overlay';
 
-    // Make sure the theme classes are applied directly
     if (isLightTheme) {
         overlayContainer.classList.add('site-theme-light');
     }
@@ -142,11 +140,10 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         overlayContainer.classList.add('high-contrast');
     }
 
-    // Create settings panel with theme-specific styling
+    // Crea il pannello delle impostazioni con styling specifico del tema
     const settingsPanel = document.createElement('div');
     settingsPanel.className = 'settings-panel';
 
-    // Apply theme styles directly to the panel as inline styles for guaranteed application
     if (isLightTheme) {
         settingsPanel.style.backgroundColor = '#f8f9fa';
         settingsPanel.style.color = '#23252b';
@@ -156,7 +153,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         settingsPanel.style.color = '#FFFFFF';
     }
 
-    // Add header
+    // Aggiunge header
     const header = document.createElement('div');
     header.className = 'settings-header';
 
@@ -178,16 +175,15 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     header.appendChild(closeButton);
     settingsPanel.appendChild(header);
 
-    // Create tabs container
+    // Crea il container dei tab
     const tabsContainer = document.createElement('div');
     tabsContainer.className = 'settings-tabs';
 
-    // Create tab buttons with proper styling for the theme
+    // Crea i pulsanti dei tab con styling adeguato per il tema
     const layoutTab = createTabButton('Layout', 'layout-tab', true);
     const calendarTab = createTabButton('Calendar', 'calendar-tab');
     const timeTab = createTabButton('Time', 'time-tab');
 
-    // Apply theme-specific styles to tabs
     if (isLightTheme) {
         [layoutTab, calendarTab, timeTab].forEach(tab => {
             tab.style.color = tab.classList.contains('active') ? '#3577b1' : '#5c728a';
@@ -204,7 +200,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
 
     settingsPanel.appendChild(tabsContainer);
 
-    // Create tab content containers
+    // Crea i container per i contenuti dei tab
     const layoutContent = document.createElement('div');
     layoutContent.id = 'layout-tab-content';
     layoutContent.className = 'tab-content active';
@@ -218,9 +214,9 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     timeContent.className = 'tab-content';
 
     //-----------------------------------------------------
-    // LAYOUT & DISPLAY TAB CONTENT
+    // CONTENUTO DEL TAB LAYOUT & DISPLAY
     //-----------------------------------------------------
-    // Layout mode setting
+    // Impostazione della modalità di layout
     const currentLayoutMode = window.AnilistCalendar.userPreferences.layoutMode;
     const layoutModeWrapper = createFilteredSelect('layout-mode', [
         { value: 'standard', text: 'Standard' },
@@ -228,7 +224,6 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         { value: 'extended', text: 'Gallery' }
     ], currentLayoutMode);
 
-    // Get the select element directly from the wrapper
     const layoutModeSelect = layoutModeWrapper.querySelector('select');
 
     const layoutModeRow = createSettingRow(
@@ -238,20 +233,19 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     layoutContent.appendChild(layoutModeRow);
 
-    // Max cards per day setting (only visible in Gallery mode)
+    // Impostazione del numero massimo di card per giorno (visibile in Gallery mode)
     const maxCardsPerDayRow = createSettingRow(
         'Max cards per day',
         'Maximum number of cards to show per day in Gallery mode (0 = unlimited)',
         createNumberInput('max-cards-per-day', window.AnilistCalendar.userPreferences.maxCardsPerDay || 0, 0, 30, 1)
     );
 
-    // Set initial visibility based on current layout mode
     maxCardsPerDayRow.style.display =
         (currentLayoutMode === 'extended' || currentLayoutMode === 'grid') ? 'flex' : 'none';
 
     layoutContent.appendChild(maxCardsPerDayRow);
 
-    // Title alignment setting
+    // Impostazione dell’allineamento del titolo
     const titleAlignmentRow = createSettingRow(
         'Title alignment',
         'Choose how anime titles are aligned',
@@ -262,7 +256,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     layoutContent.appendChild(titleAlignmentRow);
 
-    // NEW SETTING: Column justification
+    // NUOVA IMPOSTAZIONE: Giustificazione delle colonne
     const columnJustifyRow = createSettingRow(
         'Column justify',
         'Choose how columns are justified in the calendar',
@@ -273,7 +267,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     layoutContent.appendChild(columnJustifyRow);
 
-    // Hide empty days setting
+    // Impostazione per nascondere i giorni vuoti
     const hideEmptyDaysRow = createSettingRow(
         'Hide empty days',
         'Only show days with scheduled episodes',
@@ -281,7 +275,6 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     layoutContent.appendChild(hideEmptyDaysRow);
 
-    // Add event listener directly to the select element we already have
     if (layoutModeSelect) {
         layoutModeSelect.addEventListener('change', function() {
             const isGalleryMode = this.value === 'extended' || this.value === 'grid';
@@ -292,9 +285,9 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     }
 
     //-----------------------------------------------------
-    // CALENDAR TAB CONTENT
+    // CONTENUTO DEL TAB CALENDAR
     //-----------------------------------------------------
-    // Start day setting with visual separator
+    // Impostazione del giorno di inizio con separatore visivo
     const startDayOptions = [
         { value: 'today', text: 'Today', group: 'special' },
         { disabled: true, text: '─────────────', className: 'day-separator' },
@@ -316,7 +309,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     calendarContent.appendChild(startDayRow);
 
-    // Show episode numbers setting
+    // Impostazione per mostrare i numeri degli episodi
     const showEpisodeNumbersRow = createSettingRow(
         'Show episode numbers',
         'Display episode numbers in the calendar',
@@ -325,9 +318,9 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     calendarContent.appendChild(showEpisodeNumbersRow);
 
     //-----------------------------------------------------
-    // TIME & TIMEZONE TAB CONTENT
+    // CONTENUTO DEL TAB TIME & TIMEZONE
     //-----------------------------------------------------
-    // Show time setting
+    // Impostazione per mostrare l’orario
     const showTimeRow = createSettingRow(
         'Show time',
         'Display time information for each anime',
@@ -335,7 +328,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     timeContent.appendChild(showTimeRow);
 
-    // Time format setting
+    // Impostazione per il formato dell’orario
     const timeFormatRow = createSettingRow(
         'Time format',
         'Choose between countdown or release time',
@@ -346,33 +339,28 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     timeContent.appendChild(timeFormatRow);
 
-    // Timezone select with short display names
+    // Select per il fuso orario con nomi abbreviati in visualizzazione ridotta
     const timezoneSelect = document.createElement('select');
     timezoneSelect.id = 'timezone';
     timezoneSelect.className = 'settings-select';
     timezoneSelect.style.textAlign = 'center';
 
-    // Create options with full text in dropdown but display short version when selected
     for (const tz of window.AnilistCalendar.TIMEZONE_OPTIONS) {
         const option = document.createElement('option');
         option.value = tz.value;
         option.textContent = tz.text;
-        option.dataset.shortText = tz.shortText; // Store short text in data attribute
+        option.dataset.shortText = tz.shortText;
         option.style.textAlign = 'center';
         if (tz.value === window.AnilistCalendar.userPreferences.timezone) {
             option.selected = true;
-            // Display short version for selected item
             option.textContent = tz.shortText;
         }
         timezoneSelect.appendChild(option);
     }
 
-    // Handle change event to update the display of selected item to short version
     timezoneSelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
-        const shortText = selectedOption.dataset.shortText;
-
-        // Reset all options to full text
+        // Ripristina il testo completo per tutte le opzioni
         for (let i = 0; i < this.options.length; i++) {
             const opt = this.options[i];
             const tz = window.AnilistCalendar.TIMEZONE_OPTIONS.find(t => t.value === opt.value);
@@ -380,14 +368,11 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
                 opt.textContent = tz.text;
             }
         }
-
-        // Set selected option to short text
-        if (shortText) {
-            selectedOption.textContent = shortText;
+        if (selectedOption.dataset.shortText) {
+            selectedOption.textContent = selectedOption.dataset.shortText;
         }
     });
 
-    // Create a standard wrapper for the timezone select
     const timezoneWrapper = document.createElement('div');
     timezoneWrapper.className = 'select-wrapper';
     timezoneWrapper.appendChild(timezoneSelect);
@@ -399,39 +384,30 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     timeContent.appendChild(timezoneRow);
 
-    // Add all tab contents to panel
+    // Aggiunge tutti i contenuti dei tab al pannello
     settingsPanel.appendChild(layoutContent);
     settingsPanel.appendChild(calendarContent);
     settingsPanel.appendChild(timeContent);
 
-    // Add tab switching functionality
+    // Aggiunge la funzionalità di cambio tab
     layoutTab.addEventListener('click', () => switchTab('layout-tab'));
     calendarTab.addEventListener('click', () => switchTab('calendar-tab'));
     timeTab.addEventListener('click', () => switchTab('time-tab'));
 
-    // Save button with direct theme styling
+    // Bottone di salvataggio con styling diretto in base al tema
     const saveContainer = document.createElement('div');
     saveContainer.className = 'settings-save-container';
-    if (isLightTheme) {
-        saveContainer.style.backgroundColor = '#f8f9fa';
-    } else {
-        saveContainer.style.backgroundColor = '#121c28';
-    }
+    saveContainer.style.backgroundColor = isLightTheme ? '#f8f9fa' : '#121c28';
 
     const saveButton = document.createElement('button');
     saveButton.className = 'settings-save-btn';
     saveButton.innerHTML = '<i class="fa fa-save"></i> Save Changes';
 
-    // Apply theme-specific styling to the save button
-    if (isLightTheme) {
-        saveButton.style.backgroundColor = '#3577b1';
-    } else {
-        saveButton.style.backgroundColor = '#3db4f2';
-    }
+    saveButton.style.backgroundColor = isLightTheme ? '#3577b1' : '#3db4f2';
 
-    // COMPLETELY REWRITTEN SAVE BUTTON LOGIC WITH BETTER MULTIPLE CHANGES HANDLING
+    // LOGICA DEL BOTTONE SAVE RISCRITTA COMPLETAMENTE PER GESTIRE MEGLIO LE MODIFICHE MULTIPLE
     saveButton.addEventListener('click', () => {
-        // Save current values for comparison
+        // Salva i valori precedenti per confronto
         const prevStartDay = window.AnilistCalendar.userPreferences.startDay;
         const prevHideEmptyDays = window.AnilistCalendar.userPreferences.hideEmptyDays;
         const prevLayoutMode = window.AnilistCalendar.userPreferences.layoutMode;
@@ -443,7 +419,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         const prevColumnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
         const prevMaxCardsPerDay = window.AnilistCalendar.userPreferences.maxCardsPerDay || 0;
 
-        // Get new values from form
+        // Recupera i nuovi valori dal form
         const startDay = document.getElementById('start-day').value;
         const hideEmptyDays = document.getElementById('hide-empty-days').checked;
         const layoutMode = document.getElementById('layout-mode').value;
@@ -455,7 +431,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         const columnJustify = document.getElementById('column-justify').value;
         const maxCardsPerDay = parseInt(document.getElementById('max-cards-per-day').value) || 0;
 
-        // Count what changed
+        // Conta le modifiche apportate
         const changes = [];
         if (prevLayoutMode !== layoutMode) changes.push('layout');
         if (prevColumnJustify !== columnJustify) changes.push('column justification');
@@ -468,7 +444,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         if (prevShowEpisodeNumbers !== showEpisodeNumbers) changes.push('episode numbers');
         if (prevMaxCardsPerDay !== maxCardsPerDay) changes.push('max cards per day');
 
-        // Update preferences object
+        // Aggiorna l’oggetto delle preferenze
         window.AnilistCalendar.userPreferences.startDay = startDay;
         window.AnilistCalendar.userPreferences.hideEmptyDays = hideEmptyDays;
         window.AnilistCalendar.userPreferences.layoutMode = layoutMode;
@@ -480,37 +456,32 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         window.AnilistCalendar.userPreferences.columnJustify = columnJustify;
         window.AnilistCalendar.userPreferences.maxCardsPerDay = maxCardsPerDay;
 
-        // Save to storage
+        // Salva nel local storage
         window.AnilistCalendar.settings.saveUserPreferences();
 
-        // Determine message based on what changed
-        let notificationMessage = '';
-
+        // Determina il messaggio in base alle modifiche
+        let notificationMessage;
         if (changes.length === 0) {
-            // No changes made
             notificationMessage = 'No changes detected';
         } else if (changes.length === 1) {
-            // Only one setting changed
             const capitalized = changes[0].charAt(0).toUpperCase() + changes[0].slice(1);
             notificationMessage = `${capitalized} updated!`;
         } else if (changes.length > 1 && changes.length <= 3) {
-            // 2-3 settings changed - list them specifically
             notificationMessage = `Updated: ${changes.join(', ')}`;
         } else {
-            // More than 3 settings changed
             notificationMessage = `Multiple settings updated (${changes.length})`;
         }
 
-        // Show notification
+        // Mostra la notifica
         window.AnilistCalendar.utils.showNotification(notificationMessage, 'success');
 
-        // Close overlay
+        // Chiude l’overlay
         overlayContainer.classList.remove('active');
         setTimeout(() => {
             overlayContainer.remove();
         }, 300);
 
-        // Update UI without page refresh - PASSAGGIO CORRETTO DI TUTTI I PARAMETRI
+        // Aggiorna l’UI senza ricaricare la pagina
         window.AnilistCalendar.calendar.updateUIWithSettings(
             prevTimeFormat,
             prevTimezone,
@@ -522,18 +493,16 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     saveContainer.appendChild(saveButton);
     settingsPanel.appendChild(saveContainer);
 
-    // Add panel to overlay
+    // Aggiunge il pannello al container dell’overlay
     overlayContainer.appendChild(settingsPanel);
-
-    // Add overlay to page
     document.body.appendChild(overlayContainer);
 
-    // Activate overlay with animation
+    // Attiva l’overlay con animazione
     setTimeout(() => {
         overlayContainer.classList.add('active');
     }, 10);
 
-    // Close when clicking outside the panel
+    // Chiude l’overlay cliccando fuori dal pannello
     overlayContainer.addEventListener('click', (e) => {
         if (e.target === overlayContainer) {
             overlayContainer.classList.remove('active');
@@ -543,15 +512,12 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         }
     });
 
-    // Function to switch tabs with proper styling
+    // Funzione per gestire il cambio dei tab
     function switchTab(tabId) {
-        // Remove active class from all tabs
         const tabs = document.querySelectorAll('.settings-tab');
         tabs.forEach(tab => {
             tab.classList.remove('active');
             tab.style.backgroundColor = 'transparent';
-
-            // Apply theme-specific text color
             if (isLightTheme) {
                 tab.style.color = '#5c728a';
             } else {
@@ -559,33 +525,23 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
             }
         });
 
-        // Remove active class from all content
         const contents = document.querySelectorAll('.tab-content');
         contents.forEach(content => content.classList.remove('active'));
 
-        // Add active class to selected tab
         const activeTab = document.getElementById(tabId);
         activeTab.classList.add('active');
         activeTab.style.backgroundColor = 'rgba(61, 180, 242, 0.1)';
-
-        // Apply theme-specific active text color
-        if (isLightTheme) {
-            activeTab.style.color = '#3577b1';
-        } else {
-            activeTab.style.color = '#3db4f2';
-        }
-
-        // Add active class to selected content
+        activeTab.style.color = isLightTheme ? '#3577b1' : '#3db4f2';
         document.getElementById(tabId + '-content').classList.add('active');
     }
 };
 
 /**
- * Creates a tab button with theme-specific styling
- * @param {string} text - The tab text
- * @param {string} id - The tab ID
- * @param {boolean} isActive - Whether the tab is initially active
- * @return {HTMLElement} The created tab button
+ * Crea un pulsante per i tab con styling specifico del tema.
+ * @param {string} text - Il testo del tab.
+ * @param {string} id - L’ID del tab.
+ * @param {boolean} isActive - Se il tab è inizialmente attivo.
+ * @return {HTMLElement} Il pulsante del tab creato.
  */
 function createTabButton(text, id, isActive = false) {
     const button = document.createElement('button');
@@ -594,18 +550,17 @@ function createTabButton(text, id, isActive = false) {
     button.className = 'settings-tab';
     if (isActive) {
         button.classList.add('active');
-        // Add active styling
         button.style.backgroundColor = 'rgba(61, 180, 242, 0.1)';
     }
     return button;
 }
 
 /**
- * Creates a settings row with label and control
- * @param {string} label - The setting label
- * @param {string} description - The setting description
- * @param {HTMLElement} control - The control element (select, toggle, etc)
- * @return {HTMLElement} The created settings row
+ * Crea una riga di impostazioni composta da etichetta, descrizione e controllo.
+ * @param {string} label - L’etichetta dell’impostazione.
+ * @param {string} description - La descrizione dell’impostazione.
+ * @param {HTMLElement} control - L’elemento di controllo (select, toggle, ecc.).
+ * @return {HTMLElement} La riga di impostazioni creata.
  */
 function createSettingRow(label, description, control) {
     const row = document.createElement('div');
@@ -630,87 +585,87 @@ function createSettingRow(label, description, control) {
     return row;
 }
 
+/**
+ * Helper per popolare le opzioni in un elemento select, eliminando il codice duplicato.
+ * @param {HTMLSelectElement} select - L’elemento select da popolare.
+ * @param {Array} options - L’array di opzioni.
+ * @param {string} selectedVal - Il valore attualmente selezionato.
+ * @param {Function} [extraAttrsCallback] - Funzione opzionale per impostare attributi extra sugli elementi option.
+ */
+function populateOptions(select, options, selectedVal, extraAttrsCallback) {
+    select.innerHTML = '';
+    const selectedOption = options.find(opt => opt.value === selectedVal);
+    if (selectedOption) {
+        const optionEl = document.createElement('option');
+        optionEl.value = selectedVal;
+        optionEl.textContent = selectedOption.text;
+        optionEl.selected = true;
+        select.appendChild(optionEl);
+    }
+    let skipNextSeparator = selectedVal === 'today';
+    options.forEach(option => {
+        if (option.value === selectedVal) return;
+
+        if (option.disabled) {
+            if (skipNextSeparator) {
+                skipNextSeparator = false;
+                return;
+            }
+            const separatorOption = document.createElement('option');
+            separatorOption.disabled = true;
+            separatorOption.className = option.className || 'day-separator';
+            separatorOption.textContent = option.text || '─────────────';
+            separatorOption.style.textAlign = 'center';
+            select.appendChild(separatorOption);
+            return;
+        }
+
+        const optElement = document.createElement('option');
+        optElement.value = option.value;
+        optElement.textContent = option.text;
+        optElement.style.textAlign = 'center';
+        if (extraAttrsCallback && typeof extraAttrsCallback === 'function') {
+            extraAttrsCallback(option, optElement);
+        }
+        select.appendChild(optElement);
+    });
+}
+
+/**
+ * Crea un elemento select generico.
+ * @param {string} id - L’ID del select.
+ * @param {Array} options - Le opzioni da includere.
+ * @param {string} selectedValue - Il valore inizialmente selezionato.
+ * @return {HTMLElement} Il wrapper contenente il select.
+ */
 function createSelect(id, options, selectedValue) {
-    // Wrapper comune per garantire larghezza uniforme
     const wrapper = document.createElement('div');
     wrapper.className = 'select-wrapper';
-
     const select = document.createElement('select');
     select.id = id;
     select.className = 'settings-select';
-
-    // Add inline styles to ensure options are centered
     select.style.textAlign = 'center';
 
-    // Funzione per popolare il select senza mostrare l'opzione selezionata
-    function populateSelect(selectedVal) {
-        select.innerHTML = '';
-
-        // Trova l'opzione corrispondente al valore selezionato
-        const selectedOption = options.find(opt => opt.value === selectedVal);
-
-        // Crea un'opzione nascosta che sarà effettivamente selezionata
-        if (selectedOption) {
-            const topOption = document.createElement('option');
-            topOption.value = selectedVal;
-            topOption.textContent = selectedOption.text;
-            topOption.selected = true;
-            select.appendChild(topOption);
-        }
-
-        // Se il valore selezionato è "today", omette anche il separatore
-        let skipNextSeparator = selectedVal === 'today';
-
-        // Aggiunge le altre opzioni, escludendo quella già selezionata
-        options.forEach(option => {
-            if (option.value === selectedVal) return; // Skip already selected option
-
-            if (option.separator || option.disabled) {
-                if (skipNextSeparator) {
-                    skipNextSeparator = false;
-                    return;
-                }
-                const separatorOption = document.createElement('option');
-                separatorOption.disabled = true;
-                separatorOption.className = option.className || 'day-separator';
-                separatorOption.textContent = option.text || '─────────────';
-                separatorOption.style.textAlign = 'center';
-                select.appendChild(separatorOption);
-                return;
-            }
-
-            const optElement = document.createElement('option');
-            optElement.value = option.value;
-            optElement.textContent = option.text;
-            optElement.style.textAlign = 'center';
-
+    function populate(selectedVal) {
+        populateOptions(select, options, selectedVal, (option, elem) => {
             if (option.shortText) {
-                optElement.dataset.short = option.shortText;
+                elem.dataset.short = option.shortText;
             }
-            select.appendChild(optElement);
         });
     }
+    populate(selectedValue);
 
-    // Popola inizialmente il select
-    populateSelect(selectedValue);
-
-    // Aggiornamento del menu al cambio di selezione
     select.addEventListener('change', function() {
-        const newValue = this.value;
-        populateSelect(newValue);
+        populate(this.value);
     });
 
-    // Gestione speciale per timezone
     if (id === 'timezone') {
         select.addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             if (selectedOption && selectedOption.dataset.short) {
-                // Imposta il testo abbreviato per la voce selezionata
                 selectedOption.textContent = selectedOption.dataset.short;
             }
         });
-
-        // Applica la versione abbreviata all'avvio, se definita
         const initialOption = select.options[select.selectedIndex];
         if (initialOption && initialOption.dataset.short) {
             initialOption.textContent = initialOption.dataset.short;
@@ -721,73 +676,35 @@ function createSelect(id, options, selectedValue) {
     return wrapper;
 }
 
+/**
+ * Crea un elemento select filtrato.
+ * @param {string} id - L’ID del select.
+ * @param {Array} options - Le opzioni da includere.
+ * @param {string} selectedValue - Il valore inizialmente selezionato.
+ * @return {HTMLElement} Il wrapper contenente il select.
+ */
 function createFilteredSelect(id, options, selectedValue) {
-    // Wrapper per larghezza uniforme
     const wrapper = document.createElement('div');
     wrapper.className = 'select-wrapper';
-
     const select = document.createElement('select');
     select.id = id;
     select.className = 'settings-select';
-
-    // Add inline styles to ensure options are centered
     select.style.textAlign = 'center';
 
-    // Funzione interna per popolare il select con esclusione del valore selezionato
-    function populateSelect(selectedVal) {
-        select.innerHTML = '';
-
-        // Cerca e inserisce l'opzione attualmente selezionata in cima
-        const selectedOption = options.find(opt => opt.value === selectedVal);
-        if (selectedOption) {
-            const currentOption = document.createElement('option');
-            currentOption.value = selectedVal;
-            currentOption.textContent = selectedOption.text;
-            currentOption.selected = true;
-            select.appendChild(currentOption);
-        }
-
-        // Salta il separatore se "today" è selezionato
-        let skipNextSeparator = selectedVal === 'today';
-        options.forEach(option => {
-            if (option.value === selectedVal) return;
-
-            if (option.separator || option.disabled) {
-                if (skipNextSeparator) {
-                    skipNextSeparator = false;
-                    return;
-                }
-                const separatorOption = document.createElement('option');
-                separatorOption.disabled = true;
-                separatorOption.className = option.className || 'day-separator';
-                separatorOption.textContent = option.text || '─────────────';
-                separatorOption.style.textAlign = 'center';
-                select.appendChild(separatorOption);
-                return;
-            }
-
-            const optionElement = document.createElement('option');
-            optionElement.value = option.value;
-            optionElement.textContent = option.text;
-            optionElement.style.textAlign = 'center';
-
+    function populate(selectedVal) {
+        populateOptions(select, options, selectedVal, (option, elem) => {
             if (option.group) {
-                optionElement.dataset.group = option.group;
+                elem.dataset.group = option.group;
             }
             if (option.shortText) {
-                optionElement.dataset.short = option.shortText;
+                elem.dataset.short = option.shortText;
             }
-            select.appendChild(optionElement);
         });
     }
+    populate(selectedValue);
 
-    // Popola il select con il valore iniziale
-    populateSelect(selectedValue);
-
-    // Aggiornamento del menu quando il valore cambia
     select.addEventListener('change', function() {
-        const newValue = this.value;
-        populateSelect(newValue);
+        populate(this.value);
     });
 
     wrapper.appendChild(select);
@@ -795,20 +712,17 @@ function createFilteredSelect(id, options, selectedValue) {
 }
 
 /**
- * Creates a number input
- * @param {string} id - The input ID
- * @param {number} value - The initial value
- * @param {number} min - The minimum value
- * @param {number} max - The maximum value
- * @param {number} step - The step value
- * @return {HTMLElement} The created number input
+ * Crea un input di tipo number.
+ * @param {string} id - L’ID dell’input.
+ * @param {number} value - Il valore iniziale.
+ * @param {number} min - Il valore minimo.
+ * @param {number} max - Il valore massimo.
+ * @param {number} step - L’incremento.
+ * @return {HTMLElement} L’elemento input creato.
  */
 function createNumberInput(id, value, min, max, step) {
-    // Usa lo stesso wrapper degli altri controlli per mantenere uniformità
     const wrapper = document.createElement('div');
     wrapper.className = 'select-wrapper';
-
-    // Stile inline per garantire la larghezza corretta anche se il CSS non è caricato completamente
     wrapper.style.width = '160px';
     wrapper.style.display = 'inline-block';
 
@@ -816,19 +730,17 @@ function createNumberInput(id, value, min, max, step) {
     input.type = 'number';
     input.id = id;
     input.className = 'settings-number-input';
-    input.min = min;
-    input.max = max;
-    input.step = step;
-    input.value = value;
+    input.min = min.toString();
+    input.max = max.toString();
+    input.step = step.toString();
+    input.value = value.toString();
 
-    // Stili inline per garantire coerenza con gli elementi select
     input.style.width = '100%';
     input.style.boxSizing = 'border-box';
     input.style.padding = '8px 10px';
     input.style.borderRadius = '4px';
     input.style.textAlign = 'center';
 
-    // Applica stili specifici per tema chiaro/scuro
     const isLightTheme = document.body.classList.contains('site-theme-light') ||
         document.documentElement.classList.contains('site-theme-light') ||
         document.body.getAttribute('data-theme') === 'light' ||
@@ -849,10 +761,10 @@ function createNumberInput(id, value, min, max, step) {
 }
 
 /**
- * Creates a toggle switch
- * @param {string} id - The toggle ID
- * @param {boolean} checked - Whether the toggle is initially checked
- * @return {HTMLElement} The created toggle element
+ * Crea un interruttore toggle.
+ * @param {string} id - L’ID del toggle.
+ * @param {boolean} checked - Se il toggle è inizialmente attivo.
+ * @return {HTMLElement} L’elemento toggle creato.
  */
 function createToggle(id, checked) {
     const toggle = document.createElement('label');
@@ -866,14 +778,8 @@ function createToggle(id, checked) {
     const slider = document.createElement('span');
     slider.className = 'slider';
 
-    // Set inline styles to ensure the background color is visible regardless of CSS loading
-    if (checked) {
-        slider.style.backgroundColor = '#3db4f2';
-    } else {
-        slider.style.backgroundColor = '#2c3e50';
-    }
+    slider.style.backgroundColor = checked ? '#3db4f2' : '#2c3e50';
 
-    // Update slider color when toggled
     input.addEventListener('change', function() {
         slider.style.backgroundColor = this.checked ? '#3db4f2' : '#2c3e50';
     });
