@@ -243,7 +243,7 @@ AniCal.main.findAndReplaceAiringSection = function() {
 
         // Replace the header text
         if (headerElement) {
-            headerElement.innerHTML = `Weekly Schedule <span class="timezone-separator">|</span> <span class="timezone-info">${AniCal.settings.getTimezoneName()}</span>`;
+            headerElement.innerHTML = 'Weekly Schedule';
             headerElement.className = 'airing-replaced-header';
             AniCal.utils.log("Replaced header text");
         }

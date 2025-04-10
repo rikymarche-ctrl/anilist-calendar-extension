@@ -186,7 +186,7 @@
 }
 
 /* -----------------------------------------------------------
-   4. HEADER & TIMEZONE DISPLAY
+   4. HEADER
    ----------------------------------------------------------- */
 
 .airing-replaced-header {
@@ -203,18 +203,6 @@
     position: relative;
     margin-bottom: 0 !important;
     padding: 12px 20px;
-}
-
-.timezone-separator {
-    color: var(--cal-text-light);
-    margin: 0 8px;
-    font-weight: normal;
-}
-
-.timezone-info {
-    color: var(--cal-text-light);
-    font-weight: normal;
-    font-size: 0.9em;
 }
 
 /* -----------------------------------------------------------

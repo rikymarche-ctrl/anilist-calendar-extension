@@ -364,7 +364,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     calendarContent.appendChild(showEpisodeNumbersRow);
 
     //-----------------------------------------------------
-    // TIME & TIMEZONE TAB CONTENT
+    // TIME TAB CONTENT
     //-----------------------------------------------------
     // Show time setting
     const showTimeRow = createSettingRow(
@@ -384,92 +384,6 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         ], window.AnilistCalendar.userPreferences.timeFormat)
     );
     timeContent.appendChild(timeFormatRow);
-
-    // Timezone select with abbreviated names in compact display
-    const timezoneSelect = document.createElement('select');
-    timezoneSelect.id = 'timezone';
-    timezoneSelect.className = 'settings-select';
-
-    // Add options without duplicating the selected one
-    const currentTimezone = window.AnilistCalendar.userPreferences.timezone;
-    let selectedOptionAdded = false;
-
-    for (const tz of window.AnilistCalendar.TIMEZONE_OPTIONS) {
-        // Skip adding the current timezone option to the dropdown
-        if (tz.value === currentTimezone) {
-            // Create a selected option separately
-            const selectedOption = document.createElement('option');
-            selectedOption.value = tz.value;
-            selectedOption.textContent = tz.shortText || tz.text;
-            selectedOption.selected = true;
-            selectedOption.className = 'timezone-option selected-timezone';
-            timezoneSelect.appendChild(selectedOption);
-            selectedOptionAdded = true;
-            continue;
-        }
-
-        const option = document.createElement('option');
-        option.value = tz.value;
-        option.textContent = tz.text;
-        option.dataset.shortText = tz.shortText;
-        option.className = 'timezone-option';
-        timezoneSelect.appendChild(option);
-    }
-
-    // If for some reason the selected option wasn't found in the options array
-    if (!selectedOptionAdded) {
-        const defaultOption = document.createElement('option');
-        defaultOption.value = currentTimezone;
-        defaultOption.textContent = "Custom Timezone";
-        defaultOption.selected = true;
-        timezoneSelect.insertBefore(defaultOption, timezoneSelect.firstChild);
-    }
-
-    timezoneSelect.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-
-        // Reset the dropdown with updated selection
-        const selectedValue = selectedOption.value;
-
-        // Clear all options
-        while (timezoneSelect.firstChild) {
-            timezoneSelect.removeChild(timezoneSelect.firstChild);
-        }
-
-        // Rebuild the dropdown with the new selected option at the top
-        let newSelectedOptionAdded = false;
-
-        for (const tz of window.AnilistCalendar.TIMEZONE_OPTIONS) {
-            if (tz.value === selectedValue) {
-                const newSelectedOption = document.createElement('option');
-                newSelectedOption.value = tz.value;
-                newSelectedOption.textContent = tz.shortText || tz.text;
-                newSelectedOption.selected = true;
-                newSelectedOption.className = 'timezone-option selected-timezone';
-                timezoneSelect.appendChild(newSelectedOption);
-                newSelectedOptionAdded = true;
-                continue;
-            }
-
-            const option = document.createElement('option');
-            option.value = tz.value;
-            option.textContent = tz.text;
-            option.dataset.shortText = tz.shortText;
-            option.className = 'timezone-option';
-            timezoneSelect.appendChild(option);
-        }
-    });
-
-    const timezoneWrapper = document.createElement('div');
-    timezoneWrapper.className = 'select-wrapper';
-    timezoneWrapper.appendChild(timezoneSelect);
-
-    const timezoneRow = createSettingRow(
-        'Timezone',
-        'Adjust anime airing times to your timezone',
-        timezoneWrapper
-    );
-    timeContent.appendChild(timezoneRow);
 
     // Add all tab contents to the panel
     settingsPanel.appendChild(layoutContent);
@@ -504,7 +418,6 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         const prevTimeFormat = window.AnilistCalendar.userPreferences.timeFormat;
         const prevShowTime = window.AnilistCalendar.userPreferences.showTime;
         const prevShowEpisodeNumbers = window.AnilistCalendar.userPreferences.showEpisodeNumbers;
-        const prevTimezone = window.AnilistCalendar.userPreferences.timezone;
         const prevTitleAlignment = window.AnilistCalendar.userPreferences.titleAlignment || 'left';
         const prevColumnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
         const prevMaxCardsPerDay = window.AnilistCalendar.userPreferences.maxCardsPerDay || 0;
@@ -517,15 +430,14 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         const timeFormat = document.getElementById('time-format').value;
         const showTime = document.getElementById('show-time').checked;
         const showEpisodeNumbers = document.getElementById('show-episode-numbers').checked;
-        const timezone = document.getElementById('timezone').value;
 
-        // Prendi l'allineamento del titolo solo se non in modalità gallery
-        let titleAlignment = 'left'; // Valore predefinito
+        // Get title alignment only if not in gallery mode
+        let titleAlignment = 'left'; // Default value
         if (layoutMode !== 'extended') {
             titleAlignment = document.getElementById('title-alignment').value;
         }
 
-        // Prendi la giustificazione della colonna (valido per tutti i layout)
+        // Get column justification (valid for all layouts)
         const columnJustify = document.getElementById('column-justify').value;
         const maxCardsPerDay = parseInt(document.getElementById('max-cards-per-day').value) || 0;
         const fullWidthImages = document.getElementById('full-width-images').checked;
@@ -535,7 +447,6 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         if (prevLayoutMode !== layoutMode) changes.push('layout mode');
         if (prevColumnJustify !== columnJustify) changes.push('column justification');
         if (prevStartDay !== startDay) changes.push('start day');
-        if (prevTimezone !== timezone) changes.push('timezone');
         if (prevTimeFormat !== timeFormat) changes.push('time format');
         if (prevTitleAlignment !== titleAlignment) changes.push('title alignment');
         if (prevHideEmptyDays !== hideEmptyDays) changes.push('empty days visibility');
@@ -551,7 +462,6 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         window.AnilistCalendar.userPreferences.timeFormat = timeFormat;
         window.AnilistCalendar.userPreferences.showTime = showTime;
         window.AnilistCalendar.userPreferences.showEpisodeNumbers = showEpisodeNumbers;
-        window.AnilistCalendar.userPreferences.timezone = timezone;
         window.AnilistCalendar.userPreferences.titleAlignment = titleAlignment;
         window.AnilistCalendar.userPreferences.columnJustify = columnJustify;
         window.AnilistCalendar.userPreferences.maxCardsPerDay = maxCardsPerDay;
@@ -576,32 +486,15 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         // Show notification
         window.AnilistCalendar.utils.showNotification(notificationMessage, 'success');
 
-        // Mostro il messaggio di salvataggio
-        window.AnilistCalendar.utils.showNotification(notificationMessage, 'success');
-
-        // Determina se è necessario un refresh completo del calendario
-        const needsCompleteRerender = (
-            prevLayoutMode !== layoutMode ||
-            prevTitleAlignment !== titleAlignment ||
-            prevColumnJustify !== columnJustify ||
-            prevFullWidthImages !== fullWidthImages ||
-            prevStartDay !== startDay ||
-            prevHideEmptyDays !== hideEmptyDays ||
-            prevShowEpisodeNumbers !== showEpisodeNumbers ||
-            prevShowTime !== showTime ||
-            prevTimeFormat !== timeFormat ||
-            prevTimezone !== timezone
-        );
-
         // Close overlay
         overlayContainer.classList.remove('active');
         setTimeout(() => {
             overlayContainer.remove();
         }, 300);
 
-        // Forzare sempre il re-rendering completo del calendario per tutte le impostazioni
+        // Always force complete re-rendering of the calendar for all settings
         if (window.AnilistCalendar.state.calendarContainer) {
-            // Prima rimuovi tutte le classi potenzialmente problematiche
+            // First remove all potentially problematic classes
             window.AnilistCalendar.state.calendarContainer.classList.remove(
                 'standard-mode', 'compact-mode', 'extended-mode', 'gallery-with-slider',
                 'title-left', 'title-center',
@@ -609,23 +502,22 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
                 'full-width-images'
             );
 
-            // Poi aggiorna l'UI con le nuove impostazioni
+            // Then update the UI with the new settings
             window.AnilistCalendar.calendar.updateUIWithSettings(
                 prevTimeFormat,
-                prevTimezone,
                 prevTitleAlignment,
                 prevColumnJustify,
                 prevFullWidthImages,
-                prevLayoutMode  // Aggiungiamo questo parametro mancante
+                prevLayoutMode
             );
 
-            // Forza sempre un re-rendering completo del calendario
+            // Always force a complete re-rendering of the calendar
             window.AnilistCalendar.calendar.renderCalendar(
                 window.AnilistCalendar.state.weeklySchedule,
                 true
             );
 
-            // Forza l'applicazione della giustificazione delle colonne
+            // Force the application of column justification
             const columnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
             window.AnilistCalendar.calendar.forceColumnJustification(columnJustify);
         }

@@ -17,7 +17,6 @@ window.AnilistCalendar.settings.loadUserPreferences = async function() {
                 `${window.AnilistCalendar.STORAGE_KEY_PREFIX}time_format`,
                 `${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_time`,
                 `${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_episode_numbers`,
-                `${window.AnilistCalendar.STORAGE_KEY_PREFIX}timezone`,
                 `${window.AnilistCalendar.STORAGE_KEY_PREFIX}title_alignment`,
                 `${window.AnilistCalendar.STORAGE_KEY_PREFIX}column_justify`,
                 `${window.AnilistCalendar.STORAGE_KEY_PREFIX}max_cards_per_day`,
@@ -45,9 +44,6 @@ window.AnilistCalendar.settings.loadUserPreferences = async function() {
                 }
                 if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_episode_numbers`] !== undefined) {
                     window.AnilistCalendar.userPreferences.showEpisodeNumbers = result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_episode_numbers`];
-                }
-                if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}timezone`] !== undefined) {
-                    window.AnilistCalendar.userPreferences.timezone = result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}timezone`];
                 }
                 if (result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}title_alignment`] !== undefined) {
                     window.AnilistCalendar.userPreferences.titleAlignment = result[`${window.AnilistCalendar.STORAGE_KEY_PREFIX}title_alignment`];
@@ -101,7 +97,6 @@ window.AnilistCalendar.settings.saveUserPreferences = function() {
             [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}time_format`]: window.AnilistCalendar.userPreferences.timeFormat,
             [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_time`]: window.AnilistCalendar.userPreferences.showTime,
             [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}show_episode_numbers`]: window.AnilistCalendar.userPreferences.showEpisodeNumbers,
-            [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}timezone`]: window.AnilistCalendar.userPreferences.timezone,
             [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}title_alignment`]: window.AnilistCalendar.userPreferences.titleAlignment,
             [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}column_justify`]: window.AnilistCalendar.userPreferences.columnJustify || 'top',
             [`${window.AnilistCalendar.STORAGE_KEY_PREFIX}max_cards_per_day`]: window.AnilistCalendar.userPreferences.maxCardsPerDay || 0,
@@ -121,42 +116,4 @@ window.AnilistCalendar.settings.saveUserPreferences = function() {
     } catch (e) {
         window.AnilistCalendar.utils.log("Error saving preferences", e);
     }
-};
-
-/**
- * Gets the timezone offset for the selected timezone
- * @return {number} The timezone offset in hours
- */
-window.AnilistCalendar.settings.getSelectedTimezoneOffset = function() {
-    if (window.AnilistCalendar.userPreferences.timezone === 'auto') {
-        return window.AnilistCalendar.utils.getBrowserTimezoneOffset();
-    }
-
-    // Find the selected timezone in options
-    const timezone = window.AnilistCalendar.TIMEZONE_OPTIONS.find(tz => tz.value === window.AnilistCalendar.userPreferences.timezone);
-    return timezone ? timezone.offset : window.AnilistCalendar.JAPAN_TIMEZONE_OFFSET; // Default to Japan if not found
-};
-
-/**
- * Gets a clean timezone name format for display
- * @return {string} Formatted timezone name
- */
-window.AnilistCalendar.settings.getTimezoneName = function() {
-    if (window.AnilistCalendar.userPreferences.timezone === 'auto') {
-        const offset = window.AnilistCalendar.utils.getBrowserTimezoneOffset();
-        const sign = offset >= 0 ? '+' : '-';
-        const absOffset = Math.abs(offset);
-        const hours = Math.floor(absOffset);
-        const minutes = Math.round((absOffset - hours) * 60);
-
-        return `UTC${sign}${hours}${minutes > 0 ? `:${minutes}` : ''}`;
-    }
-
-    // Find the timezone in options and get just the UTC part
-    const timezone = window.AnilistCalendar.TIMEZONE_OPTIONS.find(tz => tz.value === window.AnilistCalendar.userPreferences.timezone);
-    if (timezone && timezone.shortText) {
-        return timezone.shortText;
-    }
-
-    return 'UTC+9'; // Default to Japan timezone
 };

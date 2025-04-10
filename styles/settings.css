@@ -573,8 +573,7 @@ input:checked + .slider:before {
 /* Centratura per le opzioni nelle select */
 .settings-select,
 .option-standard,
-.option-selected,
-.timezone-option {
+.option-selected {
     text-align: center;
 }
 
