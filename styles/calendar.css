@@ -686,20 +686,6 @@ html body .anilist-weekly-calendar.compact-mode[class*="title-center"] .anime-ti
     padding: 14px;
 }
 
-.anilist-weekly-calendar.extended-mode .anime-entry {
-    flex-direction: column;
-    width: 105px !important;
-    height: 160px !important;
-    padding: 0;
-    border-radius: 4px;
-    overflow: hidden;
-    margin: 0;
-    position: relative;
-    background: transparent !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
-    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-}
-
 .anilist-weekly-calendar.extended-mode .anime-entry:hover {
     transform: translateY(-2px) !important;
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25) !important;
@@ -1003,6 +989,95 @@ html body .anilist-weekly-calendar.compact-mode[class*="title-center"] .anime-ti
     position: relative;
 }
 
+/* =====================================================================
+   GALLERY MODE (EXTENDED MODE) SPECIFIC FIXES
+   ===================================================================== */
+
+/* Extended Mode (Gallery) */
+.anilist-weekly-calendar.extended-mode .day-anime-list {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center !important; /* Forza centrato */
+    align-items: center !important;
+    padding: 14px;
+    height: auto !important;
+    min-height: auto !important;
+}
+
+.anilist-weekly-calendar.extended-mode .anime-entry {
+    flex-direction: column;
+    width: 105px !important;
+    height: 160px !important;
+    padding: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0;
+    position: relative;
+    background: transparent !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+/* Galley mode slider wrapper */
+.gallery-slider-wrapper {
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.gallery-pages-container {
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Specifica ottimizzazione per il layout Extended/Gallery */
+.anilist-weekly-calendar.extended-mode.column-justify-center .day-anime-list,
+.anilist-weekly-calendar.extended-mode .day-anime-list.justify-center {
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+.anilist-weekly-calendar.extended-mode.column-justify-top .day-anime-list,
+.anilist-weekly-calendar.extended-mode .day-anime-list.justify-top {
+    justify-content: center !important; /* In gallery mode, sempre centrato orizzontalmente */
+    align-items: flex-start !important; /* Ma verticalmente può essere in alto */
+}
+
+.gallery-page.justify-center {
+    justify-content: center !important;
+    align-items: center !important;
+    align-content: center !important;
+}
+
+.gallery-page.justify-top {
+    justify-content: center !important; /* Sempre centrato orizzontalmente */
+    align-items: flex-start !important;
+    align-content: flex-start !important;
+}
+
+/* Remove fixed heights for empty days in gallery mode */
+.anilist-weekly-calendar.extended-mode .empty-day {
+    width: auto;
+    height: auto !important;
+    min-height: 70px !important;
+    padding: 10px;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 /*------------------------------------------------------
  * ANIMATIONS
  *------------------------------------------------------*/
@@ -1075,4 +1150,237 @@ html body .anilist-weekly-calendar.compact-mode[class*="title-center"] .anime-ti
     .anime-entry {
         height: 65px;
     }
+}
+
+/* -----------------------------------------------------
+ * COLUMN JUSTIFICATION
+ * ----------------------------------------------------- */
+
+/* Stili base per il contenitore della griglia */
+.anilist-calendar-grid {
+    min-height: 400px !important;
+    display: grid !important;
+}
+
+/* Stili per le colonne dei giorni */
+.anilist-calendar-day {
+    min-height: 400px !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Giustificazione dall'alto */
+.anilist-weekly-calendar .anilist-calendar-grid .anilist-calendar-day.force-top {
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+}
+
+/* Giustificazione centrata */
+.anilist-weekly-calendar .anilist-calendar-grid .anilist-calendar-day.force-center {
+    justify-content: center !important;
+    align-items: stretch !important;
+}
+
+/* Stili per le liste di anime */
+.anilist-calendar-day .day-anime-list {
+    min-height: 300px !important;
+    height: 100% !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Giustificazione dall'alto per la lista anime */
+.anilist-calendar-day .day-anime-list.justify-top {
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+}
+
+/* Giustificazione centrata per la lista anime */
+.anilist-calendar-day .day-anime-list.justify-center {
+    justify-content: center !important;
+    align-items: stretch !important;
+}
+
+/* Stili per il contenitore gallery-slider-wrapper, che potrebbe interferire con la giustificazione */
+.gallery-slider-wrapper {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.gallery-slider-wrapper.justify-top {
+    justify-content: flex-start !important;
+}
+
+.gallery-slider-wrapper.justify-center {
+    justify-content: center !important;
+}
+
+/* Stili per le pagine gallery, per garantire la giustificazione corretta */
+.gallery-page {
+    min-height: 100px !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+}
+
+.gallery-page.justify-top {
+    justify-content: flex-start !important;
+    align-content: flex-start !important;
+}
+
+.gallery-page.justify-center {
+    justify-content: center !important;
+    align-content: center !important;
+}
+
+/* Applica una altezza fissa alle righe vuote */
+.empty-day {
+    min-height: 150px !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* =====================================================================
+   CONTENT SIZED CALENDAR FIXES
+   ===================================================================== */
+
+/* Base container sizing */
+.anilist-weekly-calendar {
+    width: 100%;
+    max-width: 100%;
+    height: auto !important; /* Rimuove altezze fisse */
+    min-height: auto !important; /* Rimuove min-height fissa */
+}
+
+/* Calendar grid layout - content sized */
+.anilist-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(min-content, 1fr));
+    width: 100%;
+    max-width: 100%;
+    height: auto !important; /* Rimuove altezze fisse */
+    min-height: auto !important; /* Rimuove min-height fissa */
+    overflow-x: hidden;
+    box-sizing: border-box;
+    gap: 1px;
+}
+
+/* Day columns content sizing */
+.anilist-calendar-day {
+    display: flex !important;
+    flex-direction: column !important;
+    position: relative;
+    min-width: 0;
+    max-width: 100%;
+    height: auto !important; /* Rimuove altezze fisse */
+    min-height: auto !important; /* Usa altezza basata sul contenuto */
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+/* Day content list */
+.day-anime-list {
+    height: auto !important; /* Importante: basato sul contenuto */
+    min-height: auto !important;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: visible;
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+}
+
+/* Rimuovi fixed heights da empty day */
+.empty-day {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--cal-text-light);
+    font-style: italic;
+    text-align: center;
+    height: auto !important;
+    min-height: 70px !important; /* Minimo spazio per visualizzare il messaggio */
+    width: 100%;
+    padding: 20px 0;
+    margin: auto;
+    opacity: 0.7;
+}
+
+/* Fix for gallery mode (extended mode) */
+.anilist-weekly-calendar.extended-mode .day-anime-list {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center !important; /* IMPORTANTE: centrato orizzontalmente */
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    height: auto !important;
+    min-height: auto !important;
+}
+
+/* Fix gallery page layout */
+.gallery-page {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important; /* IMPORTANTE: centrato */
+    align-items: center !important;
+    gap: 14px !important;
+    width: 100% !important;
+    max-width: 600px !important;
+    padding: 10px 0 !important;
+    height: auto !important;
+    min-height: auto !important;
+}
+
+/* Fix gallery wrapper */
+.gallery-slider-wrapper {
+    width: 100% !important;
+    height: auto !important; /* Rimuovi altezza fissa */
+    min-height: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+
+/* Days column count fixes */
+.anilist-weekly-calendar.days-count-1 .anilist-calendar-grid {
+    grid-template-columns: 1fr;
+    width: auto;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.anilist-weekly-calendar.days-count-2 .anilist-calendar-grid {
+    grid-template-columns: repeat(2, minmax(min-content, 1fr));
+    width: auto;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.anilist-weekly-calendar.days-count-3 .anilist-calendar-grid {
+    grid-template-columns: repeat(3, minmax(min-content, 1fr));
+    width: auto;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.anilist-weekly-calendar.days-count-4 .anilist-calendar-grid {
+    grid-template-columns: repeat(4, minmax(min-content, 1fr));
+    width: auto;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.anilist-weekly-calendar.days-count-5 .anilist-calendar-grid,
+.anilist-weekly-calendar.days-count-6 .anilist-calendar-grid,
+.anilist-weekly-calendar.days-count-7 .anilist-calendar-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    width: 100%;
 }

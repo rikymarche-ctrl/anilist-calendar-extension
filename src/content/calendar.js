@@ -3,7 +3,14 @@
  * Creates and manages the weekly calendar view
  */
 
-// Helper: configura un elemento immagine applicando attributi, stili ed eventi comuni.
+/**
+ * Configures an image element applying common attributes, styles and events
+ * @param {string} src - The image source URL
+ * @param {Object} anime - The anime data object
+ * @param {HTMLElement} imageContainer - The container to append the image to
+ * @param {Object} options - Optional configuration parameters
+ * @return {HTMLElement} The configured image element
+ */
 function createConfiguredImage(src, anime, imageContainer, options = {}) {
     const img = document.createElement('img');
     img.src = src;
@@ -35,143 +42,168 @@ function createConfiguredImage(src, anime, imageContainer, options = {}) {
     return img;
 }
 
-// Helper: crea il pannello informativo per l'entry dell'anime includendo numero episodio e orario/countdown.
-function createAnimeInfoRow(anime) {
-    const infoRow = document.createElement('div');
-    infoRow.className = 'anime-info-row';
+/**
+ * Forcefully applies column justification to all calendar elements
+ * @param {string} justification - The justification type ('top' or 'center')
+ */
+window.AnilistCalendar.calendar.forceColumnJustification = function(justification) {
+    if (!window.AnilistCalendar.state.calendarContainer) return;
 
-    if (window.AnilistCalendar.userPreferences.showEpisodeNumbers) {
-        const episodeNumber = document.createElement('div');
-        episodeNumber.className = 'episode-number';
+    // Log for debugging
+    window.AnilistCalendar.utils.log(`Forcing column justification: ${justification}`);
 
-        // Visualizza stringa di progresso se disponibile, altrimenti il formato standard.
-        if (anime.episodeProgressString && anime.episodeProgressString.trim().length > 0) {
-            episodeNumber.textContent = 'Ep ' + anime.episodeProgressString;
-        } else {
-            episodeNumber.textContent = 'Ep ' + anime.episodeInfo;
-        }
+    // Get current layout mode to adapt the styling
+    const currentLayoutMode = window.AnilistCalendar.userPreferences.layoutMode || 'standard';
+    window.AnilistCalendar.utils.log(`Current layout mode: ${currentLayoutMode}`);
 
-        // Se presente l'indicatore degli episodi arretrati, aggiungilo all'inizio.
-        if (anime.episodesBehind > 0) {
-            const behindIndicator = document.createElement('span');
-            behindIndicator.className = 'behind-indicator';
-            behindIndicator.title = `${anime.episodesBehind} episode(s) behind`;
-            episodeNumber.prepend(behindIndicator);
-        }
+    // Get all day columns
+    const dayColumns = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.anilist-calendar-day');
 
-        infoRow.appendChild(episodeNumber);
-    }
+    // Apply highly specific styles with !important
+    const columnStyle = document.createElement('style');
+    columnStyle.id = 'force-column-justify-style';
 
-    if (window.AnilistCalendar.userPreferences.showTime) {
-        const timeDisplay = document.createElement('div');
-        timeDisplay.className = 'anime-time';
+    // Remove any previous styles
+    const oldStyle = document.getElementById('force-column-justify-style');
+    if (oldStyle) oldStyle.remove();
 
-        if (window.AnilistCalendar.userPreferences.timeFormat === 'countdown') {
-            timeDisplay.classList.add('countdown-mode');
-            const now = new Date();
+    // Add style to document
+    document.head.appendChild(columnStyle);
 
-            // Calcolo dell'orario attuale in Giappone (UTC+9)
-            const currentTimeInJapan = new Date();
-            const localUTCOffset = currentTimeInJapan.getTimezoneOffset() * -1 / 60;
-            const offsetFromJapan = localUTCOffset - 9;
-            currentTimeInJapan.setHours(currentTimeInJapan.getHours() - offsetFromJapan);
+    // Also apply inline styles for extra assurance, specific to layout type
+    dayColumns.forEach(column => {
+        // Apply inline styles
+        column.style.display = 'flex';
+        column.style.flexDirection = 'column';
+        column.style.justifyContent = justification === 'center' ? 'center' : 'flex-start';
+        column.style.alignItems = 'stretch';
+        column.style.minHeight = '400px';
 
-            // Calcola l'orario originale di messa in onda e corregge il fuso orario
-            const originalAiringTime = new Date(anime.airingDate.getTime());
-            const userTimezoneOffset = window.AnilistCalendar.settings.getSelectedTimezoneOffset();
-            const japanOffset = window.AnilistCalendar.JAPAN_TIMEZONE_OFFSET;
-            const offsetDiff = userTimezoneOffset - japanOffset;
-            const japaneseAiringTime = new Date(originalAiringTime.getTime() - (offsetDiff * 60 * 60 * 1000));
+        // Apply styles to anime list
+        const animeList = column.querySelector('.day-anime-list');
+        if (animeList) {
+            animeList.style.display = 'flex';
+            animeList.style.flexDirection = 'column';
+            animeList.style.justifyContent = justification === 'center' ? 'center' : 'flex-start';
+            animeList.style.alignItems = 'stretch';
+            animeList.style.flex = '1';
+            animeList.style.minHeight = '300px';
+            animeList.style.height = '100%';
 
-            const hasAiredInJapan = japaneseAiringTime < currentTimeInJapan;
-
-            if (hasAiredInJapan) {
-                timeDisplay.textContent = "Aired";
-            } else {
-                const targetTime = new Date(anime.airingDate);
-                const diff = targetTime - now;
-                const { days, hours, minutes } = window.AnilistCalendar.utils.calculateTimeComponents(diff);
-                timeDisplay.textContent = days > 0 ?
-                    `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}` :
-                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            // Apply specific styles based on layout
+            if (currentLayoutMode === 'extended') {
+                // For gallery mode, set different styles if needed
+                // ...
+            } else if (currentLayoutMode === 'compact') {
+                // For compact mode, set different styles if needed
+                // ...
             }
-        } else {
-            timeDisplay.textContent = anime.formattedTime;
+
+            // Empty day styling
+            const emptyDay = animeList.querySelector('.empty-day');
+            if (emptyDay) {
+                if (justification === 'center') {
+                    emptyDay.style.margin = 'auto';
+                } else {
+                    emptyDay.style.marginTop = '0';
+                }
+            }
         }
+    });
 
-        infoRow.appendChild(timeDisplay);
-    }
+    // Force a layout refresh with a small delay
+    setTimeout(() => {
+        // Trigger a reflow
+        window.AnilistCalendar.state.calendarContainer.style.display = 'none';
+        void window.AnilistCalendar.state.calendarContainer.offsetHeight;
+        window.AnilistCalendar.state.calendarContainer.style.display = '';
 
-    return infoRow;
-}
+        window.AnilistCalendar.utils.log("Column justification refresh complete");
+    }, 10);
+};
 
 /**
- * Processes anime data into a weekly schedule
- * @param {Array} animeData - Array of anime data objects
- * @return {Object} Object with days as keys and arrays of anime as values
+ * Forcefully applies title alignment to all anime titles
+ * @param {string} alignment - The alignment type ('left' or 'center')
  */
-window.AnilistCalendar.calendar.processAnimeData = function(animeData) {
-    const schedule = {
-        Sunday: [],
-        Monday: [],
-        Tuesday: [],
-        Wednesday: [],
-        Thursday: [],
-        Friday: [],
-        Saturday: []
-    };
+window.AnilistCalendar.calendar.forceTitleAlignment = function(alignment) {
+    if (!window.AnilistCalendar.state.calendarContainer) return;
 
-    // Process each anime entry
-    for (const anime of animeData) {
-        // Get the timezone-adjusted day
-        const adjustedDay = window.AnilistCalendar.DAYS_OF_WEEK[anime.airingDate.getDay()];
+    window.AnilistCalendar.utils.log(`Forcing title alignment: ${alignment}`);
 
-        // Add to corresponding day
-        schedule[adjustedDay].push({
-            id: anime.id,
-            title: anime.title,
-            cleanTitle: anime.cleanTitle,
-            episodeInfo: anime.episodeInfo,
-            coverImage: anime.coverImage,
-            airingDate: anime.airingDate,
-            formattedTime: anime.formattedTime,
-            episode: anime.episode,
-            originalDay: anime.originalDay,
-            dayChanged: anime.dayChanged,
-            days: anime.days,
-            hours: anime.hours,
-            minutes: anime.minutes,
-            watched: anime.watched,
-            available: anime.available,
-            total: anime.total,
-            episodesBehind: anime.episodesBehind,
-            episodeProgressString: anime.episodeProgressString,
-            episodeBehindHeader: anime.episodeBehindHeader
-        });
-    }
+    // Get current layout mode to adapt the styling
+    const currentLayoutMode = window.AnilistCalendar.userPreferences.layoutMode || 'standard';
+    window.AnilistCalendar.utils.log(`Current layout mode for title alignment: ${currentLayoutMode}`);
 
-    // Sort each day's anime by airing time
-    for (const day in schedule) {
-        schedule[day].sort((a, b) => {
-            const timeA = a.formattedTime.split(':');
-            const timeB = b.formattedTime.split(':');
+    // Apply highly specific styles with !important
+    const titleStyle = document.createElement('style');
+    titleStyle.id = 'force-title-alignment-style';
 
-            const hoursA = parseInt(timeA[0]);
-            const hoursB = parseInt(timeB[0]);
+    // Remove any previous styles
+    const oldStyle = document.getElementById('force-title-alignment-style');
+    if (oldStyle) oldStyle.remove();
 
-            if (hoursA !== hoursB) {
-                return hoursA - hoursB;
+    // Create super-specific styles with !important for each layout type
+    titleStyle.innerHTML = `
+        /* Common title alignment for all layouts */
+        .anilist-weekly-calendar .anime-title.text-${alignment} {
+            text-align: ${alignment} !important;
+        }
+        
+        /* Standard mode specific */
+        .anilist-weekly-calendar.standard-mode .anime-title {
+            text-align: ${alignment} !important;
+        }
+        
+        /* Compact mode specific */
+        .anilist-weekly-calendar.compact-mode .anime-title {
+            text-align: ${alignment} !important;
+        }
+        
+        /* Extended/Gallery mode always uses center alignment */
+        .anilist-weekly-calendar.extended-mode .anime-title {
+            text-align: center !important;
+        }
+        
+        /* Add extra specificity */
+        .anilist-weekly-calendar .anilist-calendar-grid .anilist-calendar-day .anime-entry .anime-title {
+            text-align: ${alignment} !important;
+        }
+        
+        /* But gallery mode is always centered regardless of setting */
+        .anilist-weekly-calendar.extended-mode .anilist-calendar-grid .anilist-calendar-day .anime-entry .anime-title {
+            text-align: center !important;
+        }
+    `;
+
+    // Add style to document
+    document.head.appendChild(titleStyle);
+
+    // Also apply inline styles for all titles
+    const titles = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.anime-title');
+    titles.forEach(title => {
+        // For gallery mode, always center
+        if (currentLayoutMode === 'extended') {
+            title.style.textAlign = 'center';
+            // Remove the left alignment class if present
+            title.classList.remove('text-left');
+            // Add center alignment class if not present
+            if (!title.classList.contains('text-center')) {
+                title.classList.add('text-center');
             }
+        } else {
+            // For other modes, use the specified alignment
+            title.style.textAlign = alignment;
+            // Remove opposite alignment class
+            title.classList.remove(`text-${alignment === 'left' ? 'center' : 'left'}`);
+            // Add specified alignment class
+            if (!title.classList.contains(`text-${alignment}`)) {
+                title.classList.add(`text-${alignment}`);
+            }
+        }
+    });
 
-            const minutesA = parseInt(timeA[1]);
-            const minutesB = parseInt(timeB[1]);
-
-            return minutesA - minutesB;
-        });
-    }
-
-    window.AnilistCalendar.utils.log("Processed schedule data", schedule);
-    return schedule;
+    window.AnilistCalendar.utils.log("Title alignment forced application complete");
 };
 
 /**
@@ -194,7 +226,7 @@ window.AnilistCalendar.calendar.extractAnimeDataFromDOM = function(container) {
 
         window.AnilistCalendar.utils.log(`Found ${animeCards.length} anime cards`);
 
-        // Process each card to extract data - NO TIMEOUT HERE
+        // Process each card to extract data
         animeCards.forEach((card, index) => {
             try {
                 // Extract basic info
@@ -226,20 +258,20 @@ window.AnilistCalendar.calendar.extractAnimeDataFromDOM = function(container) {
                     window.AnilistCalendar.state.originalPlusButtons[animeId] = plusButton;
                 }
 
-                // Extract cover image - AniList usa background-image su tag <a> con classe "cover"
+                // Extract cover image - AniList uses background-image on <a> tags with class "cover"
                 let coverImageUrl = '';
 
-                // Cerchiamo direttamente il link con classe cover
+                // Look for link with cover class
                 const coverLink = card.querySelector('a.cover');
 
                 if (coverLink) {
-                    // Controlliamo prima data-src (contiene l'URL originale)
+                    // Check for data-src first (contains original URL)
                     if (coverLink.dataset.src) {
                         coverImageUrl = coverLink.dataset.src;
                     }
-                    // Altrimenti prendiamo lo sfondo impostato via CSS
+                    // Otherwise get the background set via CSS
                     else if (coverLink.style.backgroundImage) {
-                        // Estraiamo l'URL dal background-image: url('...')
+                        // Extract URL from background-image: url('...')
                         const bgImgMatch = coverLink.style.backgroundImage.match(/url\(['"]?(.*?)['"]?\)/);
                         if (bgImgMatch && bgImgMatch[1]) {
                             coverImageUrl = bgImgMatch[1];
@@ -250,7 +282,7 @@ window.AnilistCalendar.calendar.extractAnimeDataFromDOM = function(container) {
                     window.AnilistCalendar.state.originalCoverImages[animeId] = coverLink;
                 }
 
-                // Fallback per strutture alternative
+                // Fallback for alternative structures
                 if (!coverImageUrl) {
                     const coverImg = card.querySelector('.cover img, .image img, img.cover, img.image');
                     if (coverImg && coverImg.src) {
@@ -292,27 +324,33 @@ window.AnilistCalendar.calendar.extractAnimeDataFromDOM = function(container) {
                     airingDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0);
                 }
 
-                // Adjust time to selected timezone
+                // Store the original airing date and time
+                const originalAiringDate = new Date(airingDate);
+                const originalFormattedTime = window.AnilistCalendar.utils.formatTime(originalAiringDate);
+
+                // Calculate timezone-adjusted date for day determination ONLY
                 const userTimezoneOffset = window.AnilistCalendar.settings.getSelectedTimezoneOffset();
                 const japanOffset = window.AnilistCalendar.JAPAN_TIMEZONE_OFFSET;
                 const offsetDiff = userTimezoneOffset - japanOffset;
                 const adjustedAiringDate = new Date(airingDate.getTime() + (offsetDiff * 60 * 60 * 1000));
 
-                const originalDay = window.AnilistCalendar.DAYS_OF_WEEK[airingDate.getDay()];
+                // Determine original and potentially changed day
+                const originalDay = window.AnilistCalendar.DAYS_OF_WEEK[originalAiringDate.getDay()];
                 const adjustedDay = window.AnilistCalendar.DAYS_OF_WEEK[adjustedAiringDate.getDay()];
                 const dayChanged = originalDay !== adjustedDay;
-                const formattedTime = window.AnilistCalendar.utils.formatTime(adjustedAiringDate);
 
-                // Create the anime data object
+                // Create the anime data object - using ORIGINAL time but adjusted day
                 const anime = {
                     id: animeId,
                     title: titleText,
                     cleanTitle: episodeInfo.cleanTitle || titleText,
                     episodeInfo: episodeInfo.formatted || '1',
                     coverImage: coverImageUrl,
-                    airingDate: adjustedAiringDate,
-                    formattedTime: formattedTime,
+                    airingDate: originalAiringDate, // Keep original date
+                    adjustedAiringDate: adjustedAiringDate, // Store adjusted date for day calculation
+                    formattedTime: originalFormattedTime, // Display original time
                     originalDay: originalDay,
+                    adjustedDay: adjustedDay, // Use for sorting into correct day
                     dayChanged: dayChanged,
                     days: days,
                     hours: hours,
@@ -391,7 +429,7 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
         overlay.className = 'anime-image-overlay';
         imageContainer.appendChild(overlay);
 
-        // FUNZIONE DI CARICAMENTO THUMBNAIL RIFATTORIZZATA
+        // Thumbnail loading function
         const loadDirectImageUrl = () => {
             if (!anime.coverImage || anime.coverImage.length < 10) {
                 showFallbackImage();
@@ -488,9 +526,9 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
         entry.appendChild(imageContainer);
     }
 
-    // Creazione pannello informativo: utilizza la funzione helper per evitare duplicazioni
+    // Create info panel based on layout mode
     if (isGalleryMode) {
-        // Pannello superiore per il titolo
+        // Top panel for title
         const titlePanel = document.createElement('div');
         titlePanel.className = 'title-panel';
 
@@ -498,8 +536,9 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
         titleEl.className = 'anime-title';
         titleEl.textContent = anime.cleanTitle;
 
-        // In modalità gallery, il testo è sempre centrato
+        // In gallery mode, text is always centered
         titleEl.classList.add('text-center');
+        titleEl.style.textAlign = 'center';
 
         titlePanel.appendChild(titleEl);
         entry.appendChild(titlePanel);
@@ -520,9 +559,10 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
         titleEl.className = 'anime-title';
         titleEl.textContent = anime.cleanTitle;
 
-        // Applicare la classe di allineamento del titolo in base alle preferenze
+        // Apply title alignment class based on user preferences
         const titleAlignment = window.AnilistCalendar.userPreferences.titleAlignment || 'left';
         titleEl.classList.add(`text-${titleAlignment}`);
+        titleEl.style.textAlign = titleAlignment;
 
         infoContainer.appendChild(titleEl);
 
@@ -535,8 +575,7 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
 };
 
 /**
- * Parses episode information from raw title and alternative elements in the card.
- *
+ * Parses episode information from raw title and alternative elements in the card
  * @param {string} rawTitle - The raw title text
  * @param {HTMLElement} card - The card (DOM) element to extract additional info from
  * @return {Object} Object with details: watched, available, total, episodesBehind and formatted
@@ -791,36 +830,35 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
         window.AnilistCalendar.state.calendarContainer.classList.add('days-count-7');
     }
 
-    // Rimuovere tutte le classi di giustificazione e allineamento prima di aggiungerle nuovamente
+    // Remove all alignment and justification classes before adding them again
     window.AnilistCalendar.state.calendarContainer.classList.remove(
         'column-justify-top', 'column-justify-center',
         'title-left', 'title-center'
     );
 
-    // Applicare la classe di giustificazione delle colonne
+    // Apply column justification class
     const columnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
     window.AnilistCalendar.state.calendarContainer.classList.add(`column-justify-${columnJustify}`);
 
-    // Applicare la classe di allineamento del titolo
+    // Apply title alignment class
     const titleAlignment = window.AnilistCalendar.userPreferences.titleAlignment || 'left';
     window.AnilistCalendar.state.calendarContainer.classList.add(`title-${titleAlignment}`);
 
-    // Rimuovere tutte le classi di modalità prima di aggiungere quella corrente
+    // Remove all layout mode classes before adding the current one
     window.AnilistCalendar.state.calendarContainer.classList.remove(
         'standard-mode', 'compact-mode', 'extended-mode', 'gallery-with-slider', 'full-width-images'
     );
 
-    // Applicare la classe della modalità attuale
+    // Apply the current layout mode class
     window.AnilistCalendar.state.calendarContainer.classList.add(`${window.AnilistCalendar.userPreferences.layoutMode}-mode`);
 
-    // Applicare full-width-images se abilitato e in modalità standard
+    // Apply full-width-images class if enabled and in standard mode
     if (window.AnilistCalendar.userPreferences.layoutMode === 'standard' &&
         window.AnilistCalendar.userPreferences.fullWidthImages) {
         window.AnilistCalendar.state.calendarContainer.classList.add('full-width-images');
     }
 
-    // Imposta la modalità gallery con slider solo se è attiva la modalità gallery (extended o grid)
-    // e se maxCardsPerDay è maggiore di zero
+    // Set up gallery slider mode if in gallery mode and maxCardsPerDay is set
     const isGalleryMode = window.AnilistCalendar.userPreferences.layoutMode === 'extended' ||
         window.AnilistCalendar.userPreferences.layoutMode === 'grid';
     const hasMaxCards = window.AnilistCalendar.userPreferences.maxCardsPerDay > 0;
@@ -872,8 +910,41 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
         }
         dayCol.className = classes.join(' ');
 
-        // Applicare forzatamente la classe di giustificazione corretta
+        // Force the correct column justification class
         dayCol.classList.add(columnJustify === 'center' ? 'force-center' : 'force-top');
+
+        // Create forced styles for this specific column
+        const styleForce = document.createElement('style');
+        styleForce.id = `force-column-justify-${dayCol.id}`;
+        styleForce.innerHTML = `
+            #${dayCol.id}.force-center {
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: center !important;
+                align-items: stretch !important;
+            }
+            #${dayCol.id}.force-top {
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: flex-start !important;
+                align-items: stretch !important;
+            }
+            #${dayCol.id} .day-anime-list.justify-center {
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: center !important;
+                align-items: stretch !important;
+                height: 100%;
+            }
+            #${dayCol.id} .day-anime-list.justify-top {
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: flex-start !important;
+                align-items: stretch !important;
+                height: 100%;
+            }
+        `;
+        document.head.appendChild(styleForce);
 
         const dayHeader = document.createElement('div');
         dayHeader.className = 'day-header';
@@ -901,13 +972,12 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
         const animeList = document.createElement('div');
         animeList.className = 'day-anime-list';
 
-        // Applicare la classe di giustificazione alla lista degli anime
+        // Apply the justification class to the anime list
         animeList.classList.add(`justify-${columnJustify}`);
 
-        // Per le modalità gallery, aggiungere classi specifiche
+        // Add specific classes for gallery mode
         if (isGalleryMode) {
             animeList.classList.add('gallery-anime-list');
-            animeList.classList.add(`justify-${columnJustify}`);
         }
 
         if (schedule[day] && schedule[day].length > 0) {
@@ -938,6 +1008,12 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
     window.AnilistCalendar.state.calendarContainer.appendChild(calendarGrid);
     window.AnilistCalendar.utils.log("Calendar rendered");
 
+    // Apply the column justification forcefully
+    window.AnilistCalendar.calendar.forceColumnJustification(columnJustify);
+
+    // Apply title alignment forcefully
+    window.AnilistCalendar.calendar.forceTitleAlignment(titleAlignment);
+
     if (window.AnilistCalendar.applyTheme) {
         window.AnilistCalendar.applyTheme();
     }
@@ -950,10 +1026,13 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
  * @param {string} prevTitleAlignment - Previous title alignment setting
  * @param {string} prevColumnJustify - Previous column justification setting
  * @param {boolean} prevFullWidthImages - Previous full width images setting
+ * @param {string} prevLayoutMode - Previous layout mode setting
  */
-window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, prevTimezone, prevTitleAlignment, prevColumnJustify, prevFullWidthImages) {
+window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, prevTimezone, prevTitleAlignment, prevColumnJustify, prevFullWidthImages, prevLayoutMode) {
     if (window.AnilistCalendar.state.calendarContainer) {
-        // Rimuovere tutte le classi di modalità, allineamento e giustificazione
+        window.AnilistCalendar.utils.log("Updating UI with new settings");
+
+        // Remove all layout mode, alignment and justification classes
         window.AnilistCalendar.state.calendarContainer.classList.remove(
             'standard-mode', 'compact-mode', 'extended-mode', 'fan-mode',
             'gallery-with-slider', 'full-width-images',
@@ -961,18 +1040,18 @@ window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, 
             'column-justify-top', 'column-justify-center'
         );
 
-        // Aggiungere la classe della modalità di layout
+        // Add the current layout mode class
         window.AnilistCalendar.state.calendarContainer.classList.add(`${window.AnilistCalendar.userPreferences.layoutMode}-mode`);
 
-        // Aggiungere la classe di allineamento del titolo
+        // Add the title alignment class
         const titleAlignment = window.AnilistCalendar.userPreferences.titleAlignment || 'left';
         window.AnilistCalendar.state.calendarContainer.classList.add(`title-${titleAlignment}`);
 
-        // Aggiungere la classe di giustificazione delle colonne
+        // Add the column justification class
         const columnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
         window.AnilistCalendar.state.calendarContainer.classList.add(`column-justify-${columnJustify}`);
 
-        // Aggiungere classe per gallery in slider se necessario
+        // Add gallery slider class if needed
         const isGalleryMode = window.AnilistCalendar.userPreferences.layoutMode === 'extended' ||
             window.AnilistCalendar.userPreferences.layoutMode === 'fan';
 
@@ -980,51 +1059,50 @@ window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, 
             window.AnilistCalendar.state.calendarContainer.classList.add('gallery-with-slider');
         }
 
-        // Aggiungere classe full-width-images se abilitato e in modalità standard
+        // Add full-width-images class if enabled and in standard mode
         if (window.AnilistCalendar.userPreferences.layoutMode === 'standard' &&
             window.AnilistCalendar.userPreferences.fullWidthImages) {
             window.AnilistCalendar.state.calendarContainer.classList.add('full-width-images');
         }
 
-        // Aggiornare allineamento del titolo se cambiato
+        // Update title alignment if changed
         if (prevTitleAlignment !== titleAlignment) {
             const titles = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.anime-title');
             titles.forEach(title => {
-                // Rimuovere tutte le possibili classi di allineamento per evitare conflitti
+                // Remove all possible alignment classes to avoid conflicts
                 title.classList.remove('text-left', 'text-center');
-                // Aggiungere la nuova classe di allineamento
+                // Add the new alignment class
                 title.classList.add(`text-${titleAlignment}`);
             });
         }
 
-        // Aggiornare giustificazione delle colonne se cambiata
+        // Update column justification if changed
         if (prevColumnJustify !== columnJustify) {
+            // Apply forcefully the new justification
+            window.AnilistCalendar.calendar.forceColumnJustification(columnJustify);
+
+            // Also update classes for consistency
             const dayColumns = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.anilist-calendar-day');
             dayColumns.forEach(column => {
-                // Rimuovere tutte le possibili classi per evitare conflitti
+                // Remove all possible classes to avoid conflicts
                 column.classList.remove('force-center', 'force-top');
-                // Aggiungere la nuova classe di giustificazione
+                // Add the new justification class
                 column.classList.add(columnJustify === 'center' ? 'force-center' : 'force-top');
             });
 
             const animeLists = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.day-anime-list');
             animeLists.forEach(list => {
-                // Rimuovere tutte le possibili classi per evitare conflitti
+                // Remove all possible classes to avoid conflicts
                 list.classList.remove('justify-top', 'justify-center');
-                // Aggiungere la nuova classe di giustificazione
+                // Add the new justification class
                 list.classList.add(`justify-${columnJustify}`);
             });
         }
 
-        // Aggiornare full-width-images se cambiato e in modalità standard
-        if (window.AnilistCalendar.userPreferences.layoutMode === 'standard' &&
-            prevFullWidthImages !== window.AnilistCalendar.userPreferences.fullWidthImages) {
-
-            if (window.AnilistCalendar.userPreferences.fullWidthImages) {
-                window.AnilistCalendar.state.calendarContainer.classList.add('full-width-images');
-            } else {
-                window.AnilistCalendar.state.calendarContainer.classList.remove('full-width-images');
-            }
+        // Always ensure column justification is applied (in case we changed layout)
+        if (prevColumnJustify === columnJustify && prevLayoutMode !== window.AnilistCalendar.userPreferences.layoutMode) {
+            window.AnilistCalendar.utils.log("Layout changed but column justification didn't - forcing justification anyway");
+            window.AnilistCalendar.calendar.forceColumnJustification(columnJustify);
         }
 
         // Update timezone info
@@ -1070,6 +1148,185 @@ window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, 
 };
 
 /**
+ * Processes anime data into a weekly schedule with correct timezone handling
+ * @param {Array} animeData - Array of anime data objects
+ * @return {Object} Object with days as keys and arrays of anime as values
+ */
+window.AnilistCalendar.calendar.processAnimeData = function(animeData) {
+    const schedule = {
+        Sunday: [],
+        Monday: [],
+        Tuesday: [],
+        Wednesday: [],
+        Thursday: [],
+        Friday: [],
+        Saturday: []
+    };
+
+    // Process each anime entry
+    for (const anime of animeData) {
+        // Store original airing date and time information
+        const originalAiringDate = new Date(anime.airingDate.getTime());
+        const originalDay = window.AnilistCalendar.DAYS_OF_WEEK[originalAiringDate.getDay()];
+
+        // Calculate timezone-adjusted date
+        let adjustedAiringDate = originalAiringDate;
+        let adjustedDay = originalDay;
+        let dayChanged = false;
+
+        // Only adjust the day if not using JST timezone
+        if (window.AnilistCalendar.userPreferences.timezone !== 'jst') {
+            const userTimezoneOffset = window.AnilistCalendar.settings.getSelectedTimezoneOffset();
+            const japanOffset = window.AnilistCalendar.JAPAN_TIMEZONE_OFFSET;
+            const offsetDiff = userTimezoneOffset - japanOffset;
+
+            // Create adjusted date by applying timezone difference
+            adjustedAiringDate = new Date(originalAiringDate.getTime() + (offsetDiff * 60 * 60 * 1000));
+            adjustedDay = window.AnilistCalendar.DAYS_OF_WEEK[adjustedAiringDate.getDay()];
+            dayChanged = (originalDay !== adjustedDay);
+
+            window.AnilistCalendar.utils.log(`Timezone adjustment for ${anime.cleanTitle}: ` +
+                `Original: ${originalDay} ${window.AnilistCalendar.utils.formatTime(originalAiringDate)}, ` +
+                `Adjusted: ${adjustedDay} ${window.AnilistCalendar.utils.formatTime(adjustedAiringDate)}, ` +
+                `Offset diff: ${offsetDiff} hours, Day changed: ${dayChanged}`);
+        }
+
+        // Use the timezone-adjusted day for scheduling
+        const dayForSchedule = adjustedDay;
+
+        // Add to corresponding day
+        schedule[dayForSchedule].push({
+            id: anime.id,
+            title: anime.title,
+            cleanTitle: anime.cleanTitle,
+            episodeInfo: anime.episodeInfo,
+            coverImage: anime.coverImage,
+            airingDate: originalAiringDate, // Original airing date (for countdown)
+            adjustedAiringDate: adjustedAiringDate, // Timezone-adjusted date (for display)
+            formattedTime: window.AnilistCalendar.utils.formatTime(adjustedAiringDate), // Display adjusted time
+            originalFormattedTime: window.AnilistCalendar.utils.formatTime(originalAiringDate), // Original time
+            episode: anime.episode,
+            originalDay: originalDay,
+            adjustedDay: adjustedDay,
+            dayChanged: dayChanged,
+            days: anime.days,
+            hours: anime.hours,
+            minutes: anime.minutes,
+            watched: anime.watched,
+            available: anime.available,
+            total: anime.total,
+            episodesBehind: anime.episodesBehind,
+            episodeProgressString: anime.episodeProgressString,
+            episodeBehindHeader: anime.episodeBehindHeader
+        });
+    }
+
+    // Sort each day's anime by airing time
+    for (const day in schedule) {
+        schedule[day].sort((a, b) => {
+            const timeA = a.formattedTime.split(':');
+            const timeB = b.formattedTime.split(':');
+
+            const hoursA = parseInt(timeA[0]);
+            const hoursB = parseInt(timeB[0]);
+
+            if (hoursA !== hoursB) {
+                return hoursA - hoursB;
+            }
+
+            const minutesA = parseInt(timeA[1]);
+            const minutesB = parseInt(timeB[1]);
+
+            return minutesA - minutesB;
+        });
+    }
+
+    window.AnilistCalendar.utils.log("Processed schedule data", schedule);
+    return schedule;
+};
+
+/**
+ * Creates an info row for an anime entry including episode number and airing time/countdown
+ * @param {Object} anime - The anime data object
+ * @return {HTMLElement} The created info row element
+ */
+function createAnimeInfoRow(anime) {
+    const infoRow = document.createElement('div');
+    infoRow.className = 'anime-info-row';
+
+    if (window.AnilistCalendar.userPreferences.showEpisodeNumbers) {
+        const episodeNumber = document.createElement('div');
+        episodeNumber.className = 'episode-number';
+
+        // Display progress string if available, otherwise standard format
+        if (anime.episodeProgressString && anime.episodeProgressString.trim().length > 0) {
+            episodeNumber.textContent = 'Ep ' + anime.episodeProgressString;
+        } else {
+            episodeNumber.textContent = 'Ep ' + anime.episodeInfo;
+        }
+
+        // Add behind indicator if episodes are behind
+        if (anime.episodesBehind > 0) {
+            const behindIndicator = document.createElement('span');
+            behindIndicator.className = 'behind-indicator';
+            behindIndicator.title = `${anime.episodesBehind} episode(s) behind`;
+            episodeNumber.prepend(behindIndicator);
+        }
+
+        infoRow.appendChild(episodeNumber);
+    }
+
+    if (window.AnilistCalendar.userPreferences.showTime) {
+        const timeDisplay = document.createElement('div');
+        timeDisplay.className = 'anime-time';
+
+        if (window.AnilistCalendar.userPreferences.timeFormat === 'countdown') {
+            timeDisplay.classList.add('countdown-mode');
+            const now = new Date();
+
+            // Use original airing time for countdown (non-timezone adjusted)
+            const originalAiringTime = anime.airingDate;
+
+            // Calculate current time in Japan for comparison
+            const currentTimeInJapan = new Date();
+            const localUTCOffset = currentTimeInJapan.getTimezoneOffset() * -1 / 60;
+            const offsetFromJapan = localUTCOffset - 9;
+            currentTimeInJapan.setHours(currentTimeInJapan.getHours() - offsetFromJapan);
+
+            // Check if the episode has aired in Japan (original timezone)
+            const hasAiredInJapan = originalAiringTime < currentTimeInJapan;
+
+            if (hasAiredInJapan) {
+                timeDisplay.textContent = "Aired";
+            } else {
+                // Count down to the original airing time
+                const diff = originalAiringTime - now;
+                const { days, hours, minutes } = window.AnilistCalendar.utils.calculateTimeComponents(diff);
+                timeDisplay.textContent = days > 0 ?
+                    `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}` :
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
+                // Store countdown data for updates
+                timeDisplay.dataset.targetTime = originalAiringTime.getTime();
+                timeDisplay.dataset.originalTime = 'true';
+            }
+        } else {
+            // Use adjusted time for display
+            timeDisplay.textContent = anime.formattedTime;
+
+            // If the day changed due to timezone, indicate it
+            if (anime.dayChanged) {
+                timeDisplay.title = `Original airtime: ${anime.originalDay} ${anime.originalFormattedTime} JST`;
+            }
+        }
+
+        infoRow.appendChild(timeDisplay);
+    }
+
+    return infoRow;
+}
+
+/**
  * Updates the countdowns in real-time
  */
 window.AnilistCalendar.calendar.startCountdownTimer = function() {
@@ -1081,56 +1338,93 @@ window.AnilistCalendar.calendar.startCountdownTimer = function() {
         const countdownElements = document.querySelectorAll('.anime-time.countdown-mode');
         if (countdownElements.length === 0) return;
         const now = new Date();
+
+        // Calculate current time in Japan (UTC+9)
         const currentTimeInJapan = new Date();
         const localUTCOffset = currentTimeInJapan.getTimezoneOffset() * -1 / 60;
         const offsetFromJapan = localUTCOffset - 9;
         currentTimeInJapan.setHours(currentTimeInJapan.getHours() - offsetFromJapan);
 
         countdownElements.forEach(element => {
-            const animeEntry = element.closest('.anime-entry');
-            if (!animeEntry) return;
-            const animeId = animeEntry.dataset.animeId;
-            if (!animeId) return;
-            let animeData = null;
-            for (const day in window.AnilistCalendar.state.weeklySchedule) {
-                const match = window.AnilistCalendar.state.weeklySchedule[day].find(anime => anime.id === animeId);
-                if (match) {
-                    animeData = match;
-                    break;
+            // Usa la data target dal data attribute se disponibile
+            const targetTimeMs = element.dataset.targetTime;
+
+            if (!targetTimeMs) {
+                // Fallback per elementi senza data attribute
+                const animeEntry = element.closest('.anime-entry');
+                if (!animeEntry) return;
+                const animeId = animeEntry.dataset.animeId;
+                if (!animeId) return;
+
+                let animeData = null;
+                for (const day in window.AnilistCalendar.state.weeklySchedule) {
+                    const match = window.AnilistCalendar.state.weeklySchedule[day].find(anime => anime.id === animeId);
+                    if (match) {
+                        animeData = match;
+                        break;
+                    }
                 }
-            }
-            if (!animeData) return;
+                if (!animeData) return;
 
-            const originalAiringTime = new Date(animeData.airingDate.getTime());
-            const userTimezoneOffset = window.AnilistCalendar.settings.getSelectedTimezoneOffset();
-            const japanOffset = window.AnilistCalendar.JAPAN_TIMEZONE_OFFSET;
-            const offsetDiff = userTimezoneOffset - japanOffset;
-            const japaneseAiringTime = new Date(originalAiringTime.getTime() - (offsetDiff * 60 * 60 * 1000));
-            const hasAiredInJapan = japaneseAiringTime < currentTimeInJapan;
+                // Use original airing time for countdown
+                const originalAiringTime = animeData.airingDate;
 
-            if (hasAiredInJapan) {
-                element.textContent = "Aired";
-                return;
-            }
+                // Check if the anime has aired in Japan
+                const hasAiredInJapan = originalAiringTime < currentTimeInJapan;
 
-            const targetTime = new Date(animeData.airingDate);
-            const diff = targetTime - now;
-            const {days, hours, minutes} = window.AnilistCalendar.utils.calculateTimeComponents(diff);
+                if (hasAiredInJapan) {
+                    element.textContent = "Aired";
+                    return;
+                }
 
-            if (days > 0) {
-                element.textContent = `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                // Calculate time remaining until original airing time
+                const diff = originalAiringTime - now;
+                const {days, hours, minutes} = window.AnilistCalendar.utils.calculateTimeComponents(diff);
+
+                if (days > 0) {
+                    element.textContent = `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                } else {
+                    element.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                }
+
+                // Store for future updates
+                element.dataset.targetTime = originalAiringTime.getTime();
+                element.dataset.originalTime = 'true';
             } else {
-                element.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                // Use stored target time
+                const targetTime = new Date(parseInt(targetTimeMs));
+
+                // Check if already aired in Japan
+                if (targetTime < currentTimeInJapan) {
+                    element.textContent = "Aired";
+                    return;
+                }
+
+                // Update countdown
+                const diff = targetTime - now;
+                const {days, hours, minutes} = window.AnilistCalendar.utils.calculateTimeComponents(diff);
+
+                if (days > 0) {
+                    element.textContent = `${days}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                } else {
+                    element.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                }
             }
         });
     }, 1000);
 };
 
+/**
+ * Calculate time components (days, hours, minutes) from a time difference
+ * @param {number} diff - Time difference in milliseconds
+ * @return {Object} Object containing days, hours, and minutes
+ */
 window.AnilistCalendar.calendar.calculateTimeComponents = function(diff) {
     return {
         days: Math.floor(diff / (1000 * 60 * 60 * 24)),
         hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((diff % (1000 * 60)) / 1000)
     };
 };
 
@@ -1141,91 +1435,91 @@ window.AnilistCalendar.calendar.calculateTimeComponents = function(diff) {
  * @param {number} maxCards - Maximum number of cards to show
  */
 window.AnilistCalendar.calendar.setupGallerySlider = function(dayContainer, animeList, maxCards) {
-    // Verifica i parametri e che ci siano abbastanza card per richiedere lo slider
+    // Verify parameters and that there are enough cards to require a slider
     if (!maxCards || maxCards <= 0 || !animeList) return;
 
-    // Ottieni tutte le card anime originali
+    // Get all original anime cards
     const cards = Array.from(animeList.querySelectorAll('.anime-entry'));
     const totalCards = cards.length;
 
-    // Se non ci sono abbastanza card per richiedere paginazione, esci
+    // If there aren't enough cards to require pagination, exit
     if (totalCards <= maxCards) return;
 
-    // Salva lo stile di giustificazione originale
+    // Save the original justification style
     const originalJustify = animeList.classList.contains('justify-center') ? 'center' : 'top';
 
-    // Pulisci il contenitore prima di aggiungere le pagine
+    // Clear the container before adding pages
     animeList.innerHTML = '';
 
-    // Crea il contenitore principale per lo slider
+    // Create the main slider container
     const sliderContainer = document.createElement('div');
     sliderContainer.className = 'gallery-slider-wrapper';
     sliderContainer.classList.add(`justify-${originalJustify}`);
 
-    // Crea il contenitore per le pagine
+    // Create the pages container
     const pagesContainer = document.createElement('div');
     pagesContainer.className = 'gallery-pages-container';
     pagesContainer.classList.add(`justify-${originalJustify}`);
 
-    // Calcola il numero totale di pagine necessarie
+    // Calculate the total number of pages needed
     const totalPages = Math.ceil(totalCards / maxCards);
 
-    // Log per debug
+    // Debug log
     window.AnilistCalendar.utils.log(`Setting up gallery slider: ${totalCards} cards, ${maxCards} per page = ${totalPages} pages`);
 
-    // Crea le pagine e distribuisci le card
+    // Create pages and distribute cards
     for (let i = 0; i < totalPages; i++) {
-        // Crea il container della pagina
+        // Create the page container
         const page = document.createElement('div');
         page.className = 'gallery-page';
         page.classList.add(`justify-${originalJustify}`);
-        page.dataset.page = i.toString(); // Converti esplicitamente in stringa
+        page.dataset.page = i.toString();
         page.dataset.justification = originalJustify;
 
-        // Mostra solo la prima pagina inizialmente
+        // Show only the first page initially
         if (i !== 0) {
             page.classList.add('hidden-page');
         }
 
-        // Calcola gli indici delle card da inserire in questa pagina
+        // Calculate the indices of cards to include in this page
         const startIdx = i * maxCards;
         const endIdx = Math.min(startIdx + maxCards, totalCards);
 
-        // Aggiungi le card a questa pagina
+        // Add cards to this page
         for (let j = startIdx; j < endIdx; j++) {
             if (cards[j]) {
                 page.appendChild(cards[j]);
             }
         }
 
-        // Aggiungi la pagina al container
+        // Add the page to the container
         pagesContainer.appendChild(page);
     }
 
-    // Aggiungi il container delle pagine al contenitore principale
+    // Add the pages container to the main container
     sliderContainer.appendChild(pagesContainer);
     animeList.appendChild(sliderContainer);
 
-    // Se ci sono più pagine, aggiungi i controlli di navigazione
+    // If there are multiple pages, add navigation controls
     if (totalPages > 1) {
         let currentPage = 0;
 
-        // Crea il pulsante "precedente"
+        // Create "previous" button
         const prevButton = document.createElement('button');
         prevButton.className = 'gallery-nav-button gallery-nav-prev';
         prevButton.innerHTML = '<i class="fa fa-chevron-up"></i>';
         prevButton.setAttribute('aria-label', 'Previous page');
-        prevButton.classList.add('nav-hidden'); // Nascondi inizialmente perché siamo alla prima pagina
+        prevButton.classList.add('nav-hidden'); // Initially hidden because we're on the first page
 
-        // Crea il pulsante "successivo"
+        // Create "next" button
         const nextButton = document.createElement('button');
         nextButton.className = 'gallery-nav-button gallery-nav-next';
         nextButton.innerHTML = '<i class="fa fa-chevron-down"></i>';
         nextButton.setAttribute('aria-label', 'Next page');
 
-        // Funzione per aggiornare la visualizzazione delle pagine
+        // Function to update the page view
         const updateView = () => {
-            // Aggiorna tutte le pagine
+            // Update all pages
             const pages = pagesContainer.querySelectorAll('.gallery-page');
             pages.forEach((page, idx) => {
                 if (idx === currentPage) {
@@ -1235,7 +1529,7 @@ window.AnilistCalendar.calendar.setupGallerySlider = function(dayContainer, anim
                 }
             });
 
-            // Aggiorna i pulsanti di navigazione
+            // Update navigation buttons
             if (currentPage === 0) {
                 prevButton.classList.add('nav-hidden');
             } else {
@@ -1251,7 +1545,7 @@ window.AnilistCalendar.calendar.setupGallerySlider = function(dayContainer, anim
             window.AnilistCalendar.utils.log(`Gallery page changed to ${currentPage + 1}/${totalPages}`);
         };
 
-        // Gestisci gli eventi di click per i pulsanti
+        // Handle click events for the buttons
         prevButton.addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
@@ -1272,15 +1566,15 @@ window.AnilistCalendar.calendar.setupGallerySlider = function(dayContainer, anim
             return false;
         });
 
-        // Aggiungi la classe per lo styling e i pulsanti
+        // Add the styling class and buttons
         animeList.classList.add('gallery-with-nav');
         animeList.appendChild(prevButton);
         animeList.appendChild(nextButton);
 
-        // Assicurati che la visualizzazione iniziale sia corretta
+        // Ensure initial view is correct
         updateView();
 
-        // Riattacca event listener per i plus button nelle card
+        // Reattach event listeners for plus buttons in cards
         const reattachEvents = () => {
             const allPlusButtons = animeList.querySelectorAll('.plus-button, .plus-icon');
             allPlusButtons.forEach(button => {
@@ -1289,11 +1583,11 @@ window.AnilistCalendar.calendar.setupGallerySlider = function(dayContainer, anim
                     try {
                         const animeData = JSON.parse(animeEntry.dataset.animeData);
 
-                        // Rimuovi gli event listener esistenti
+                        // Remove existing event listeners
                         const newButton = button.cloneNode(true);
                         button.parentNode.replaceChild(newButton, button);
 
-                        // Aggiungi il nuovo event listener
+                        // Add the new event listener
                         newButton.addEventListener('click', function(e) {
                             e.stopPropagation();
                             e.preventDefault();
@@ -1307,7 +1601,7 @@ window.AnilistCalendar.calendar.setupGallerySlider = function(dayContainer, anim
             });
         };
 
-        // Riattacca gli event listener
+        // Reattach the event listeners
         reattachEvents();
     }
 };

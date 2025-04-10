@@ -280,12 +280,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         ], window.AnilistCalendar.userPreferences.columnJustify || 'top')
     );
 
-    // Hide column justify by default, will show based on layout
-    columnJustifyRow.classList.add('setting-row-hidden');
-    if (currentLayoutMode === 'extended') {
-        columnJustifyRow.classList.remove('setting-row-hidden');
-    }
-
+    // Column justify è sempre visibile in tutti i layout
     layoutContent.appendChild(columnJustifyRow);
 
     // Hide empty days setting
@@ -302,23 +297,13 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
             const isGalleryMode = this.value === 'extended';
             const isStandardMode = this.value === 'standard';
 
-            // Toggle visibility of max cards per day and column justify settings
+            // Toggle visibility of settings based on layout mode
             if (isGalleryMode) {
                 maxCardsPerDayRow.classList.remove('setting-row-hidden');
-                columnJustifyRow.classList.remove('setting-row-hidden');
                 fullWidthImagesRow.classList.add('setting-row-hidden');
                 titleAlignmentRow.classList.add('setting-row-hidden'); // Hide title alignment in gallery mode
             } else {
                 maxCardsPerDayRow.classList.add('setting-row-hidden');
-
-                // Per la modalità compact, nascondiamo sempre column justify
-                if (this.value === 'compact') {
-                    columnJustifyRow.classList.add('setting-row-hidden');
-                } else {
-                    // Per standard, mostriamo column justify (può essere utile anche qui)
-                    columnJustifyRow.classList.remove('setting-row-hidden');
-                }
-
                 titleAlignmentRow.classList.remove('setting-row-hidden'); // Show title alignment in non-gallery modes
 
                 // Show fullWidthImages setting only for standard mode
@@ -328,6 +313,9 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
                     fullWidthImagesRow.classList.add('setting-row-hidden');
                 }
             }
+
+            // Column justify è sempre visibile in tutti i layout
+            columnJustifyRow.classList.remove('setting-row-hidden');
 
             // Ripristina valori di default specifici per modalità
             if (isGalleryMode) {
@@ -591,12 +579,18 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         // Mostro il messaggio di salvataggio
         window.AnilistCalendar.utils.showNotification(notificationMessage, 'success');
 
-        // Forzare un ri-rendering completo quando cambiano allineamento o giustificazione
+        // Determina se è necessario un refresh completo del calendario
         const needsCompleteRerender = (
             prevLayoutMode !== layoutMode ||
             prevTitleAlignment !== titleAlignment ||
             prevColumnJustify !== columnJustify ||
-            prevFullWidthImages !== window.AnilistCalendar.userPreferences.fullWidthImages
+            prevFullWidthImages !== fullWidthImages ||
+            prevStartDay !== startDay ||
+            prevHideEmptyDays !== hideEmptyDays ||
+            prevShowEpisodeNumbers !== showEpisodeNumbers ||
+            prevShowTime !== showTime ||
+            prevTimeFormat !== timeFormat ||
+            prevTimezone !== timezone
         );
 
         // Close overlay
@@ -605,17 +599,15 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
             overlayContainer.remove();
         }, 300);
 
-        // Aggiorna l'UI senza ricaricare la pagina
-        if (needsCompleteRerender) {
+        // Forzare sempre il re-rendering completo del calendario per tutte le impostazioni
+        if (window.AnilistCalendar.state.calendarContainer) {
             // Prima rimuovi tutte le classi potenzialmente problematiche
-            if (window.AnilistCalendar.state.calendarContainer) {
-                window.AnilistCalendar.state.calendarContainer.classList.remove(
-                    'standard-mode', 'compact-mode', 'extended-mode', 'gallery-with-slider',
-                    'title-left', 'title-center',
-                    'column-justify-top', 'column-justify-center',
-                    'full-width-images'
-                );
-            }
+            window.AnilistCalendar.state.calendarContainer.classList.remove(
+                'standard-mode', 'compact-mode', 'extended-mode', 'gallery-with-slider',
+                'title-left', 'title-center',
+                'column-justify-top', 'column-justify-center',
+                'full-width-images'
+            );
 
             // Poi aggiorna l'UI con le nuove impostazioni
             window.AnilistCalendar.calendar.updateUIWithSettings(
@@ -623,23 +615,19 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
                 prevTimezone,
                 prevTitleAlignment,
                 prevColumnJustify,
-                prevFullWidthImages
+                prevFullWidthImages,
+                prevLayoutMode  // Aggiungiamo questo parametro mancante
             );
 
-            // Forza un re-rendering completo per layout/allineamento/giustificazione
+            // Forza sempre un re-rendering completo del calendario
             window.AnilistCalendar.calendar.renderCalendar(
                 window.AnilistCalendar.state.weeklySchedule,
                 true
             );
-        } else {
-            // Per modifiche meno importanti, aggiorna normalmente
-            window.AnilistCalendar.calendar.updateUIWithSettings(
-                prevTimeFormat,
-                prevTimezone,
-                prevTitleAlignment,
-                prevColumnJustify,
-                prevFullWidthImages
-            );
+
+            // Forza l'applicazione della giustificazione delle colonne
+            const columnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
+            window.AnilistCalendar.calendar.forceColumnJustification(columnJustify);
         }
     });
 
