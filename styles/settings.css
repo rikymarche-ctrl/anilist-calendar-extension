@@ -322,8 +322,9 @@ select option.option-separator {
     border-radius: 50%;
 }
 
+/* FIX: Ensure the toggle background is visible when checked */
 input:checked + .slider {
-    background-color: var(--color-blue);
+    background-color: #3db4f2;
 }
 
 .site-theme-light input:checked + .slider,
@@ -332,11 +333,21 @@ input:checked + .slider {
 }
 
 input:focus + .slider {
-    box-shadow: 0 0 1px var(--color-blue);
+    box-shadow: 0 0 1px #3db4f2;
 }
 
 input:checked + .slider:before {
     transform: translateX(24px);
+}
+
+/* Add visible class for consistency - this helps with JavaScript toggling */
+.slider.checked {
+    background-color: #3db4f2;
+}
+
+.site-theme-light .slider.checked,
+[data-theme='light'] .slider.checked {
+    background-color: #3577b1;
 }
 
 /* -------------------------------
@@ -514,165 +525,158 @@ input:checked + .slider:before {
         height: auto;
         max-height: 80vh;
     }
+}
 
+/* Classi per la visibilità del pulsante delle impostazioni */
+.header-settings-btn {
+    opacity: 0;
+    transition: opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
+.header-settings-btn.visible {
+    opacity: 1;
+}
 
+/* Stili per gli elementi di tema chiaro */
+.settings-tab.theme-light {
+    color: #5c728a;
+}
 
+.settings-tab.theme-light:hover {
+    color: #3577b1;
+}
 
+.settings-tab.theme-light.active-light {
+    color: #3577b1;
+    background-color: rgba(61, 180, 242, 0.1);
+}
 
+.settings-save-btn.theme-light {
+    background-color: #3577b1;
+    box-shadow: 0 2px 8px rgba(53, 119, 177, 0.3);
+}
 
-    /* Classi per la visibilità del pulsante delle impostazioni */
-    .header-settings-btn {
-        opacity: 0;
-        transition: opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1);
-    }
+.settings-save-btn.theme-light:hover {
+    background-color: #2868a0;
+    box-shadow: 0 4px 12px rgba(53, 119, 177, 0.4);
+}
 
-    .header-settings-btn.visible {
-        opacity: 1;
-    }
+.settings-save-container.theme-light {
+    background-color: #f8f9fa;
+}
 
-    /* Stili per gli elementi di tema chiaro */
-    .settings-tab.theme-light {
-        color: #5c728a;
-    }
+/* Mostrare/nascondere riga impostazioni in base al layout */
+.setting-row-hidden {
+    display: none;
+}
 
-    .settings-tab.theme-light:hover {
-        color: #3577b1;
-    }
+/* Centratura per le opzioni nelle select */
+.settings-select,
+.option-standard,
+.option-selected,
+.timezone-option {
+    text-align: center;
+}
 
-    .settings-tab.theme-light.active-light {
-        color: #3577b1;
-        background-color: rgba(61, 180, 242, 0.1);
-    }
+/* Contenitore delle etichette nelle impostazioni */
+.settings-label-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+}
 
-    .settings-save-btn.theme-light {
-        background-color: #3577b1;
-        box-shadow: 0 2px 8px rgba(53, 119, 177, 0.3);
-    }
+/* Stile per slider del toggle con e senza check */
+.slider.checked {
+    background-color: #3db4f2;
+}
 
-    .settings-save-btn.theme-light:hover {
-        background-color: #2868a0;
-        box-shadow: 0 4px 12px rgba(53, 119, 177, 0.4);
-    }
+.site-theme-light .slider.checked,
+[data-theme='light'] .slider.checked {
+    background-color: #3577b1;
+}
 
-    .settings-save-container.theme-light {
-        background-color: #f8f9fa;
-    }
+/* Dimensioni per wrapper degli input numerici */
+.number-input-wrapper {
+    width: 160px;
+    display: inline-block;
+}
 
-    /* Mostrare/nascondere riga impostazioni in base al layout */
-    .setting-row-hidden {
-        display: none;
-    }
+/* Aggiungere questi stili a calendar.css */
 
-    /* Centratura per le opzioni nelle select */
-    .settings-select,
-    .option-standard,
-    .option-selected,
-    .timezone-option {
-        text-align: center;
-    }
+/* Miglioriamo il layout delle gallery-page */
+.gallery-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    max-width: 600px;
+    padding: 10px 0;
+    /* Aggiungiamo transizione per renderla più fluida */
+    transition: opacity 0.15s ease;
+}
 
-    /* Contenitore delle etichette nelle impostazioni */
-    .settings-label-container {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: flex-start;
-    }
+/* Stile per nascondere le pagine che non sono attive */
+.hidden-page {
+    display: none !important;
+    opacity: 0;
+    pointer-events: none;
+}
 
-    /* Stile per slider del toggle con e senza check */
-    .slider.checked {
-        background-color: #3db4f2;
-    }
+/* Posizioniamo meglio i pulsanti di navigazione */
+.gallery-nav-prev,
+.gallery-nav-next {
+    position: absolute;
+    right: 10px;
+    z-index: 100;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.65) !important;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.9;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    border: none;
+    outline: none;
+}
 
-    .site-theme-light .slider.checked,
-    [data-theme='light'] .slider.checked {
-        background-color: #3577b1;
-    }
+.gallery-nav-prev {
+    top: 30%;
+}
 
-    /* Dimensioni per wrapper degli input numerici */
-    .number-input-wrapper {
-        width: 160px;
-        display: inline-block;
-    }
+.gallery-nav-next {
+    top: 70%;
+}
 
+.gallery-nav-button:hover {
+    background-color: rgba(61, 180, 242, 0.8) !important;
+    opacity: 1;
+}
 
-    /* Aggiungere questi stili a calendar.css */
+.gallery-nav-button.nav-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
 
-    /* Miglioriamo il layout delle gallery-page */
-    .gallery-page {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 14px;
-        width: 100%;
-        max-width: 600px;
-        padding: 10px 0;
-        /* Aggiungiamo transizione per renderla più fluida */
-        transition: opacity 0.15s ease;
-    }
+/* Migliora la visualizzazione in tema chiaro */
+.site-theme-light .gallery-nav-button,
+[data-theme='light'] .gallery-nav-button {
+    background-color: rgba(200, 200, 200, 0.9) !important;
+    color: #333;
+}
 
-    /* Stile per nascondere le pagine che non sono attive */
-    .hidden-page {
-        display: none !important;
-        opacity: 0;
-        pointer-events: none;
-    }
+.site-theme-light .gallery-nav-button:hover,
+[data-theme='light'] .gallery-nav-button:hover {
+    background-color: rgba(61, 180, 242, 0.8) !important;
+    color: white;
+}
 
-    /* Posizioniamo meglio i pulsanti di navigazione */
-    .gallery-nav-prev,
-    .gallery-nav-next {
-        position: absolute;
-        right: 10px;
-        z-index: 100;
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        background-color: rgba(0, 0, 0, 0.65) !important;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0.9;
-        transition: background-color 0.2s ease, opacity 0.2s ease;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-        border: none;
-        outline: none;
-    }
-
-    .gallery-nav-prev {
-        top: 30%;
-    }
-
-    .gallery-nav-next {
-        top: 70%;
-    }
-
-    .gallery-nav-button:hover {
-        background-color: rgba(61, 180, 242, 0.8) !important;
-        opacity: 1;
-    }
-
-    .gallery-nav-button.nav-hidden {
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    /* Migliora la visualizzazione in tema chiaro */
-    .site-theme-light .gallery-nav-button,
-    [data-theme='light'] .gallery-nav-button {
-        background-color: rgba(200, 200, 200, 0.9) !important;
-        color: #333;
-    }
-
-    .site-theme-light .gallery-nav-button:hover,
-    [data-theme='light'] .gallery-nav-button:hover {
-        background-color: rgba(61, 180, 242, 0.8) !important;
-        color: white;
-    }
-
-    /* Container dei pulsanti di navigazione */
-    .gallery-with-nav {
-        position: relative;
-    }
+/* Container dei pulsanti di navigazione */
+.gallery-with-nav {
+    position: relative;
 }

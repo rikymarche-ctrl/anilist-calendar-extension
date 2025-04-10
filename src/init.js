@@ -39,7 +39,8 @@ window.AnilistCalendar = {
         showEpisodeNumbers: true,          // Show episode numbers
         titleAlignment: 'center',          // Title alignment: 'left' or 'center'
         columnJustify: 'top',              // Column justification: 'top' or 'center'
-        maxCardsPerDay: 0                  // Maximum cards per day in gallery mode (0 = unlimited)
+        maxCardsPerDay: 0,                 // Maximum cards per day in gallery mode (0 = unlimited)
+        fullWidthImages: false             // NEW: Whether to expand images to full width in standard mode
     },
 
     // Global state
@@ -62,173 +63,11 @@ window.AnilistCalendar = {
     calendar: {},
     main: {},
 
-    // Enhanced theme detection system
-    enhancedThemeDetection: {
-        /**
-         * Determina il tema attivo usando vari metodi di rilevazione
-         * @return {string} 'light' o 'dark' in base al tema rilevato
-         */
-        getCurrentTheme: function() {
-            // 1. Controlla il selettore UI del tema (verificato nel DOM)
-            const themeFromUI = this.getThemeFromUI();
-            if (themeFromUI) {
-                return themeFromUI;
-            }
-
-            // 2. Controlla l'attributo data-theme sull'elemento HTML
-            const htmlTheme = document.documentElement.getAttribute('data-theme');
-            if (htmlTheme === 'light' || htmlTheme === 'dark') {
-                return htmlTheme;
-            }
-
-            // 3. Controlla l'attributo data-theme sul body
-            const bodyTheme = document.body.getAttribute('data-theme');
-            if (bodyTheme === 'light' || bodyTheme === 'dark') {
-                return bodyTheme;
-            }
-
-            // 4. Controlla le classi sul documento HTML
-            if (document.documentElement.classList.contains('light-mode') ||
-                document.documentElement.classList.contains('site-theme-light')) {
-                return 'light';
-            }
-            if (document.documentElement.classList.contains('dark-mode') ||
-                document.documentElement.classList.contains('site-theme-dark')) {
-                return 'dark';
-            }
-
-            // 5. Controlla le classi sul body
-            if (document.body.classList.contains('light-mode') ||
-                document.body.classList.contains('site-theme-light')) {
-                return 'light';
-            }
-            if (document.body.classList.contains('dark-mode') ||
-                document.body.classList.contains('site-theme-dark')) {
-                return 'dark';
-            }
-
-            // 6. Controlla localStorage (Anilist salva questa preferenza)
-            if (localStorage.getItem('theme')) {
-                return localStorage.getItem('theme');
-            }
-
-            // 7. Controlla la preferenza del sistema se supportata
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-                return 'light';
-            }
-
-            // Default: torna a dark theme
-            return 'dark';
-        },
-
-        /**
-         * Ottiene il tema dal selettore UI visibile nel DOM
-         * @return {string|null} 'light' o 'dark' se rilevato, altrimenti null
-         */
-        getThemeFromUI: function() {
-            try {
-                // Cerca il selettore di tema di Anilist
-                const themeSelector = document.querySelector('.theme-selector');
-                if (themeSelector) {
-                    const lightPreview = themeSelector.querySelector('.theme-preview.default');
-                    const darkPreview = themeSelector.querySelector('.theme-preview.dark');
-
-                    // Controlla quale tema è selezionato basandosi sull'attributo tabindex
-                    if (lightPreview && lightPreview.getAttribute('tabindex') === "0") {
-                        return 'light';
-                    } else if (darkPreview && darkPreview.getAttribute('tabindex') === "0") {
-                        return 'dark';
-                    }
-
-                    // Controlla anche gli attributi aria-selected
-                    if (lightPreview && lightPreview.getAttribute('aria-selected') === 'true') {
-                        return 'light';
-                    } else if (darkPreview && darkPreview.getAttribute('aria-selected') === 'true') {
-                        return 'dark';
-                    }
-                }
-            } catch (e) {
-                console.error('[Anilist Calendar] Error checking theme UI:', e);
-            }
-            return null;
-        },
-
-        /**
-         * Configura l'osservatore per rilevare cambiamenti di tema
-         * @param {Function} onThemeChanged - Callback da eseguire quando cambia il tema
-         */
-        setupThemeObserver: function(onThemeChanged) {
-            // Monitora i cambiamenti ai data-theme attributes
-            const attrObserver = new MutationObserver((mutations) => {
-                for (const mutation of mutations) {
-                    if (mutation.attributeName === 'data-theme' || mutation.attributeName === 'class') {
-                        onThemeChanged();
-                    }
-                }
-            });
-
-            // Osserva sia il document che il body per cambiamenti
-            attrObserver.observe(document.documentElement, {
-                attributes: true,
-                attributeFilter: ['data-theme', 'class']
-            });
-            attrObserver.observe(document.body, {
-                attributes: true,
-                attributeFilter: ['data-theme', 'class']
-            });
-
-            // Cerca bottoni di theme toggle esistenti
-            const themeToggles = document.querySelectorAll(
-                '.theme-toggle, .theme-toggle-button, [data-action="toggle-theme"]'
-            );
-
-            themeToggles.forEach(button => {
-                button.addEventListener('click', () => {
-                    // Ritardo piccolo per permettere al DOM di aggiornarsi
-                    setTimeout(onThemeChanged, 50);
-                });
-            });
-
-            // Osserva aggiunzioni di bottoni theme toggle
-            const bodyObserver = new MutationObserver((mutations) => {
-                for (const mutation of mutations) {
-                    if (mutation.type === 'childList' && mutation.addedNodes.length) {
-                        for (const node of mutation.addedNodes) {
-                            if (node.nodeType === Node.ELEMENT_NODE) {
-                                const toggles = node.querySelectorAll(
-                                    '.theme-toggle, .theme-toggle-button, [data-action="toggle-theme"]'
-                                );
-
-                                toggles.forEach(button => {
-                                    button.addEventListener('click', () => {
-                                        setTimeout(onThemeChanged, 50);
-                                    });
-                                });
-                            }
-                        }
-                    }
-                }
-            });
-
-            bodyObserver.observe(document.body, { childList: true, subtree: true });
-
-            // Controlla anche localStorage changes
-            const originalSetItem = localStorage.setItem;
-            localStorage.setItem = function(key, value) {
-                originalSetItem.call(this, key, value);
-                if (key === 'theme') {
-                    setTimeout(onThemeChanged, 50);
-                }
-            };
-        }
-    },
-
     /**
-     * Detect the site theme using enhanced detection
+     * Detect the site theme by directly examining DOM elements
      * @return {string} 'light' or 'dark' based on detected theme
      */
     detectTheme: function() {
-        // Ensure utils.log exists
         if (!this.utils.log) {
             this.utils.log = function(message, data) {
                 if (window.AnilistCalendar.DEBUG_MODE) {
@@ -241,13 +80,54 @@ window.AnilistCalendar = {
             };
         }
 
-        // Utilizza la funzione migliorata per la rilevazione del tema
-        const theme = this.enhancedThemeDetection.getCurrentTheme();
+        try {
+            // Direct check of body class - most reliable
+            if (document.body.classList.contains('site-theme-light')) {
+                this.utils.log('Theme detected from body class: light');
+                return 'light';
+            }
 
-        // Log dei risultati per debugging
-        this.utils.log('Enhanced theme detection result:', theme);
+            if (document.body.classList.contains('site-theme-dark')) {
+                this.utils.log('Theme detected from body class: dark');
+                return 'dark';
+            }
 
-        return theme;
+            // Check data-theme attribute
+            const bodyTheme = document.body.getAttribute('data-theme');
+            if (bodyTheme === 'light') {
+                this.utils.log('Theme detected from data-theme attribute: light');
+                return 'light';
+            }
+
+            // Check for specific AniList elements with known styles
+            const siteContent = document.querySelector('.site-content');
+            if (siteContent) {
+                const bgColor = window.getComputedStyle(siteContent).backgroundColor;
+                // Parse the RGB values
+                const rgbMatch = bgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                if (rgbMatch) {
+                    const brightness = (parseInt(rgbMatch[1]) + parseInt(rgbMatch[2]) + parseInt(rgbMatch[3])) / 3;
+                    if (brightness > 100) {
+                        this.utils.log('Theme inferred from site-content background: light');
+                        return 'light';
+                    }
+                }
+            }
+
+            // Check for light theme elements
+            const lightElements = document.querySelectorAll('.theme-light, [data-theme="light"]');
+            if (lightElements.length > 0) {
+                this.utils.log('Theme detected from light theme elements');
+                return 'light';
+            }
+
+            // Fallback to dark theme as default
+            this.utils.log('No light theme detected, using dark as default');
+            return 'dark';
+        } catch (err) {
+            this.utils.log('Error in theme detection, falling back to dark:', err);
+            return 'dark';
+        }
     },
 
     /**
@@ -314,18 +194,78 @@ window.AnilistCalendar = {
             };
         }
 
-        // Utilizza l'osservatore migliorato
-        this.enhancedThemeDetection.setupThemeObserver(() => {
-            // Quando viene rilevato un cambio di tema
-            const newTheme = this.detectTheme();
-            if (newTheme !== this.state.currentTheme) {
-                this.utils.log(`Theme changed from ${this.state.currentTheme} to ${newTheme}`);
-                this.state.currentTheme = newTheme;
-                this.applyTheme();
+        // Setup mutation observer for theme changes
+        const themeObserver = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                if (mutation.attributeName === 'class' || mutation.attributeName === 'data-theme') {
+                    const newTheme = this.detectTheme();
+                    if (newTheme !== this.state.currentTheme) {
+                        this.utils.log(`Theme changed from ${this.state.currentTheme} to ${newTheme}`);
+                        this.state.currentTheme = newTheme;
+                        this.applyTheme();
+                    }
+                }
             }
         });
 
-        this.utils.log('Enhanced theme observer set up');
+        // Observe both document.body and document.documentElement for changes
+        themeObserver.observe(document.body, {
+            attributes: true,
+            attributeFilter: ['class', 'data-theme']
+        });
+
+        themeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class', 'data-theme']
+        });
+
+        // Also observe the main content area for theme changes
+        const siteContent = document.querySelector('.site-content');
+        if (siteContent) {
+            themeObserver.observe(siteContent, {
+                attributes: true,
+                attributeFilter: ['class', 'data-theme']
+            });
+        }
+
+        // Look for theme toggle buttons and add click listeners
+        const setupThemeToggleListeners = () => {
+            const themeToggles = document.querySelectorAll('[data-icon="moon"], [data-icon="sun"], .theme-toggle');
+            themeToggles.forEach(toggle => {
+                if (!toggle.hasAttribute('data-theme-listener')) {
+                    toggle.setAttribute('data-theme-listener', 'true');
+                    toggle.addEventListener('click', () => {
+                        setTimeout(() => {
+                            const newTheme = this.detectTheme();
+                            if (newTheme !== this.state.currentTheme) {
+                                this.utils.log(`Theme changed via toggle from ${this.state.currentTheme} to ${newTheme}`);
+                                this.state.currentTheme = newTheme;
+                                this.applyTheme();
+                            }
+                        }, 100);
+                    });
+                }
+            });
+        };
+
+        // Initial setup
+        setupThemeToggleListeners();
+
+        // And watch for new toggle buttons being added
+        const bodyObserver = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                if (mutation.type === 'childList') {
+                    setupThemeToggleListeners();
+                }
+            }
+        });
+
+        bodyObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        this.utils.log('Theme observer set up');
     }
 };
 

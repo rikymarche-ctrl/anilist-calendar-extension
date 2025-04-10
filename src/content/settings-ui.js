@@ -4,8 +4,8 @@
  */
 
 /**
- * Crea il pulsante delle impostazioni.
- * @return {HTMLElement} Il pulsante delle impostazioni creato.
+ * Creates the settings button.
+ * @return {HTMLElement} The created settings button.
  */
 window.AnilistCalendar.settingsUI.createSettingsButton = function() {
     const settingsButton = document.createElement('button');
@@ -13,13 +13,13 @@ window.AnilistCalendar.settingsUI.createSettingsButton = function() {
     settingsButton.title = 'Open settings';
     settingsButton.innerHTML = '<i class="fa fa-cog"></i>';
 
-    // Apre l'overlay delle impostazioni al click
+    // Opens settings overlay on click
     settingsButton.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
 
         try {
-            // Mostra l'overlay delle impostazioni
+            // Show settings overlay
             window.AnilistCalendar.settingsUI.createSettingsOverlay();
         } catch (err) {
             window.AnilistCalendar.utils.log("Error creating settings overlay:", err);
@@ -32,11 +32,11 @@ window.AnilistCalendar.settingsUI.createSettingsButton = function() {
 };
 
 /**
- * Inizializza i gestori degli eventi per il pulsante delle impostazioni.
+ * Initializes event handlers for the settings button.
  */
 window.AnilistCalendar.settingsUI.initSettingsButtonEvents = function() {
     document.addEventListener('mouseover', function(e) {
-        // Verifica se si sta passando sopra un elemento del calendario o header
+        // Check if hovering over a calendar element or header
         let element = e.target;
         let isRelevantElement = false;
 
@@ -62,7 +62,7 @@ window.AnilistCalendar.settingsUI.initSettingsButtonEvents = function() {
     });
 
     document.addEventListener('mouseout', function(e) {
-        // Gestisce il mouseout per elementi rilevanti
+        // Handle mouseout for relevant elements
         let isRelevantElement = false;
         let fromElement = e.target;
 
@@ -77,7 +77,7 @@ window.AnilistCalendar.settingsUI.initSettingsButtonEvents = function() {
             fromElement = fromElement.parentElement;
         }
 
-        // Verifica che non si stia passando su un altro elemento rilevante
+        // Verify not moving to another relevant element
         if (isRelevantElement) {
             let toElement = e.relatedTarget;
             let isMovingToRelevantElement = false;
@@ -107,16 +107,16 @@ window.AnilistCalendar.settingsUI.initSettingsButtonEvents = function() {
 };
 
 /**
- * Crea un overlay delle impostazioni con sezioni e tab organizzati.
+ * Creates a settings overlay with organized sections and tabs.
  */
 window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
-    // Rimuove eventuali overlay esistenti
+    // Remove any existing overlay
     const existingOverlay = document.querySelector('.settings-overlay');
     if (existingOverlay) {
         existingOverlay.remove();
     }
 
-    // Rilevamento tema tramite più metodi per compatibilità massima
+    // Theme detection using multiple methods for maximum compatibility
     const siteThemeFromBody = document.body.classList.contains('site-theme-light');
     const dataThemeFromBody = document.body.getAttribute('data-theme') === 'light';
     const dataThemeFromHtml = document.documentElement.getAttribute('data-theme') === 'light';
@@ -126,10 +126,10 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     const isHighContrast = document.body.classList.contains('high-contrast') ||
         document.documentElement.classList.contains('high-contrast');
 
-    // Log per il rilevamento del tema
+    // Log for theme detection
     window.AnilistCalendar.utils.log(`Theme detection: Light theme: ${isLightTheme} (body class: ${siteThemeFromBody}, data-theme: ${dataThemeFromBody}, html data-theme: ${dataThemeFromHtml}, html class: ${htmlClass}), High contrast: ${isHighContrast}`);
 
-    // Crea il container dell'overlay
+    // Create the overlay container
     const overlayContainer = document.createElement('div');
     overlayContainer.className = 'settings-overlay';
 
@@ -140,11 +140,11 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         overlayContainer.classList.add('high-contrast');
     }
 
-    // Crea il pannello delle impostazioni con styling specifico del tema
+    // Create the settings panel with theme-specific styling
     const settingsPanel = document.createElement('div');
     settingsPanel.className = 'settings-panel';
 
-    // Aggiunge header
+    // Add header
     const header = document.createElement('div');
     header.className = 'settings-header';
 
@@ -166,11 +166,11 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     header.appendChild(closeButton);
     settingsPanel.appendChild(header);
 
-    // Crea il container dei tab
+    // Create tabs container
     const tabsContainer = document.createElement('div');
     tabsContainer.className = 'settings-tabs';
 
-    // Crea i pulsanti dei tab
+    // Create tab buttons
     const layoutTab = createTabButton('Layout', 'layout-tab', true);
     const calendarTab = createTabButton('Calendar', 'calendar-tab');
     const timeTab = createTabButton('Time', 'time-tab');
@@ -190,7 +190,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
 
     settingsPanel.appendChild(tabsContainer);
 
-    // Crea i container per i contenuti dei tab
+    // Create containers for tab contents
     const layoutContent = document.createElement('div');
     layoutContent.id = 'layout-tab-content';
     layoutContent.className = 'tab-content active';
@@ -204,14 +204,15 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     timeContent.className = 'tab-content';
 
     //-----------------------------------------------------
-    // CONTENUTO DEL TAB LAYOUT & DISPLAY
+    // LAYOUT & DISPLAY TAB CONTENT
     //-----------------------------------------------------
-    // Impostazione della modalità di layout
+    // Layout mode setting
     const currentLayoutMode = window.AnilistCalendar.userPreferences.layoutMode;
     const layoutModeWrapper = createFilteredSelect('layout-mode', [
         { value: 'standard', text: 'Standard' },
         { value: 'compact', text: 'Compact' },
-        { value: 'extended', text: 'Gallery' }
+        { value: 'extended', text: 'Gallery' },
+        { value: 'fan', text: 'Fan Layout' }
     ], currentLayoutMode);
 
     const layoutModeSelect = layoutModeWrapper.querySelector('select');
@@ -223,21 +224,37 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     layoutContent.appendChild(layoutModeRow);
 
-    // Impostazione del numero massimo di card per giorno (visibile in Gallery mode)
+    // Max cards per day setting (visible only in Gallery or Fan layout)
     const maxCardsPerDayRow = createSettingRow(
         'Max cards per day',
-        'Maximum number of cards to show per day in Gallery mode (0 = unlimited)',
-        createNumberInput('max-cards-per-day', window.AnilistCalendar.userPreferences.maxCardsPerDay || 0, 0, 30, 1)
+        'Maximum number of cards to show per day (0 = unlimited)',
+        createCustomNumberInput('max-cards-per-day', window.AnilistCalendar.userPreferences.maxCardsPerDay || 0, 0, 30, 1)
     );
 
+    // Hide by default, will show based on layout
     maxCardsPerDayRow.classList.add('setting-row-hidden');
-    if (currentLayoutMode === 'extended' || currentLayoutMode === 'grid') {
+    if (currentLayoutMode === 'extended' || currentLayoutMode === 'fan') {
         maxCardsPerDayRow.classList.remove('setting-row-hidden');
     }
 
     layoutContent.appendChild(maxCardsPerDayRow);
 
-    // Impostazione dell'allineamento del titolo
+    // Full width images setting (only for standard mode)
+    const fullWidthImagesRow = createSettingRow(
+        'Full width images',
+        'Expand images to fill the entire card (standard mode only)',
+        createToggle('full-width-images', window.AnilistCalendar.userPreferences.fullWidthImages)
+    );
+
+    // Hide by default, will show based on layout
+    fullWidthImagesRow.classList.add('setting-row-hidden');
+    if (currentLayoutMode === 'standard') {
+        fullWidthImagesRow.classList.remove('setting-row-hidden');
+    }
+
+    layoutContent.appendChild(fullWidthImagesRow);
+
+    // Title alignment setting
     const titleAlignmentRow = createSettingRow(
         'Title alignment',
         'Choose how anime titles are aligned',
@@ -248,7 +265,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     layoutContent.appendChild(titleAlignmentRow);
 
-    // NUOVA IMPOSTAZIONE: Giustificazione delle colonne
+    // Column justify setting
     const columnJustifyRow = createSettingRow(
         'Column justify',
         'Choose how columns are justified in the calendar',
@@ -257,9 +274,16 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
             { value: 'center', text: 'Center aligned' }
         ], window.AnilistCalendar.userPreferences.columnJustify || 'top')
     );
+
+    // Hide column justify by default, will show based on layout
+    columnJustifyRow.classList.add('setting-row-hidden');
+    if (currentLayoutMode === 'extended' || currentLayoutMode === 'fan') {
+        columnJustifyRow.classList.remove('setting-row-hidden');
+    }
+
     layoutContent.appendChild(columnJustifyRow);
 
-    // Impostazione per nascondere i giorni vuoti
+    // Hide empty days setting
     const hideEmptyDaysRow = createSettingRow(
         'Hide empty days',
         'Only show days with scheduled episodes',
@@ -267,13 +291,28 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     layoutContent.appendChild(hideEmptyDaysRow);
 
+    // Layout mode change event handler
     if (layoutModeSelect) {
         layoutModeSelect.addEventListener('change', function() {
-            const isGalleryMode = this.value === 'extended' || this.value === 'grid';
-            if (isGalleryMode) {
+            const isGalleryMode = this.value === 'extended';
+            const isFanMode = this.value === 'fan';
+            const isStandardMode = this.value === 'standard';
+
+            // Toggle visibility of max cards per day and column justify settings
+            if (isGalleryMode || isFanMode) {
                 maxCardsPerDayRow.classList.remove('setting-row-hidden');
+                columnJustifyRow.classList.remove('setting-row-hidden');
+                fullWidthImagesRow.classList.add('setting-row-hidden');
             } else {
                 maxCardsPerDayRow.classList.add('setting-row-hidden');
+                columnJustifyRow.classList.add('setting-row-hidden');
+
+                // Show fullWidthImages setting only for standard mode
+                if (isStandardMode) {
+                    fullWidthImagesRow.classList.remove('setting-row-hidden');
+                } else {
+                    fullWidthImagesRow.classList.add('setting-row-hidden');
+                }
             }
         });
     } else {
@@ -281,9 +320,9 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     }
 
     //-----------------------------------------------------
-    // CONTENUTO DEL TAB CALENDAR
+    // CALENDAR TAB CONTENT
     //-----------------------------------------------------
-    // Impostazione del giorno di inizio con separatore visivo
+    // Start day setting with visual separator
     const startDayOptions = [
         { value: 'today', text: 'Today', group: 'special' },
         { disabled: true, text: '─────────────', className: 'day-separator' },
@@ -305,7 +344,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     calendarContent.appendChild(startDayRow);
 
-    // Impostazione per mostrare i numeri degli episodi
+    // Show episode numbers setting
     const showEpisodeNumbersRow = createSettingRow(
         'Show episode numbers',
         'Display episode numbers in the calendar',
@@ -314,9 +353,9 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     calendarContent.appendChild(showEpisodeNumbersRow);
 
     //-----------------------------------------------------
-    // CONTENUTO DEL TAB TIME & TIMEZONE
+    // TIME & TIMEZONE TAB CONTENT
     //-----------------------------------------------------
-    // Impostazione per mostrare l'orario
+    // Show time setting
     const showTimeRow = createSettingRow(
         'Show time',
         'Display time information for each anime',
@@ -324,7 +363,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     timeContent.appendChild(showTimeRow);
 
-    // Impostazione per il formato dell'orario
+    // Time format setting
     const timeFormatRow = createSettingRow(
         'Time format',
         'Choose between countdown or release time',
@@ -335,7 +374,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     timeContent.appendChild(timeFormatRow);
 
-    // Select per il fuso orario con nomi abbreviati in visualizzazione ridotta
+    // Timezone select with abbreviated names in compact display
     const timezoneSelect = document.createElement('select');
     timezoneSelect.id = 'timezone';
     timezoneSelect.className = 'settings-select';
@@ -355,7 +394,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
 
     timezoneSelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
-        // Ripristina il testo completo per tutte le opzioni
+        // Restore full text for all options
         for (let i = 0; i < this.options.length; i++) {
             const opt = this.options[i];
             const tz = window.AnilistCalendar.TIMEZONE_OPTIONS.find(t => t.value === opt.value);
@@ -379,17 +418,17 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     timeContent.appendChild(timezoneRow);
 
-    // Aggiunge tutti i contenuti dei tab al pannello
+    // Add all tab contents to the panel
     settingsPanel.appendChild(layoutContent);
     settingsPanel.appendChild(calendarContent);
     settingsPanel.appendChild(timeContent);
 
-    // Aggiunge la funzionalità di cambio tab
+    // Add tab switching functionality
     layoutTab.addEventListener('click', () => switchTab('layout-tab'));
     calendarTab.addEventListener('click', () => switchTab('calendar-tab'));
     timeTab.addEventListener('click', () => switchTab('time-tab'));
 
-    // Bottone di salvataggio
+    // Save button
     const saveContainer = document.createElement('div');
     saveContainer.className = 'settings-save-container';
     if (isLightTheme) {
@@ -403,9 +442,9 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     }
     saveButton.innerHTML = '<i class="fa fa-save"></i> Save Changes';
 
-    // LOGICA DEL BOTTONE SAVE RISCRITTA COMPLETAMENTE PER GESTIRE MEGLIO LE MODIFICHE MULTIPLE
+    // SAVE BUTTON LOGIC
     saveButton.addEventListener('click', () => {
-        // Salva i valori precedenti per confronto
+        // Save previous values for comparison
         const prevStartDay = window.AnilistCalendar.userPreferences.startDay;
         const prevHideEmptyDays = window.AnilistCalendar.userPreferences.hideEmptyDays;
         const prevLayoutMode = window.AnilistCalendar.userPreferences.layoutMode;
@@ -416,8 +455,9 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         const prevTitleAlignment = window.AnilistCalendar.userPreferences.titleAlignment;
         const prevColumnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
         const prevMaxCardsPerDay = window.AnilistCalendar.userPreferences.maxCardsPerDay || 0;
+        const prevFullWidthImages = window.AnilistCalendar.userPreferences.fullWidthImages;
 
-        // Recupera i nuovi valori dal form
+        // Get new values from the form
         const startDay = document.getElementById('start-day').value;
         const hideEmptyDays = document.getElementById('hide-empty-days').checked;
         const layoutMode = document.getElementById('layout-mode').value;
@@ -428,8 +468,9 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         const titleAlignment = document.getElementById('title-alignment').value;
         const columnJustify = document.getElementById('column-justify').value;
         const maxCardsPerDay = parseInt(document.getElementById('max-cards-per-day').value) || 0;
+        const fullWidthImages = document.getElementById('full-width-images').checked;
 
-        // Conta le modifiche apportate
+        // Count the changes made
         const changes = [];
         if (prevLayoutMode !== layoutMode) changes.push('layout');
         if (prevColumnJustify !== columnJustify) changes.push('column justification');
@@ -441,8 +482,9 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         if (prevShowTime !== showTime) changes.push('time display');
         if (prevShowEpisodeNumbers !== showEpisodeNumbers) changes.push('episode numbers');
         if (prevMaxCardsPerDay !== maxCardsPerDay) changes.push('max cards per day');
+        if (prevFullWidthImages !== fullWidthImages) changes.push('image layout');
 
-        // Aggiorna l'oggetto delle preferenze
+        // Update the preferences object
         window.AnilistCalendar.userPreferences.startDay = startDay;
         window.AnilistCalendar.userPreferences.hideEmptyDays = hideEmptyDays;
         window.AnilistCalendar.userPreferences.layoutMode = layoutMode;
@@ -453,11 +495,12 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         window.AnilistCalendar.userPreferences.titleAlignment = titleAlignment;
         window.AnilistCalendar.userPreferences.columnJustify = columnJustify;
         window.AnilistCalendar.userPreferences.maxCardsPerDay = maxCardsPerDay;
+        window.AnilistCalendar.userPreferences.fullWidthImages = fullWidthImages;
 
-        // Salva nel local storage
+        // Save to local storage
         window.AnilistCalendar.settings.saveUserPreferences();
 
-        // Determina il messaggio in base alle modifiche
+        // Determine the message based on the changes
         let notificationMessage;
         if (changes.length === 0) {
             notificationMessage = 'No changes detected';
@@ -470,37 +513,38 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
             notificationMessage = `Multiple settings updated (${changes.length})`;
         }
 
-        // Mostra la notifica
+        // Show notification
         window.AnilistCalendar.utils.showNotification(notificationMessage, 'success');
 
-        // Chiude l'overlay
+        // Close overlay
         overlayContainer.classList.remove('active');
         setTimeout(() => {
             overlayContainer.remove();
         }, 300);
 
-        // Aggiorna l'UI senza ricaricare la pagina
+        // Update UI without refreshing the page
         window.AnilistCalendar.calendar.updateUIWithSettings(
             prevTimeFormat,
             prevTimezone,
             prevTitleAlignment,
-            prevColumnJustify
+            prevColumnJustify,
+            prevFullWidthImages
         );
     });
 
     saveContainer.appendChild(saveButton);
     settingsPanel.appendChild(saveContainer);
 
-    // Aggiunge il pannello al container dell'overlay
+    // Add panel to overlay container
     overlayContainer.appendChild(settingsPanel);
     document.body.appendChild(overlayContainer);
 
-    // Attiva l'overlay con animazione
+    // Activate overlay with animation
     setTimeout(() => {
         overlayContainer.classList.add('active');
     }, 10);
 
-    // Chiude l'overlay cliccando fuori dal pannello
+    // Close overlay by clicking outside
     overlayContainer.addEventListener('click', (e) => {
         if (e.target === overlayContainer) {
             overlayContainer.classList.remove('active');
@@ -510,7 +554,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         }
     });
 
-    // Funzione per gestire il cambio dei tab
+    // Function to handle tab switching
     function switchTab(tabId) {
         const tabs = document.querySelectorAll('.settings-tab');
         tabs.forEach(tab => {
@@ -533,11 +577,11 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
 };
 
 /**
- * Crea un pulsante per i tab.
- * @param {string} text - Il testo del tab.
- * @param {string} id - L'ID del tab.
- * @param {boolean} isActive - Se il tab è inizialmente attivo.
- * @return {HTMLElement} Il pulsante del tab creato.
+ * Creates a tab button.
+ * @param {string} text - The tab text.
+ * @param {string} id - The tab ID.
+ * @param {boolean} isActive - Whether the tab is initially active.
+ * @return {HTMLElement} The created tab button.
  */
 function createTabButton(text, id, isActive = false) {
     const button = document.createElement('button');
@@ -551,11 +595,11 @@ function createTabButton(text, id, isActive = false) {
 }
 
 /**
- * Crea una riga di impostazioni composta da etichetta, descrizione e controllo.
- * @param {string} label - L'etichetta dell'impostazione.
- * @param {string} description - La descrizione dell'impostazione.
- * @param {HTMLElement} control - L'elemento di controllo (select, toggle, ecc.).
- * @return {HTMLElement} La riga di impostazioni creata.
+ * Creates a settings row with label, description and control.
+ * @param {string} label - The setting label.
+ * @param {string} description - The setting description.
+ * @param {HTMLElement} control - The control element (select, toggle, etc.).
+ * @return {HTMLElement} The created settings row.
  */
 function createSettingRow(label, description, control) {
     const row = document.createElement('div');
@@ -582,11 +626,11 @@ function createSettingRow(label, description, control) {
 }
 
 /**
- * Helper per popolare le opzioni in un elemento select, eliminando il codice duplicato.
- * @param {HTMLSelectElement} select - L'elemento select da popolare.
- * @param {Array} options - L'array di opzioni.
- * @param {string} selectedVal - Il valore attualmente selezionato.
- * @param {Function} [extraAttrsCallback] - Funzione opzionale per impostare attributi extra sugli elementi option.
+ * Helper to populate options in a select element, eliminating duplicate code.
+ * @param {HTMLSelectElement} select - The select element to populate.
+ * @param {Array} options - The options array.
+ * @param {string} selectedVal - The currently selected value.
+ * @param {Function} [extraAttrsCallback] - Optional function to set extra attributes on option elements.
  */
 function populateOptions(select, options, selectedVal, extraAttrsCallback) {
     select.innerHTML = '';
@@ -628,11 +672,11 @@ function populateOptions(select, options, selectedVal, extraAttrsCallback) {
 }
 
 /**
- * Crea un elemento select generico.
- * @param {string} id - L'ID del select.
- * @param {Array} options - Le opzioni da includere.
- * @param {string} selectedValue - Il valore inizialmente selezionato.
- * @return {HTMLElement} Il wrapper contenente il select.
+ * Creates a generic select element.
+ * @param {string} id - The select ID.
+ * @param {Array} options - The options to include.
+ * @param {string} selectedValue - The initially selected value.
+ * @return {HTMLElement} The wrapper containing the select.
  */
 function createSelect(id, options, selectedValue) {
     const wrapper = document.createElement('div');
@@ -672,11 +716,11 @@ function createSelect(id, options, selectedValue) {
 }
 
 /**
- * Crea un elemento select filtrato.
- * @param {string} id - L'ID del select.
- * @param {Array} options - Le opzioni da includere.
- * @param {string} selectedValue - Il valore inizialmente selezionato.
- * @return {HTMLElement} Il wrapper contenente il select.
+ * Creates a filtered select element.
+ * @param {string} id - The select ID.
+ * @param {Array} options - The options to include.
+ * @param {string} selectedValue - The initially selected value.
+ * @return {HTMLElement} The wrapper containing the select.
  */
 function createFilteredSelect(id, options, selectedValue) {
     const wrapper = document.createElement('div');
@@ -706,36 +750,79 @@ function createFilteredSelect(id, options, selectedValue) {
 }
 
 /**
- * Crea un input di tipo number.
- * @param {string} id - L'ID dell'input.
- * @param {number} value - Il valore iniziale.
- * @param {number} min - Il valore minimo.
- * @param {number} max - Il valore massimo.
- * @param {number} step - L'incremento.
- * @return {HTMLElement} L'elemento input creato.
+ * Creates a custom number input with - and + buttons.
+ * @param {string} id - The input ID.
+ * @param {number} value - The initial value.
+ * @param {number} min - The minimum value.
+ * @param {number} max - The maximum value.
+ * @param {number} step - The increment.
+ * @return {HTMLElement} The created custom number input.
  */
-function createNumberInput(id, value, min, max, step) {
+function createCustomNumberInput(id, value, min, max, step) {
     const wrapper = document.createElement('div');
     wrapper.className = 'number-input-wrapper';
 
+    // Minus button
+    const minusBtn = document.createElement('button');
+    minusBtn.className = 'number-control-btn number-minus-btn';
+    minusBtn.innerHTML = '<i class="fa fa-minus"></i>';
+    minusBtn.type = 'button';
+
+    // Input field
     const input = document.createElement('input');
-    input.type = 'number';
+    input.type = 'text';
     input.id = id;
     input.className = 'settings-number-input';
-    input.min = min.toString();
-    input.max = max.toString();
-    input.step = step.toString();
     input.value = value.toString();
+    input.setAttribute('data-min', min.toString());
+    input.setAttribute('data-max', max.toString());
+    input.setAttribute('data-step', step.toString());
 
+    // Plus button
+    const plusBtn = document.createElement('button');
+    plusBtn.className = 'number-control-btn number-plus-btn';
+    plusBtn.innerHTML = '<i class="fa fa-plus"></i>';
+    plusBtn.type = 'button';
+
+    // Add event listeners
+    minusBtn.addEventListener('click', () => {
+        let currentValue = parseInt(input.value) || 0;
+        currentValue = Math.max(min, currentValue - step);
+        input.value = currentValue.toString();
+    });
+
+    plusBtn.addEventListener('click', () => {
+        let currentValue = parseInt(input.value) || 0;
+        currentValue = Math.min(max, currentValue + step);
+        input.value = currentValue.toString();
+    });
+
+    // Validate input changes
+    input.addEventListener('change', () => {
+        let currentValue = parseInt(input.value) || 0;
+        currentValue = Math.max(min, Math.min(max, currentValue));
+        input.value = currentValue.toString();
+    });
+
+    // Prevent non-numeric input
+    input.addEventListener('keypress', (e) => {
+        if (!/\d/.test(e.key)) {
+            e.preventDefault();
+        }
+    });
+
+    wrapper.appendChild(minusBtn);
     wrapper.appendChild(input);
+    wrapper.appendChild(plusBtn);
+
     return wrapper;
 }
 
 /**
- * Crea un interruttore toggle.
- * @param {string} id - L'ID del toggle.
- * @param {boolean} checked - Se il toggle è inizialmente attivo.
- * @return {HTMLElement} L'elemento toggle creato.
+ * Creates a toggle switch.
+ * @param {string} id - The toggle ID.
+ * @param {boolean} checked - Whether the toggle is initially active.
+ * @return {HTMLElement} The created toggle element.
  */
 function createToggle(id, checked) {
     const toggle = document.createElement('label');

@@ -6,31 +6,31 @@
    1. THEME VARIABLES
    ----------------------------------------------------------- */
 
-/* Default (Dark) Theme */
+/* Default (Dark) Theme - Updated to match AniList colors more closely */
 .anilist-weekly-calendar {
     --cal-text: #e5e7eb;
     --cal-text-light: #9ca3af;
     --cal-background: #0B1622;
-    --cal-foreground: #152232;
-    --cal-border: rgba(125, 125, 125, 0.2);
+    --cal-foreground: #11161d;
+    --cal-border: rgba(49, 54, 68, 0.6);
     --cal-blue: #3db4f2;
     --cal-blue-dim: rgba(61, 180, 242, 0.8);
-    --cal-anime-bg: rgba(30, 42, 56, 0.8);
-    --cal-anime-hover: rgba(40, 55, 70, 0.8);
+    --cal-anime-bg: rgba(21, 31, 46, 0.8);
+    --cal-anime-hover: rgba(29, 42, 56, 0.9);
 }
 
-/* Light Theme Overrides */
+/* Light Theme Overrides - Updated to match AniList light theme */
 .site-theme-light .anilist-weekly-calendar,
 [data-theme='light'] .anilist-weekly-calendar {
-    --cal-text: #1f2937;
+    --cal-text: #2e3c4f;
     --cal-text-light: #6b7280;
-    --cal-background: #f9fafb;
+    --cal-background: #edf1f5;
     --cal-foreground: #ffffff;
     --cal-border: rgba(125, 125, 125, 0.2);
     --cal-blue: #3577b1;
     --cal-blue-dim: rgba(53, 119, 177, 0.8);
-    --cal-anime-bg: rgba(240, 240, 245, 0.9);
-    --cal-anime-hover: rgba(230, 230, 240, 0.9);
+    --cal-anime-bg: rgba(250, 250, 252, 0.9);
+    --cal-anime-hover: rgba(240, 242, 246, 0.9);
 }
 
 /* High Contrast Theme */

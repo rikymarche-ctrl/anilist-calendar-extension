@@ -792,9 +792,15 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
     window.AnilistCalendar.state.calendarContainer.classList.add(`column-justify-${columnJustify}`);
 
     window.AnilistCalendar.state.calendarContainer.classList.remove(
-        'standard-mode', 'compact-mode', 'extended-mode', 'gallery-with-slider'
+        'standard-mode', 'compact-mode', 'extended-mode', 'gallery-with-slider', 'full-width-images'
     );
     window.AnilistCalendar.state.calendarContainer.classList.add(`${window.AnilistCalendar.userPreferences.layoutMode}-mode`);
+
+    // Apply full-width-images class if enabled and in standard mode
+    if (window.AnilistCalendar.userPreferences.layoutMode === 'standard' &&
+        window.AnilistCalendar.userPreferences.fullWidthImages) {
+        window.AnilistCalendar.state.calendarContainer.classList.add('full-width-images');
+    }
 
     // Imposta la modalità gallery con slider solo se è attiva la modalità gallery (extended o grid)
     // e se maxCardsPerDay è maggiore di zero
@@ -932,22 +938,41 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
  * @param {string} prevTimezone - Previous timezone setting
  * @param {string} prevTitleAlignment - Previous title alignment setting
  * @param {string} prevColumnJustify - Previous column justification setting
+ * @param {boolean} prevFullWidthImages - Previous full width images setting
  */
-window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, prevTimezone, prevTitleAlignment, prevColumnJustify) {
+window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, prevTimezone, prevTitleAlignment, prevColumnJustify, prevFullWidthImages) {
     if (window.AnilistCalendar.state.calendarContainer) {
-        window.AnilistCalendar.state.calendarContainer.className = 'anilist-weekly-calendar';
+        // Remove all mode classes
+        window.AnilistCalendar.state.calendarContainer.classList.remove(
+            'standard-mode', 'compact-mode', 'extended-mode', 'fan-mode',
+            'gallery-with-slider', 'full-width-images'
+        );
+
+        // Add current layout mode class
         window.AnilistCalendar.state.calendarContainer.classList.add(`${window.AnilistCalendar.userPreferences.layoutMode}-mode`);
+
+        // Add title alignment class
         window.AnilistCalendar.state.calendarContainer.classList.add(`title-${window.AnilistCalendar.userPreferences.titleAlignment}`);
 
+        // Add column justify class
         const columnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
         window.AnilistCalendar.state.calendarContainer.classList.add(`column-justify-${columnJustify}`);
 
-        if ((window.AnilistCalendar.userPreferences.layoutMode === 'extended' ||
-                window.AnilistCalendar.userPreferences.layoutMode === 'grid') &&
-            window.AnilistCalendar.userPreferences.maxCardsPerDay > 0) {
+        // Add gallery with slider class if needed
+        const isGalleryMode = window.AnilistCalendar.userPreferences.layoutMode === 'extended' ||
+            window.AnilistCalendar.userPreferences.layoutMode === 'fan';
+
+        if (isGalleryMode && window.AnilistCalendar.userPreferences.maxCardsPerDay > 0) {
             window.AnilistCalendar.state.calendarContainer.classList.add('gallery-with-slider');
         }
 
+        // Add full-width-images class if enabled and in standard mode
+        if (window.AnilistCalendar.userPreferences.layoutMode === 'standard' &&
+            window.AnilistCalendar.userPreferences.fullWidthImages) {
+            window.AnilistCalendar.state.calendarContainer.classList.add('full-width-images');
+        }
+
+        // Update title alignment if changed
         if (prevTitleAlignment !== window.AnilistCalendar.userPreferences.titleAlignment) {
             const titles = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.anime-title');
             titles.forEach(title => {
@@ -956,6 +981,7 @@ window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, 
             });
         }
 
+        // Update column justify if changed
         if (prevColumnJustify !== columnJustify) {
             const dayColumns = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.anilist-calendar-day');
             dayColumns.forEach(column => {
@@ -970,13 +996,27 @@ window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, 
             });
         }
 
+        // Update full-width-images if changed and in standard mode
+        if (window.AnilistCalendar.userPreferences.layoutMode === 'standard' &&
+            prevFullWidthImages !== window.AnilistCalendar.userPreferences.fullWidthImages) {
+
+            if (window.AnilistCalendar.userPreferences.fullWidthImages) {
+                window.AnilistCalendar.state.calendarContainer.classList.add('full-width-images');
+            } else {
+                window.AnilistCalendar.state.calendarContainer.classList.remove('full-width-images');
+            }
+        }
+
+        // Re-render the calendar to apply all changes
         window.AnilistCalendar.calendar.renderCalendar(window.AnilistCalendar.state.weeklySchedule, true);
 
+        // Update timezone info
         const timezoneInfo = document.querySelector('.timezone-info');
         if (timezoneInfo) {
             timezoneInfo.textContent = window.AnilistCalendar.settings.getTimezoneName();
         }
 
+        // Handle countdown timer if time format changed
         if (prevTimeFormat !== window.AnilistCalendar.userPreferences.timeFormat) {
             if (window.AnilistCalendar.userPreferences.timeFormat === 'countdown') {
                 window.AnilistCalendar.calendar.startCountdownTimer();
@@ -986,6 +1026,7 @@ window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, 
             }
         }
 
+        // Handle timezone changes
         if (prevTimezone !== window.AnilistCalendar.userPreferences.timezone) {
             const oldOffset = getTimezoneOffset(prevTimezone);
             const newOffset = getTimezoneOffset(window.AnilistCalendar.userPreferences.timezone);
