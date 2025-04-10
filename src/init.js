@@ -40,7 +40,7 @@ window.AnilistCalendar = {
         titleAlignment: 'center',          // Title alignment: 'left' or 'center'
         columnJustify: 'top',              // Column justification: 'top' or 'center'
         maxCardsPerDay: 0,                 // Maximum cards per day in gallery mode (0 = unlimited)
-        fullWidthImages: false             // NEW: Whether to expand images to full width in standard mode
+        fullWidthImages: false             // Whether to expand images to full width in standard mode
     },
 
     // Global state
@@ -81,49 +81,52 @@ window.AnilistCalendar = {
         }
 
         try {
-            // Direct check of body class - most reliable
-            if (document.body.classList.contains('site-theme-light')) {
-                this.utils.log('Theme detected from body class: light');
-                return 'light';
+            // Create a theme detection object to log all detection methods
+            const themeDetection = {
+                bodyClassDark: document.body.classList.contains('site-theme-dark'),
+                bodyClassContrast: document.body.classList.contains('site-theme-contrast'),
+                bodyDataTheme: document.body.getAttribute('data-theme'),
+                htmlDataTheme: document.documentElement.getAttribute('data-theme'),
+                bodyClasses: Array.from(document.body.classList),
+                htmlClasses: Array.from(document.documentElement.classList),
+                computed: {}
+            };
+
+            // Log the complete theme detection object
+            this.utils.log('Complete theme detection data:', themeDetection);
+
+            // Check for high contrast mode first
+            if (document.body.classList.contains('site-theme-contrast')) {
+                this.utils.log('High contrast theme detected from body class');
+                // We're returning 'dark' for contrast mode for backwards compatibility
+                // but we'll set the high-contrast class in applyTheme
+                return 'dark';
             }
 
+            // Check for dark theme (this is explicitly set in AniList)
             if (document.body.classList.contains('site-theme-dark')) {
-                this.utils.log('Theme detected from body class: dark');
+                this.utils.log('Dark theme detected from body class');
                 return 'dark';
             }
 
             // Check data-theme attribute
             const bodyTheme = document.body.getAttribute('data-theme');
-            if (bodyTheme === 'light') {
-                this.utils.log('Theme detected from data-theme attribute: light');
-                return 'light';
+            if (bodyTheme === 'dark') {
+                this.utils.log('Dark theme detected from data-theme attribute');
+                return 'dark';
             }
 
-            // Check for specific AniList elements with known styles
-            const siteContent = document.querySelector('.site-content');
-            if (siteContent) {
-                const bgColor = window.getComputedStyle(siteContent).backgroundColor;
-                // Parse the RGB values
-                const rgbMatch = bgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-                if (rgbMatch) {
-                    const brightness = (parseInt(rgbMatch[1]) + parseInt(rgbMatch[2]) + parseInt(rgbMatch[3])) / 3;
-                    if (brightness > 100) {
-                        this.utils.log('Theme inferred from site-content background: light');
-                        return 'light';
-                    }
-                }
+            // Check HTML element's data-theme attribute
+            const htmlTheme = document.documentElement.getAttribute('data-theme');
+            if (htmlTheme === 'dark') {
+                this.utils.log('Dark theme detected from HTML data-theme attribute');
+                return 'dark';
             }
 
-            // Check for light theme elements
-            const lightElements = document.querySelectorAll('.theme-light, [data-theme="light"]');
-            if (lightElements.length > 0) {
-                this.utils.log('Theme detected from light theme elements');
-                return 'light';
-            }
-
-            // Fallback to dark theme as default
-            this.utils.log('No light theme detected, using dark as default');
-            return 'dark';
+            // If no dark or contrast theme is detected, assume light theme
+            // This is how AniList works - light theme is the absence of a theme class
+            this.utils.log('Light theme detected (no dark or contrast theme class found)');
+            return 'light';
         } catch (err) {
             this.utils.log('Error in theme detection, falling back to dark:', err);
             return 'dark';
@@ -152,26 +155,23 @@ window.AnilistCalendar = {
         this.state.currentTheme = theme;
 
         // Determine if high contrast is enabled
-        const isHighContrast = document.body.classList.contains('high-contrast') ||
-            document.documentElement.classList.contains('high-contrast');
+        const isHighContrast = document.body.classList.contains('site-theme-contrast');
 
         // Target our container
         const container = this.state.calendarContainer;
         if (!container) return;
 
-        // Remove all theme classes
-        container.classList.remove('site-theme-light', 'site-theme-dark', 'high-contrast');
+        // Apply CSS classes directly to the calendar container
+        // Remove previous theme classes first
+        container.classList.remove('anilist-weekly-calendar-light-theme', 'anilist-weekly-calendar-high-contrast');
 
-        // Apply the current theme
+        // Apply the appropriate theme class
         if (theme === 'light') {
-            container.classList.add('site-theme-light');
-        } else {
-            container.classList.add('site-theme-dark');
+            container.classList.add('anilist-weekly-calendar-light-theme');
         }
 
-        // Apply high contrast if needed
         if (isHighContrast) {
-            container.classList.add('high-contrast');
+            container.classList.add('anilist-weekly-calendar-high-contrast');
         }
 
         this.utils.log(`Theme applied: ${theme}${isHighContrast ? ' (high contrast)' : ''}`);
@@ -198,9 +198,21 @@ window.AnilistCalendar = {
         const themeObserver = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 if (mutation.attributeName === 'class' || mutation.attributeName === 'data-theme') {
+                    // Collect detailed theme information to debug
+                    const themeInfo = {
+                        target: mutation.target.tagName,
+                        attributeName: mutation.attributeName,
+                        oldValue: mutation.oldValue,
+                        newValue: mutation.target.getAttribute(mutation.attributeName),
+                        bodyClasses: Array.from(document.body.classList),
+                        htmlClasses: Array.from(document.documentElement.classList),
+                        bodyDataTheme: document.body.getAttribute('data-theme'),
+                        htmlDataTheme: document.documentElement.getAttribute('data-theme')
+                    };
+
                     const newTheme = this.detectTheme();
                     if (newTheme !== this.state.currentTheme) {
-                        this.utils.log(`Theme changed from ${this.state.currentTheme} to ${newTheme}`);
+                        this.utils.log(`Theme changed from ${this.state.currentTheme} to ${newTheme}. Details:`, themeInfo);
                         this.state.currentTheme = newTheme;
                         this.applyTheme();
                     }
@@ -211,12 +223,14 @@ window.AnilistCalendar = {
         // Observe both document.body and document.documentElement for changes
         themeObserver.observe(document.body, {
             attributes: true,
-            attributeFilter: ['class', 'data-theme']
+            attributeFilter: ['class', 'data-theme'],
+            attributeOldValue: true
         });
 
         themeObserver.observe(document.documentElement, {
             attributes: true,
-            attributeFilter: ['class', 'data-theme']
+            attributeFilter: ['class', 'data-theme'],
+            attributeOldValue: true
         });
 
         // Also observe the main content area for theme changes
@@ -224,9 +238,18 @@ window.AnilistCalendar = {
         if (siteContent) {
             themeObserver.observe(siteContent, {
                 attributes: true,
-                attributeFilter: ['class', 'data-theme']
+                attributeFilter: ['class', 'data-theme'],
+                attributeOldValue: true
             });
         }
+
+        // Log all existing theme-related elements for reference
+        this.utils.log('Current theme elements on initialization:', {
+            bodyClasses: Array.from(document.body.classList),
+            htmlClasses: Array.from(document.documentElement.classList),
+            bodyDataTheme: document.body.getAttribute('data-theme'),
+            htmlDataTheme: document.documentElement.getAttribute('data-theme')
+        });
 
         // Look for theme toggle buttons and add click listeners
         const setupThemeToggleListeners = () => {
@@ -235,6 +258,8 @@ window.AnilistCalendar = {
                 if (!toggle.hasAttribute('data-theme-listener')) {
                     toggle.setAttribute('data-theme-listener', 'true');
                     toggle.addEventListener('click', () => {
+                        this.utils.log('Theme toggle clicked');
+
                         setTimeout(() => {
                             const newTheme = this.detectTheme();
                             if (newTheme !== this.state.currentTheme) {
