@@ -212,7 +212,6 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         { value: 'standard', text: 'Standard' },
         { value: 'compact', text: 'Compact' },
         { value: 'extended', text: 'Gallery' },
-        { value: 'fan', text: 'Fan Layout' }
     ], currentLayoutMode);
 
     const layoutModeSelect = layoutModeWrapper.querySelector('select');
@@ -224,7 +223,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     );
     layoutContent.appendChild(layoutModeRow);
 
-    // Max cards per day setting (visible only in Gallery or Fan layout)
+    // Max cards per day setting (visible only in Gallery layout)
     const maxCardsPerDayRow = createSettingRow(
         'Max cards per day',
         'Maximum number of cards to show per day (0 = unlimited)',
@@ -233,7 +232,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
 
     // Hide by default, will show based on layout
     maxCardsPerDayRow.classList.add('setting-row-hidden');
-    if (currentLayoutMode === 'extended' || currentLayoutMode === 'fan') {
+    if (currentLayoutMode === 'extended') {
         maxCardsPerDayRow.classList.remove('setting-row-hidden');
     }
 
@@ -277,7 +276,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
 
     // Hide column justify by default, will show based on layout
     columnJustifyRow.classList.add('setting-row-hidden');
-    if (currentLayoutMode === 'extended' || currentLayoutMode === 'fan') {
+    if (currentLayoutMode === 'extended') {
         columnJustifyRow.classList.remove('setting-row-hidden');
     }
 
@@ -295,11 +294,10 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     if (layoutModeSelect) {
         layoutModeSelect.addEventListener('change', function() {
             const isGalleryMode = this.value === 'extended';
-            const isFanMode = this.value === 'fan';
             const isStandardMode = this.value === 'standard';
 
             // Toggle visibility of max cards per day and column justify settings
-            if (isGalleryMode || isFanMode) {
+            if (isGalleryMode) {
                 maxCardsPerDayRow.classList.remove('setting-row-hidden');
                 columnJustifyRow.classList.remove('setting-row-hidden');
                 fullWidthImagesRow.classList.add('setting-row-hidden');
