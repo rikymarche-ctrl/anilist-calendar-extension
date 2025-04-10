@@ -497,6 +497,8 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
         const titleEl = document.createElement('div');
         titleEl.className = 'anime-title';
         titleEl.textContent = anime.cleanTitle;
+
+        // In modalità gallery, il testo è sempre centrato
         titleEl.classList.add('text-center');
 
         titlePanel.appendChild(titleEl);
@@ -517,7 +519,11 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
         const titleEl = document.createElement('div');
         titleEl.className = 'anime-title';
         titleEl.textContent = anime.cleanTitle;
-        titleEl.classList.add(`text-${window.AnilistCalendar.userPreferences.titleAlignment || 'left'}`);
+
+        // Applicare la classe di allineamento del titolo in base alle preferenze
+        const titleAlignment = window.AnilistCalendar.userPreferences.titleAlignment || 'left';
+        titleEl.classList.add(`text-${titleAlignment}`);
+
         infoContainer.appendChild(titleEl);
 
         const infoRow = createAnimeInfoRow(anime);
@@ -785,18 +791,29 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
         window.AnilistCalendar.state.calendarContainer.classList.add('days-count-7');
     }
 
+    // Rimuovere tutte le classi di giustificazione e allineamento prima di aggiungerle nuovamente
     window.AnilistCalendar.state.calendarContainer.classList.remove(
-        'column-justify-top', 'column-justify-center'
+        'column-justify-top', 'column-justify-center',
+        'title-left', 'title-center'
     );
+
+    // Applicare la classe di giustificazione delle colonne
     const columnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
     window.AnilistCalendar.state.calendarContainer.classList.add(`column-justify-${columnJustify}`);
 
+    // Applicare la classe di allineamento del titolo
+    const titleAlignment = window.AnilistCalendar.userPreferences.titleAlignment || 'left';
+    window.AnilistCalendar.state.calendarContainer.classList.add(`title-${titleAlignment}`);
+
+    // Rimuovere tutte le classi di modalità prima di aggiungere quella corrente
     window.AnilistCalendar.state.calendarContainer.classList.remove(
         'standard-mode', 'compact-mode', 'extended-mode', 'gallery-with-slider', 'full-width-images'
     );
+
+    // Applicare la classe della modalità attuale
     window.AnilistCalendar.state.calendarContainer.classList.add(`${window.AnilistCalendar.userPreferences.layoutMode}-mode`);
 
-    // Apply full-width-images class if enabled and in standard mode
+    // Applicare full-width-images se abilitato e in modalità standard
     if (window.AnilistCalendar.userPreferences.layoutMode === 'standard' &&
         window.AnilistCalendar.userPreferences.fullWidthImages) {
         window.AnilistCalendar.state.calendarContainer.classList.add('full-width-images');
@@ -855,17 +872,7 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
         }
         dayCol.className = classes.join(' ');
 
-        const columnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
-        const styleForce = document.createElement('style');
-        styleForce.id = `force-column-justify-${dayCol.id}`;
-        styleForce.innerHTML = `
-            .anilist-calendar-day#${dayCol.id}.${columnJustify === 'center' ? 'force-center' : 'force-top'} {
-                display: flex !important;
-                flex-direction: column !important;
-                justify-content: ${columnJustify === 'center' ? 'center' : 'flex-start'} !important;
-            }
-        `;
-        document.head.appendChild(styleForce);
+        // Applicare forzatamente la classe di giustificazione corretta
         dayCol.classList.add(columnJustify === 'center' ? 'force-center' : 'force-top');
 
         const dayHeader = document.createElement('div');
@@ -894,6 +901,10 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
         const animeList = document.createElement('div');
         animeList.className = 'day-anime-list';
 
+        // Applicare la classe di giustificazione alla lista degli anime
+        animeList.classList.add(`justify-${columnJustify}`);
+
+        // Per le modalità gallery, aggiungere classi specifiche
         if (isGalleryMode) {
             animeList.classList.add('gallery-anime-list');
             animeList.classList.add(`justify-${columnJustify}`);
@@ -942,23 +953,26 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
  */
 window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, prevTimezone, prevTitleAlignment, prevColumnJustify, prevFullWidthImages) {
     if (window.AnilistCalendar.state.calendarContainer) {
-        // Remove all mode classes
+        // Rimuovere tutte le classi di modalità, allineamento e giustificazione
         window.AnilistCalendar.state.calendarContainer.classList.remove(
             'standard-mode', 'compact-mode', 'extended-mode', 'fan-mode',
-            'gallery-with-slider', 'full-width-images'
+            'gallery-with-slider', 'full-width-images',
+            'title-left', 'title-center',
+            'column-justify-top', 'column-justify-center'
         );
 
-        // Add current layout mode class
+        // Aggiungere la classe della modalità di layout
         window.AnilistCalendar.state.calendarContainer.classList.add(`${window.AnilistCalendar.userPreferences.layoutMode}-mode`);
 
-        // Add title alignment class
-        window.AnilistCalendar.state.calendarContainer.classList.add(`title-${window.AnilistCalendar.userPreferences.titleAlignment}`);
+        // Aggiungere la classe di allineamento del titolo
+        const titleAlignment = window.AnilistCalendar.userPreferences.titleAlignment || 'left';
+        window.AnilistCalendar.state.calendarContainer.classList.add(`title-${titleAlignment}`);
 
-        // Add column justify class
+        // Aggiungere la classe di giustificazione delle colonne
         const columnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
         window.AnilistCalendar.state.calendarContainer.classList.add(`column-justify-${columnJustify}`);
 
-        // Add gallery with slider class if needed
+        // Aggiungere classe per gallery in slider se necessario
         const isGalleryMode = window.AnilistCalendar.userPreferences.layoutMode === 'extended' ||
             window.AnilistCalendar.userPreferences.layoutMode === 'fan';
 
@@ -966,37 +980,43 @@ window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, 
             window.AnilistCalendar.state.calendarContainer.classList.add('gallery-with-slider');
         }
 
-        // Add full-width-images class if enabled and in standard mode
+        // Aggiungere classe full-width-images se abilitato e in modalità standard
         if (window.AnilistCalendar.userPreferences.layoutMode === 'standard' &&
             window.AnilistCalendar.userPreferences.fullWidthImages) {
             window.AnilistCalendar.state.calendarContainer.classList.add('full-width-images');
         }
 
-        // Update title alignment if changed
-        if (prevTitleAlignment !== window.AnilistCalendar.userPreferences.titleAlignment) {
+        // Aggiornare allineamento del titolo se cambiato
+        if (prevTitleAlignment !== titleAlignment) {
             const titles = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.anime-title');
             titles.forEach(title => {
-                title.classList.remove(`text-${prevTitleAlignment}`);
-                title.classList.add(`text-${window.AnilistCalendar.userPreferences.titleAlignment}`);
+                // Rimuovere tutte le possibili classi di allineamento per evitare conflitti
+                title.classList.remove('text-left', 'text-center');
+                // Aggiungere la nuova classe di allineamento
+                title.classList.add(`text-${titleAlignment}`);
             });
         }
 
-        // Update column justify if changed
+        // Aggiornare giustificazione delle colonne se cambiata
         if (prevColumnJustify !== columnJustify) {
             const dayColumns = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.anilist-calendar-day');
             dayColumns.forEach(column => {
+                // Rimuovere tutte le possibili classi per evitare conflitti
                 column.classList.remove('force-center', 'force-top');
+                // Aggiungere la nuova classe di giustificazione
                 column.classList.add(columnJustify === 'center' ? 'force-center' : 'force-top');
             });
 
             const animeLists = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.day-anime-list');
             animeLists.forEach(list => {
+                // Rimuovere tutte le possibili classi per evitare conflitti
                 list.classList.remove('justify-top', 'justify-center');
+                // Aggiungere la nuova classe di giustificazione
                 list.classList.add(`justify-${columnJustify}`);
             });
         }
 
-        // Update full-width-images if changed and in standard mode
+        // Aggiornare full-width-images se cambiato e in modalità standard
         if (window.AnilistCalendar.userPreferences.layoutMode === 'standard' &&
             prevFullWidthImages !== window.AnilistCalendar.userPreferences.fullWidthImages) {
 
@@ -1006,9 +1026,6 @@ window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, 
                 window.AnilistCalendar.state.calendarContainer.classList.remove('full-width-images');
             }
         }
-
-        // Re-render the calendar to apply all changes
-        window.AnilistCalendar.calendar.renderCalendar(window.AnilistCalendar.state.weeklySchedule, true);
 
         // Update timezone info
         const timezoneInfo = document.querySelector('.timezone-info');

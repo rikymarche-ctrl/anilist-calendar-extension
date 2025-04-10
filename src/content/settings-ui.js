@@ -262,6 +262,12 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
             { value: 'center', text: 'Center aligned' }
         ], window.AnilistCalendar.userPreferences.titleAlignment)
     );
+
+    // Hide title alignment if in gallery mode
+    if (currentLayoutMode === 'extended') {
+        titleAlignmentRow.classList.add('setting-row-hidden');
+    }
+
     layoutContent.appendChild(titleAlignmentRow);
 
     // Column justify setting
@@ -301,15 +307,34 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
                 maxCardsPerDayRow.classList.remove('setting-row-hidden');
                 columnJustifyRow.classList.remove('setting-row-hidden');
                 fullWidthImagesRow.classList.add('setting-row-hidden');
+                titleAlignmentRow.classList.add('setting-row-hidden'); // Hide title alignment in gallery mode
             } else {
                 maxCardsPerDayRow.classList.add('setting-row-hidden');
-                columnJustifyRow.classList.add('setting-row-hidden');
+
+                // Per la modalità compact, nascondiamo sempre column justify
+                if (this.value === 'compact') {
+                    columnJustifyRow.classList.add('setting-row-hidden');
+                } else {
+                    // Per standard, mostriamo column justify (può essere utile anche qui)
+                    columnJustifyRow.classList.remove('setting-row-hidden');
+                }
+
+                titleAlignmentRow.classList.remove('setting-row-hidden'); // Show title alignment in non-gallery modes
 
                 // Show fullWidthImages setting only for standard mode
                 if (isStandardMode) {
                     fullWidthImagesRow.classList.remove('setting-row-hidden');
                 } else {
                     fullWidthImagesRow.classList.add('setting-row-hidden');
+                }
+            }
+
+            // Ripristina valori di default specifici per modalità
+            if (isGalleryMode) {
+                // In modalità gallery, il titolo è sempre centrato
+                const titleAlignmentSelect = document.getElementById('title-alignment');
+                if (titleAlignmentSelect) {
+                    titleAlignmentSelect.value = 'center';
                 }
             }
         });
@@ -377,31 +402,73 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     timezoneSelect.id = 'timezone';
     timezoneSelect.className = 'settings-select';
 
+    // Add options without duplicating the selected one
+    const currentTimezone = window.AnilistCalendar.userPreferences.timezone;
+    let selectedOptionAdded = false;
+
     for (const tz of window.AnilistCalendar.TIMEZONE_OPTIONS) {
+        // Skip adding the current timezone option to the dropdown
+        if (tz.value === currentTimezone) {
+            // Create a selected option separately
+            const selectedOption = document.createElement('option');
+            selectedOption.value = tz.value;
+            selectedOption.textContent = tz.shortText || tz.text;
+            selectedOption.selected = true;
+            selectedOption.className = 'timezone-option selected-timezone';
+            timezoneSelect.appendChild(selectedOption);
+            selectedOptionAdded = true;
+            continue;
+        }
+
         const option = document.createElement('option');
         option.value = tz.value;
         option.textContent = tz.text;
         option.dataset.shortText = tz.shortText;
         option.className = 'timezone-option';
-        if (tz.value === window.AnilistCalendar.userPreferences.timezone) {
-            option.selected = true;
-            option.textContent = tz.shortText;
-        }
         timezoneSelect.appendChild(option);
+    }
+
+    // If for some reason the selected option wasn't found in the options array
+    if (!selectedOptionAdded) {
+        const defaultOption = document.createElement('option');
+        defaultOption.value = currentTimezone;
+        defaultOption.textContent = "Custom Timezone";
+        defaultOption.selected = true;
+        timezoneSelect.insertBefore(defaultOption, timezoneSelect.firstChild);
     }
 
     timezoneSelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
-        // Restore full text for all options
-        for (let i = 0; i < this.options.length; i++) {
-            const opt = this.options[i];
-            const tz = window.AnilistCalendar.TIMEZONE_OPTIONS.find(t => t.value === opt.value);
-            if (tz) {
-                opt.textContent = tz.text;
-            }
+
+        // Reset the dropdown with updated selection
+        const selectedValue = selectedOption.value;
+
+        // Clear all options
+        while (timezoneSelect.firstChild) {
+            timezoneSelect.removeChild(timezoneSelect.firstChild);
         }
-        if (selectedOption.dataset.shortText) {
-            selectedOption.textContent = selectedOption.dataset.shortText;
+
+        // Rebuild the dropdown with the new selected option at the top
+        let newSelectedOptionAdded = false;
+
+        for (const tz of window.AnilistCalendar.TIMEZONE_OPTIONS) {
+            if (tz.value === selectedValue) {
+                const newSelectedOption = document.createElement('option');
+                newSelectedOption.value = tz.value;
+                newSelectedOption.textContent = tz.shortText || tz.text;
+                newSelectedOption.selected = true;
+                newSelectedOption.className = 'timezone-option selected-timezone';
+                timezoneSelect.appendChild(newSelectedOption);
+                newSelectedOptionAdded = true;
+                continue;
+            }
+
+            const option = document.createElement('option');
+            option.value = tz.value;
+            option.textContent = tz.text;
+            option.dataset.shortText = tz.shortText;
+            option.className = 'timezone-option';
+            timezoneSelect.appendChild(option);
         }
     });
 
@@ -450,7 +517,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         const prevShowTime = window.AnilistCalendar.userPreferences.showTime;
         const prevShowEpisodeNumbers = window.AnilistCalendar.userPreferences.showEpisodeNumbers;
         const prevTimezone = window.AnilistCalendar.userPreferences.timezone;
-        const prevTitleAlignment = window.AnilistCalendar.userPreferences.titleAlignment;
+        const prevTitleAlignment = window.AnilistCalendar.userPreferences.titleAlignment || 'left';
         const prevColumnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
         const prevMaxCardsPerDay = window.AnilistCalendar.userPreferences.maxCardsPerDay || 0;
         const prevFullWidthImages = window.AnilistCalendar.userPreferences.fullWidthImages;
@@ -463,14 +530,21 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         const showTime = document.getElementById('show-time').checked;
         const showEpisodeNumbers = document.getElementById('show-episode-numbers').checked;
         const timezone = document.getElementById('timezone').value;
-        const titleAlignment = document.getElementById('title-alignment').value;
+
+        // Prendi l'allineamento del titolo solo se non in modalità gallery
+        let titleAlignment = 'left'; // Valore predefinito
+        if (layoutMode !== 'extended') {
+            titleAlignment = document.getElementById('title-alignment').value;
+        }
+
+        // Prendi la giustificazione della colonna (valido per tutti i layout)
         const columnJustify = document.getElementById('column-justify').value;
         const maxCardsPerDay = parseInt(document.getElementById('max-cards-per-day').value) || 0;
         const fullWidthImages = document.getElementById('full-width-images').checked;
 
         // Count the changes made
         const changes = [];
-        if (prevLayoutMode !== layoutMode) changes.push('layout');
+        if (prevLayoutMode !== layoutMode) changes.push('layout mode');
         if (prevColumnJustify !== columnJustify) changes.push('column justification');
         if (prevStartDay !== startDay) changes.push('start day');
         if (prevTimezone !== timezone) changes.push('timezone');
@@ -514,20 +588,59 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         // Show notification
         window.AnilistCalendar.utils.showNotification(notificationMessage, 'success');
 
+        // Mostro il messaggio di salvataggio
+        window.AnilistCalendar.utils.showNotification(notificationMessage, 'success');
+
+        // Forzare un ri-rendering completo quando cambiano allineamento o giustificazione
+        const needsCompleteRerender = (
+            prevLayoutMode !== layoutMode ||
+            prevTitleAlignment !== titleAlignment ||
+            prevColumnJustify !== columnJustify ||
+            prevFullWidthImages !== window.AnilistCalendar.userPreferences.fullWidthImages
+        );
+
         // Close overlay
         overlayContainer.classList.remove('active');
         setTimeout(() => {
             overlayContainer.remove();
         }, 300);
 
-        // Update UI without refreshing the page
-        window.AnilistCalendar.calendar.updateUIWithSettings(
-            prevTimeFormat,
-            prevTimezone,
-            prevTitleAlignment,
-            prevColumnJustify,
-            prevFullWidthImages
-        );
+        // Aggiorna l'UI senza ricaricare la pagina
+        if (needsCompleteRerender) {
+            // Prima rimuovi tutte le classi potenzialmente problematiche
+            if (window.AnilistCalendar.state.calendarContainer) {
+                window.AnilistCalendar.state.calendarContainer.classList.remove(
+                    'standard-mode', 'compact-mode', 'extended-mode', 'gallery-with-slider',
+                    'title-left', 'title-center',
+                    'column-justify-top', 'column-justify-center',
+                    'full-width-images'
+                );
+            }
+
+            // Poi aggiorna l'UI con le nuove impostazioni
+            window.AnilistCalendar.calendar.updateUIWithSettings(
+                prevTimeFormat,
+                prevTimezone,
+                prevTitleAlignment,
+                prevColumnJustify,
+                prevFullWidthImages
+            );
+
+            // Forza un re-rendering completo per layout/allineamento/giustificazione
+            window.AnilistCalendar.calendar.renderCalendar(
+                window.AnilistCalendar.state.weeklySchedule,
+                true
+            );
+        } else {
+            // Per modifiche meno importanti, aggiorna normalmente
+            window.AnilistCalendar.calendar.updateUIWithSettings(
+                prevTimeFormat,
+                prevTimezone,
+                prevTitleAlignment,
+                prevColumnJustify,
+                prevFullWidthImages
+            );
+        }
     });
 
     saveContainer.appendChild(saveButton);
@@ -624,53 +737,9 @@ function createSettingRow(label, description, control) {
 }
 
 /**
- * Helper to populate options in a select element, eliminating duplicate code.
- * @param {HTMLSelectElement} select - The select element to populate.
- * @param {Array} options - The options array.
- * @param {string} selectedVal - The currently selected value.
- * @param {Function} [extraAttrsCallback] - Optional function to set extra attributes on option elements.
- */
-function populateOptions(select, options, selectedVal, extraAttrsCallback) {
-    select.innerHTML = '';
-    const selectedOption = options.find(opt => opt.value === selectedVal);
-    if (selectedOption) {
-        const optionEl = document.createElement('option');
-        optionEl.value = selectedVal;
-        optionEl.textContent = selectedOption.text;
-        optionEl.className = 'option-selected';
-        optionEl.selected = true;
-        select.appendChild(optionEl);
-    }
-    let skipNextSeparator = selectedVal === 'today';
-    options.forEach(option => {
-        if (option.value === selectedVal) return;
-
-        if (option.disabled) {
-            if (skipNextSeparator) {
-                skipNextSeparator = false;
-                return;
-            }
-            const separatorOption = document.createElement('option');
-            separatorOption.disabled = true;
-            separatorOption.className = option.className || 'day-separator';
-            separatorOption.textContent = option.text || '─────────────';
-            select.appendChild(separatorOption);
-            return;
-        }
-
-        const optElement = document.createElement('option');
-        optElement.value = option.value;
-        optElement.textContent = option.text;
-        optElement.className = 'option-standard';
-        if (extraAttrsCallback && typeof extraAttrsCallback === 'function') {
-            extraAttrsCallback(option, optElement);
-        }
-        select.appendChild(optElement);
-    });
-}
-
-/**
- * Creates a generic select element.
+ * Creates a select element with the currently selected option at the top
+ * and the rest of the options below. The selected option is not duplicated
+ * in the dropdown list.
  * @param {string} id - The select ID.
  * @param {Array} options - The options to include.
  * @param {string} selectedValue - The initially selected value.
@@ -679,42 +748,74 @@ function populateOptions(select, options, selectedVal, extraAttrsCallback) {
 function createSelect(id, options, selectedValue) {
     const wrapper = document.createElement('div');
     wrapper.className = 'select-wrapper';
+
     const select = document.createElement('select');
     select.id = id;
     select.className = 'settings-select';
 
-    function populate(selectedVal) {
-        populateOptions(select, options, selectedVal, (option, elem) => {
-            if (option.shortText) {
-                elem.dataset.short = option.shortText;
-            }
-        });
-    }
-    populate(selectedValue);
+    // Find the selected option
+    const selectedOption = options.find(opt => opt.value === selectedValue);
 
-    select.addEventListener('change', function() {
-        populate(this.value);
+    // Add the selected option first
+    if (selectedOption) {
+        const selectedEl = document.createElement('option');
+        selectedEl.value = selectedValue;
+        selectedEl.textContent = selectedOption.text;
+        selectedEl.selected = true;
+        selectedEl.className = 'option-selected';
+        select.appendChild(selectedEl);
+    }
+
+    // Add all other options (skipping the selected one)
+    options.forEach(option => {
+        if (option.value !== selectedValue) {
+            const optEl = document.createElement('option');
+            optEl.value = option.value;
+            optEl.textContent = option.text;
+            optEl.className = 'option-standard';
+            select.appendChild(optEl);
+        }
     });
 
-    if (id === 'timezone') {
-        select.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            if (selectedOption && selectedOption.dataset.short) {
-                selectedOption.textContent = selectedOption.dataset.short;
+    // Add change handler to update the selected option formatting
+    select.addEventListener('change', function() {
+        const newValue = this.value;
+        const newSelectedOption = options.find(opt => opt.value === newValue);
+
+        // Clear current options
+        while (select.firstChild) {
+            select.removeChild(select.firstChild);
+        }
+
+        // Add the newly selected option first
+        if (newSelectedOption) {
+            const selectedEl = document.createElement('option');
+            selectedEl.value = newValue;
+            selectedEl.textContent = newSelectedOption.text;
+            selectedEl.selected = true;
+            selectedEl.className = 'option-selected';
+            select.appendChild(selectedEl);
+        }
+
+        // Add all other options
+        options.forEach(option => {
+            if (option.value !== newValue) {
+                const optEl = document.createElement('option');
+                optEl.value = option.value;
+                optEl.textContent = option.text;
+                optEl.className = 'option-standard';
+                select.appendChild(optEl);
             }
         });
-        const initialOption = select.options[select.selectedIndex];
-        if (initialOption && initialOption.dataset.short) {
-            initialOption.textContent = initialOption.dataset.short;
-        }
-    }
+    });
 
     wrapper.appendChild(select);
     return wrapper;
 }
 
 /**
- * Creates a filtered select element.
+ * Creates a filtered select element with options grouped by type.
+ * The selected option is placed at the top and not duplicated in the list.
  * @param {string} id - The select ID.
  * @param {Array} options - The options to include.
  * @param {string} selectedValue - The initially selected value.
@@ -723,24 +824,115 @@ function createSelect(id, options, selectedValue) {
 function createFilteredSelect(id, options, selectedValue) {
     const wrapper = document.createElement('div');
     wrapper.className = 'select-wrapper';
+
     const select = document.createElement('select');
     select.id = id;
     select.className = 'settings-select';
 
-    function populate(selectedVal) {
-        populateOptions(select, options, selectedVal, (option, elem) => {
+    // Find the selected option
+    const selectedOption = options.find(opt => opt.value === selectedValue && !opt.disabled);
+
+    // Add the selected option first
+    if (selectedOption) {
+        const selectedEl = document.createElement('option');
+        selectedEl.value = selectedValue;
+        selectedEl.textContent = selectedOption.text;
+        selectedEl.selected = true;
+        selectedEl.className = 'option-selected';
+        if (selectedOption.group) {
+            selectedEl.dataset.group = selectedOption.group;
+        }
+        select.appendChild(selectedEl);
+    }
+
+    // Handle special case for 'today' in start day to include separator
+    let includeSeparator = true;
+    if (id === 'start-day' && selectedValue === 'today') {
+        includeSeparator = false;
+    }
+
+    // Add separator if needed
+    if (includeSeparator) {
+        const separatorOption = options.find(opt => opt.disabled);
+        if (separatorOption) {
+            const separatorEl = document.createElement('option');
+            separatorEl.disabled = true;
+            separatorEl.className = separatorOption.className || 'day-separator';
+            separatorEl.textContent = separatorOption.text || '─────────────';
+            select.appendChild(separatorEl);
+        }
+    }
+
+    // Add all other non-disabled options (skipping the selected one)
+    options.forEach(option => {
+        if (!option.disabled && option.value !== selectedValue) {
+            const optEl = document.createElement('option');
+            optEl.value = option.value;
+            optEl.textContent = option.text;
+            optEl.className = 'option-standard';
             if (option.group) {
-                elem.dataset.group = option.group;
+                optEl.dataset.group = option.group;
             }
-            if (option.shortText) {
-                elem.dataset.short = option.shortText;
+            select.appendChild(optEl);
+        }
+    });
+
+    // Add change handler to update the selected option formatting
+    select.addEventListener('change', function() {
+        const newValue = this.value;
+
+        // Clear current options
+        while (select.firstChild) {
+            select.removeChild(select.firstChild);
+        }
+
+        // Find the newly selected option
+        const newSelectedOption = options.find(opt => opt.value === newValue && !opt.disabled);
+
+        // Add the newly selected option first
+        if (newSelectedOption) {
+            const selectedEl = document.createElement('option');
+            selectedEl.value = newValue;
+            selectedEl.textContent = newSelectedOption.text;
+            selectedEl.selected = true;
+            selectedEl.className = 'option-selected';
+            if (newSelectedOption.group) {
+                selectedEl.dataset.group = newSelectedOption.group;
+            }
+            select.appendChild(selectedEl);
+        }
+
+        // Handle special case for start day dropdown
+        let includeSep = true;
+        if (id === 'start-day' && newValue === 'today') {
+            includeSep = false;
+        }
+
+        // Add separator if needed
+        if (includeSep) {
+            const separatorOption = options.find(opt => opt.disabled);
+            if (separatorOption) {
+                const separatorEl = document.createElement('option');
+                separatorEl.disabled = true;
+                separatorEl.className = separatorOption.className || 'day-separator';
+                separatorEl.textContent = separatorOption.text || '─────────────';
+                select.appendChild(separatorEl);
+            }
+        }
+
+        // Add all other non-disabled options
+        options.forEach(option => {
+            if (!option.disabled && option.value !== newValue) {
+                const optEl = document.createElement('option');
+                optEl.value = option.value;
+                optEl.textContent = option.text;
+                optEl.className = 'option-standard';
+                if (option.group) {
+                    optEl.dataset.group = option.group;
+                }
+                select.appendChild(optEl);
             }
         });
-    }
-    populate(selectedValue);
-
-    select.addEventListener('change', function() {
-        populate(this.value);
     });
 
     wrapper.appendChild(select);
@@ -768,13 +960,13 @@ function createCustomNumberInput(id, value, min, max, step) {
 
     // Input field
     const input = document.createElement('input');
-    input.type = 'text';
+    input.type = 'number';
     input.id = id;
     input.className = 'settings-number-input';
     input.value = value.toString();
-    input.setAttribute('data-min', min.toString());
-    input.setAttribute('data-max', max.toString());
-    input.setAttribute('data-step', step.toString());
+    input.min = min.toString();
+    input.max = max.toString();
+    input.step = step.toString();
 
     // Plus button
     const plusBtn = document.createElement('button');
@@ -800,13 +992,6 @@ function createCustomNumberInput(id, value, min, max, step) {
         let currentValue = parseInt(input.value) || 0;
         currentValue = Math.max(min, Math.min(max, currentValue));
         input.value = currentValue.toString();
-    });
-
-    // Prevent non-numeric input
-    input.addEventListener('keypress', (e) => {
-        if (!/\d/.test(e.key)) {
-            e.preventDefault();
-        }
     });
 
     wrapper.appendChild(minusBtn);
