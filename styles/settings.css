@@ -514,6 +514,16 @@ input:checked + .slider:before {
     background-color: rgba(53, 119, 177, 0.3);
 }
 
+/* FIX: Ensure numeric input width is consistent with other controls */
+.number-input-wrapper {
+    width: 160px !important; /* Same as select-wrapper */
+}
+
+/* FIX: Ensure text in numeric input is properly centered */
+.settings-number-input {
+    text-align: center !important;
+}
+
 /* -------------------------------
    Save Button & Notifications
    ------------------------------- */
@@ -793,4 +803,83 @@ input:checked + .slider:before {
 /* Container dei pulsanti di navigazione */
 .gallery-with-nav {
     position: relative;
+}
+
+/* =====================================================================
+   FIX: MIGLIORAMENTI CENTRATURA TESTO NEI SELECT E OPTION
+   ===================================================================== */
+
+/* Forzare la centratura del testo in tutti i select e le loro opzioni */
+.settings-select {
+    text-align: center !important;
+    text-align-last: center !important;
+    -moz-text-align-last: center !important;
+    font-weight: normal !important;
+}
+
+/* Forza il centraggio delle opzioni */
+.settings-select option {
+    text-align: center !important;
+    -moz-text-align: center !important;
+    font-weight: normal !important;
+}
+
+/* Assicura la centratura usando tecniche alternative */
+select.settings-select {
+    direction: rtl; /* Hack per forzare la centratura in alcuni browser */
+}
+
+select.settings-select option {
+    direction: ltr; /* Ripristina la direzione del testo per le opzioni */
+    text-align: center !important;
+}
+
+/* Rimuovi lo styling nativo del browser per i select */
+select.settings-select {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+}
+
+/* Usa tecniche più aggressive per centrare le opzioni nei menu a discesa */
+@supports (-moz-appearance:none) {
+    /* Firefox */
+    select.settings-select {
+        text-align: center !important;
+        -moz-text-align-last: center !important;
+    }
+
+    select.settings-select option {
+        text-align: center !important;
+    }
+}
+
+@supports (-webkit-appearance:none) {
+    /* Chrome, Safari */
+    select.settings-select {
+        text-align-last: center !important;
+    }
+
+    select.settings-select option {
+        text-align: center !important;
+    }
+}
+
+/* Aggiunta di stili per centrare il selettore di max-cards-per-day */
+#max-cards-per-day {
+    text-align: center !important;
+}
+
+/* Assicurati che tutti i number input abbiano la stessa larghezza degli altri elementi */
+.number-input-wrapper {
+    width: 160px !important; /* Forza la stessa larghezza dei select */
+}
+
+/* Rimuovi qualsiasi padding inadeguato per i number input */
+.settings-number-input {
+    padding-left: 40px !important;
+    padding-right: 40px !important;
+    height: 36px !important; /* Stessa altezza del select */
+    box-sizing: border-box !important;
+    font-size: 14px !important; /* Stessa dimensione font del select */
 }

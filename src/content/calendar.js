@@ -881,10 +881,9 @@ function createAnimeInfoRow(anime) {
 }
 
 /**
- * Modifica alla funzione renderCalendar per aggiungere padding inferiore in modalità compact
- *
- * Questa funzione è la versione modificata della funzione originale in calendar.js
- * che aggiunge padding inferiore appropriato ai container in modalità compact.
+ * Versione modificata della funzione renderCalendar per mostrare correttamente
+ * i giorni vuoti con frecce e formattazione uniforme.
+ * Sostituisce la funzione originale in calendar.js
  */
 window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader = false) {
     if (!window.AnilistCalendar.state.calendarContainer) return;
@@ -1056,12 +1055,13 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
             }
         }
 
+        // FIX: Gestione unificata per giorni vuoti e giorni con contenuto
         if (schedule[day] && schedule[day].length > 0) {
+            // Giorni con contenuto
             schedule[day].forEach((anime, animeIndex) => {
                 window.AnilistCalendar.calendar.createAnimeEntry(animeList, anime);
 
-                // MODIFICATO: Aggiungiamo un attributo data-last-entry per l'ultimo elemento
-                // questo ci permette di applicare stili specifici all'ultimo elemento
+                // Aggiungiamo un attributo data-last-entry per l'ultimo elemento
                 if (animeIndex === schedule[day].length - 1) {
                     const lastEntry = animeList.lastChild;
                     if (lastEntry) {
@@ -1069,6 +1069,8 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
                     }
                 }
             });
+
+            // Configurazione della gallery per giorni con contenuto
             if (isGalleryMode && window.AnilistCalendar.userPreferences.maxCardsPerDay > 0) {
                 window.AnilistCalendar.calendar.setupGallerySlider(
                     dayCol,
@@ -1077,13 +1079,60 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
                 );
             }
         } else {
-            const emptyDay = document.createElement('div');
-            emptyDay.className = 'empty-day';
-            emptyDay.textContent = 'No episodes';
+            // Giorni vuoti
+            // FIX: Creiamo un contenitore simile per mantenere la coerenza visiva
             if (isGalleryMode) {
-                emptyDay.classList.add('gallery-empty-day');
+                // Per la gallery mode, usiamo lo stesso sistema di visualizzazione
+                const emptyDayContainer = document.createElement('div');
+                emptyDayContainer.className = 'gallery-fixed-container';
+                emptyDayContainer.classList.add(`justify-${columnJustify}`);
+
+                const sliderWrapper = document.createElement('div');
+                sliderWrapper.className = 'gallery-slider-wrapper';
+                sliderWrapper.classList.add(`justify-${columnJustify}`);
+
+                const pagesContainer = document.createElement('div');
+                pagesContainer.className = 'gallery-pages-container';
+                pagesContainer.classList.add(`justify-${columnJustify}`);
+
+                const galleryPage = document.createElement('div');
+                galleryPage.className = 'gallery-page';
+                galleryPage.classList.add(`justify-${columnJustify}`);
+
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'empty-day gallery-empty-day';
+                emptyDay.textContent = 'No episodes';
+
+                galleryPage.appendChild(emptyDay);
+                pagesContainer.appendChild(galleryPage);
+                sliderWrapper.appendChild(pagesContainer);
+                emptyDayContainer.appendChild(sliderWrapper);
+
+                // FIX: Aggiungiamo i controlli di navigazione anche per i giorni vuoti per mantenere coerenza visiva
+                const navPrev = document.createElement('button');
+                navPrev.className = 'gallery-nav-button gallery-nav-prev nav-hidden';
+                navPrev.innerHTML = '<i class="fa fa-chevron-up"></i>';
+                navPrev.setAttribute('aria-label', 'Previous page');
+
+                const navNext = document.createElement('button');
+                navNext.className = 'gallery-nav-button gallery-nav-next nav-hidden';
+                navNext.innerHTML = '<i class="fa fa-chevron-down"></i>';
+                navNext.setAttribute('aria-label', 'Next page');
+
+                emptyDayContainer.appendChild(navPrev);
+                emptyDayContainer.appendChild(navNext);
+
+                // Aggiunta della classe per la navigazione
+                emptyDayContainer.classList.add('gallery-with-nav');
+
+                animeList.appendChild(emptyDayContainer);
+            } else {
+                // Per le modalità standard e compact
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'empty-day';
+                emptyDay.textContent = 'No episodes';
+                animeList.appendChild(emptyDay);
             }
-            animeList.appendChild(emptyDay);
         }
 
         dayCol.appendChild(animeList);
