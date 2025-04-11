@@ -881,9 +881,10 @@ function createAnimeInfoRow(anime) {
 }
 
 /**
- * Renders the calendar with the schedule data
- * @param {Object} schedule - The processed weekly schedule
- * @param {boolean} skipHeader - Whether to skip rendering the header
+ * Modifica alla funzione renderCalendar per aggiungere padding inferiore in modalità compact
+ *
+ * Questa funzione è la versione modificata della funzione originale in calendar.js
+ * che aggiunge padding inferiore appropriato ai container in modalità compact.
  */
 window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader = false) {
     if (!window.AnilistCalendar.state.calendarContainer) return;
@@ -1043,9 +1044,30 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
             animeList.classList.add('gallery-anime-list');
         }
 
+        // MODIFICATO: Aggiungiamo una classe specifica per la modalità compatta
+        // per poter gestire meglio il padding in CSS
+        if (window.AnilistCalendar.userPreferences.layoutMode === 'compact') {
+            animeList.classList.add('compact-mode-list');
+
+            // Aggiungiamo un attributo di data per indicare che questa è l'ultima colonna
+            // utile per il CSS selettore: last-child che potrebbe non funzionare sempre correttamente
+            if (index === daysToShow.length - 1) {
+                animeList.setAttribute('data-last-column', 'true');
+            }
+        }
+
         if (schedule[day] && schedule[day].length > 0) {
-            schedule[day].forEach(anime => {
+            schedule[day].forEach((anime, animeIndex) => {
                 window.AnilistCalendar.calendar.createAnimeEntry(animeList, anime);
+
+                // MODIFICATO: Aggiungiamo un attributo data-last-entry per l'ultimo elemento
+                // questo ci permette di applicare stili specifici all'ultimo elemento
+                if (animeIndex === schedule[day].length - 1) {
+                    const lastEntry = animeList.lastChild;
+                    if (lastEntry) {
+                        lastEntry.setAttribute('data-last-entry', 'true');
+                    }
+                }
             });
             if (isGalleryMode && window.AnilistCalendar.userPreferences.maxCardsPerDay > 0) {
                 window.AnilistCalendar.calendar.setupGallerySlider(
@@ -1079,6 +1101,12 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
 
     if (window.AnilistCalendar.applyTheme) {
         window.AnilistCalendar.applyTheme();
+    }
+
+    // MODIFICATO: Aggiungiamo padding inferiore extra ai container in modalità compact
+    if (window.AnilistCalendar.userPreferences.layoutMode === 'compact') {
+        // Aggiungiamo una classe speciale per applicare un padding inferiore tramite CSS
+        calendarGrid.classList.add('compact-mode-grid-with-padding');
     }
 };
 
@@ -1342,36 +1370,87 @@ window.AnilistCalendar.calendar.setupGallerySlider = function(dayContainer, anim
     // If there aren't enough cards to require pagination, exit
     if (totalCards <= maxCards) return;
 
-    // Save the original justification style
-    const originalJustify = animeList.classList.contains('justify-center') ? 'center' : 'top';
+    // Save the original justification style and class
+    const hasJustifyCenter = animeList.classList.contains('justify-center');
+    const originalJustify = hasJustifyCenter ? 'center' : 'top';
+
+    // Determine parent column justification
+    const parentDayColumn = animeList.closest('.anilist-calendar-day');
+    const hasColumnJustifyCenter = parentDayColumn && parentDayColumn.classList.contains('force-center');
+    const columnJustify = hasColumnJustifyCenter ? 'center' : 'top';
 
     // Clear the container before adding pages
     animeList.innerHTML = '';
 
-    // Create the main slider container
+    // Create a fixed-height container to maintain consistent positioning
+    const fixedContainer = document.createElement('div');
+    fixedContainer.className = 'gallery-fixed-container';
+    // Set a specific height based on the maximum number of cards (using the card height + gap)
+    // Each card is 160px + 16px gap, calculate rows based on maxCards
+    const cardsPerRow = 3; // Typical number of cards per row
+    const cardHeight = 160; // Card height in gallery mode
+    const cardGap = 16; // Gap between cards
+    const rows = Math.ceil(maxCards / cardsPerRow);
+    const containerHeight = (rows * cardHeight) + ((rows - 1) * cardGap) + 40; // Add padding
+    fixedContainer.style.height = `${containerHeight}px`;
+    fixedContainer.style.position = 'relative';
+
+    // Apply justification class to fixed container
+    fixedContainer.classList.add(`justify-${columnJustify}`);
+
+    // Create the main slider container inside the fixed container
     const sliderContainer = document.createElement('div');
     sliderContainer.className = 'gallery-slider-wrapper';
-    sliderContainer.classList.add(`justify-${originalJustify}`);
+
+    // Apply consistent justification to slider container
+    sliderContainer.classList.add(`justify-${columnJustify}`);
 
     // Create the pages container
     const pagesContainer = document.createElement('div');
     pagesContainer.className = 'gallery-pages-container';
-    pagesContainer.classList.add(`justify-${originalJustify}`);
+
+    // Also apply consistent justification to pages container
+    pagesContainer.classList.add(`justify-${columnJustify}`);
+    // Make it take the full size of the fixed container
+    pagesContainer.style.width = '100%';
+    pagesContainer.style.height = '100%';
+    pagesContainer.style.position = 'relative';
 
     // Calculate the total number of pages needed
     const totalPages = Math.ceil(totalCards / maxCards);
 
     // Debug log
-    window.AnilistCalendar.utils.log(`Setting up gallery slider: ${totalCards} cards, ${maxCards} per page = ${totalPages} pages`);
+    window.AnilistCalendar.utils.log(`Setting up gallery slider: ${totalCards} cards, ${maxCards} per page = ${totalPages} pages, container height: ${containerHeight}px`);
 
     // Create pages and distribute cards
     for (let i = 0; i < totalPages; i++) {
         // Create the page container
         const page = document.createElement('div');
         page.className = 'gallery-page';
-        page.classList.add(`justify-${originalJustify}`);
+
+        // Position each page absolutely within the container
+        page.style.position = 'absolute';
+        page.style.top = '0';
+        page.style.left = '0';
+        page.style.width = '100%';
+        page.style.height = '100%';
+
+        // IMPORTANTE: Applica la stessa giustificazione a tutte le pagine in base alla colonna principale
+        page.classList.add(`justify-${columnJustify}`);
+
+        // Assicura visivamente l'allineamento corretto
+        if (columnJustify === 'center') {
+            page.style.alignItems = 'center';
+            page.style.alignContent = 'center';
+            page.style.justifyContent = 'center';
+        } else {
+            page.style.alignItems = 'flex-start';
+            page.style.alignContent = 'flex-start';
+            page.style.justifyContent = 'center'; // Center horizontally always
+        }
+
         page.dataset.page = i.toString();
-        page.dataset.justification = originalJustify;
+        page.dataset.justification = columnJustify;
 
         // Show only the first page initially
         if (i !== 0) {
@@ -1393,9 +1472,12 @@ window.AnilistCalendar.calendar.setupGallerySlider = function(dayContainer, anim
         pagesContainer.appendChild(page);
     }
 
-    // Add the pages container to the main container
+    // Add the pages container to the slider container
     sliderContainer.appendChild(pagesContainer);
-    animeList.appendChild(sliderContainer);
+    // Add the slider container to the fixed container
+    fixedContainer.appendChild(sliderContainer);
+    // Add the fixed container to the anime list
+    animeList.appendChild(fixedContainer);
 
     // If there are multiple pages, add navigation controls
     if (totalPages > 1) {
@@ -1464,16 +1546,16 @@ window.AnilistCalendar.calendar.setupGallerySlider = function(dayContainer, anim
         });
 
         // Add the styling class and buttons
-        animeList.classList.add('gallery-with-nav');
-        animeList.appendChild(prevButton);
-        animeList.appendChild(nextButton);
+        fixedContainer.classList.add('gallery-with-nav');
+        fixedContainer.appendChild(prevButton);
+        fixedContainer.appendChild(nextButton);
 
         // Ensure initial view is correct
         updateView();
 
         // Reattach event listeners for plus buttons in cards
         const reattachEvents = () => {
-            const allPlusButtons = animeList.querySelectorAll('.plus-button, .plus-icon');
+            const allPlusButtons = fixedContainer.querySelectorAll('.plus-button, .plus-icon');
             allPlusButtons.forEach(button => {
                 const animeEntry = button.closest('.anime-entry');
                 if (animeEntry && animeEntry.dataset.animeData) {
