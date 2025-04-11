@@ -734,7 +734,7 @@ html body .anilist-weekly-calendar.compact-mode[class*="title-center"] .anime-ti
     opacity: 0;
     z-index: 3;
     transition: opacity 0.2s ease;
-    border-radius: 0 !important;
+    border-radius: 4px !important; /* FIX: Added border radius to match the card */
 }
 
 .anilist-weekly-calendar.extended-mode .anime-entry:hover .anime-image-overlay {
@@ -752,6 +752,7 @@ html body .anilist-weekly-calendar.compact-mode[class*="title-center"] .anime-ti
     transform: translateY(-100%);
     transition: transform 0.2s ease !important;
     z-index: 5;
+    border-radius: 4px 4px 0 0; /* FIX: Match border radius with card */
 }
 
 /* Bottom panel for info */
@@ -765,6 +766,7 @@ html body .anilist-weekly-calendar.compact-mode[class*="title-center"] .anime-ti
     transform: translateY(100%);
     transition: transform 0.2s ease !important;
     z-index: 5;
+    border-radius: 0 0 4px 4px; /* FIX: Match border radius with card */
 }
 
 /* Animate panels on hover */
@@ -1243,7 +1245,7 @@ html body .anilist-weekly-calendar.compact-mode[class*="title-center"] .anime-ti
 }
 
 .gallery-page.justify-top {
-    justify-content: flex-start !important;
+    justify-content: center !important; /* FIX: Horizontally centered always */
     align-content: flex-start !important;
 }
 
@@ -1490,7 +1492,7 @@ html body .anilist-weekly-calendar.compact-mode[class*="title-center"] .anime-ti
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: wrap !important;
-    justify-content: flex-start !important;
+    justify-content: center !important; /* FIX: Always center horizontally */
     align-content: flex-start !important;
     align-items: flex-start !important;
 }
@@ -1518,7 +1520,7 @@ html body .anilist-weekly-calendar.compact-mode[class*="title-center"] .anime-ti
 }
 
 .gallery-page.justify-top {
-    justify-content: flex-start !important;
+    justify-content: center !important; /* FIX: Always center horizontally */
     align-items: center !important;
     align-content: flex-start !important;
 }
@@ -1572,4 +1574,52 @@ html body .anilist-weekly-calendar.compact-mode[class*="title-center"] .anime-ti
 .anilist-weekly-calendar .anime-info:has(.anime-info-row.info-hidden) .anime-title,
 .anilist-weekly-calendar .anime-info .anime-title.title-expanded {
     padding-bottom: 8px !important;
+}
+
+/* =====================================================================
+   FIX: MIGLIORAMENTI GALLERY MODE - SPAZI E CENTRATURA
+   ===================================================================== */
+
+/* Miglioramento spaziatura delle card nella gallery mode */
+.anilist-weekly-calendar.extended-mode .day-anime-list {
+    gap: 16px !important; /* Aumenta lo spazio tra le card */
+    padding: 16px !important;
+    justify-content: center !important;
+}
+
+/* Migliora la centratura delle card nella gallery mode */
+.anilist-weekly-calendar.extended-mode .anime-entry {
+    margin: 0 !important; /* Rimuovi il margin per una migliore spaziatura uniforme */
+}
+
+/* Assicura che il contenitore delle pagine galleria centri correttamente il contenuto */
+.gallery-page {
+    gap: 16px !important; /* Aumenta lo spazio tra le card nella galleria */
+    justify-content: center !important;
+    padding: 12px 0 !important;
+}
+
+/* Fissa il problema del panel nero che mostra gli angoli della thumbnail in hover */
+.anilist-weekly-calendar.extended-mode .anime-image {
+    border-radius: 4px !important; /* Applica border radius all'immagine */
+}
+
+.anilist-weekly-calendar.extended-mode .anime-image img {
+    border-radius: 4px !important; /* Applica border radius all'immagine */
+}
+
+.anilist-weekly-calendar.extended-mode .anime-entry {
+    overflow: hidden !important; /* Mantieni tutto dentro i bordi arrotondati */
+    border-radius: 4px !important; /* Applica border radius alla card */
+}
+
+/* Assicura che i pannelli si allineino correttamente con i bordi arrotondati */
+.anilist-weekly-calendar.extended-mode .title-panel {
+    border-top-left-radius: 4px !important;
+    border-top-right-radius: 4px !important;
+}
+
+.anilist-weekly-calendar.extended-mode .info-panel {
+    border-bottom-left-radius: 4px !important;
+    border-bottom-right-radius: 4px !important;
 }

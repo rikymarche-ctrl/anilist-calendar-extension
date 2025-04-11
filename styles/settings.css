@@ -217,22 +217,73 @@
 }
 
 /* -------------------------------
-   Select Styles
+   Select Styles - FIXED TEXT CENTERING
    ------------------------------- */
 .select-wrapper {
     width: 160px !important;
     display: inline-block;
+    position: relative;
+    height: 36px; /* Fixed height to match number input */
 }
 
+/* Hide default dropdown arrow */
 .settings-select {
-    padding: 8px 10px;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    padding: 8px 28px 8px 28px !important; /* Padding balanced on both sides */
     border-radius: 4px;
     border: 1px solid rgba(100, 100, 100, 0.4);
     background-color: #151f2e;
     color: #ffffff;
     width: 100%;
+    cursor: pointer;
+    font-size: 14px;
+    height: 36px; /* Fixed height */
+    box-sizing: border-box;
+    line-height: 1.2;
+    /* Critical centering properties */
     text-align: center !important;
-    appearance: menulist;
+    -moz-text-align-last: center !important;
+    text-align-last: center !important;
+}
+
+/* Custom dropdown arrow */
+.select-wrapper::after {
+    content: "\f107"; /* FontAwesome down arrow */
+    font-family: "FontAwesome", serif;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #3db4f2;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Add balancing element on the left for visual symmetry */
+.select-wrapper::before {
+    content: "\f107"; /* Invisible balancing icon */
+    font-family: "FontAwesome", serif;
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: transparent; /* Make it invisible */
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Select hover state */
+.settings-select:hover {
+    border-color: rgba(61, 180, 242, 0.5);
+}
+
+/* Select focus state */
+.settings-select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(61, 180, 242, 0.3);
+    border-color: #3db4f2;
 }
 
 .site-theme-light .settings-select,
@@ -242,13 +293,30 @@
     border-color: rgba(0, 0, 0, 0.1);
 }
 
-.settings-select option {
+/* CRITICAL: Super-specific selectors for option centering */
+.settings-select option,
+select.settings-select option,
+html body select.settings-select option,
+.settings-select > option {
     text-align: center !important;
-    padding: 8px;
+    -moz-text-align-last: center !important;
+    text-align-last: center !important;
+    padding: 5px 0 !important;
+    margin: 0 !important;
+    text-indent: 0 !important;
     background-color: #151f2e;
     color: #ffffff;
 }
 
+/* Style all options to center text */
+.settings-select option.option-selected,
+.settings-select option.option-standard {
+    text-align: center !important;
+    -moz-text-align-last: center !important;
+    text-align-last: center !important;
+}
+
+/* Light theme option styles */
 .site-theme-light .settings-select option,
 [data-theme='light'] .settings-select option {
     background-color: #ffffff;
@@ -274,7 +342,7 @@ select option.option-separator {
 }
 
 /* -------------------------------
-   Toggle Switch
+   Toggle Switch - IMPROVED
    ------------------------------- */
 .toggle-switch {
     position: relative;
@@ -348,6 +416,102 @@ input:checked + .slider:before {
 .site-theme-light .slider.checked,
 [data-theme='light'] .slider.checked {
     background-color: #3577b1;
+}
+
+/* -------------------------------
+   Numeric Input Styles - IMPROVED
+   ------------------------------- */
+.number-input-wrapper {
+    width: 160px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 36px; /* Match the height of the dropdown selects */
+}
+
+/* Remove native spinner buttons for number inputs */
+/* Chrome, Safari, Edge, Opera */
+.settings-number-input::-webkit-outer-spin-button,
+.settings-number-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Firefox */
+.settings-number-input[type=number] {
+    -moz-appearance: textfield;
+}
+
+.settings-number-input {
+    width: 100%;
+    padding: 8px 40px; /* Padding for buttons on each side */
+    border-radius: 4px;
+    border: 1px solid rgba(100, 100, 100, 0.4);
+    background-color: #151f2e;
+    color: #ffffff;
+    text-align: center;
+    font-size: 14px;
+    height: 36px; /* Fixed height to match dropdown selects */
+    box-sizing: border-box;
+}
+
+.settings-number-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(61, 180, 242, 0.3);
+    border-color: #3db4f2;
+}
+
+.site-theme-light .settings-number-input,
+[data-theme='light'] .settings-number-input {
+    background-color: #ffffff;
+    color: #2e3c4f;
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.number-control-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    background-color: rgba(61, 180, 242, 0.15);
+    color: #3db4f2;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.number-minus-btn {
+    left: 6px;
+}
+
+.number-plus-btn {
+    right: 6px;
+}
+
+.number-control-btn:hover {
+    background-color: rgba(61, 180, 242, 0.3);
+}
+
+.number-control-btn:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.site-theme-light .number-control-btn,
+[data-theme='light'] .number-control-btn {
+    background-color: rgba(53, 119, 177, 0.15);
+    color: #3577b1;
+}
+
+.site-theme-light .number-control-btn:hover,
+[data-theme='light'] .number-control-btn:hover {
+    background-color: rgba(53, 119, 177, 0.3);
 }
 
 /* -------------------------------
@@ -478,32 +642,6 @@ input:checked + .slider:before {
 }
 
 /* -------------------------------
-   Numeric Input Styles
-   ------------------------------- */
-.number-input-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.settings-number-input {
-    width: 70px;
-    padding: 8px;
-    border-radius: 4px;
-    border: 1px solid rgba(100, 100, 100, 0.4);
-    background-color: #151f2e;
-    color: #ffffff;
-    text-align: center;
-}
-
-.site-theme-light .settings-number-input,
-[data-theme='light'] .settings-number-input {
-    background-color: #ffffff;
-    color: #2e3c4f;
-    border-color: rgba(0, 0, 0, 0.1);
-}
-
-/* -------------------------------
    Responsive Adjustments
    ------------------------------- */
 @media screen and (max-width: 600px) {
@@ -570,21 +708,6 @@ input:checked + .slider:before {
     display: none;
 }
 
-/* Centratura per le opzioni nelle select */
-.settings-select,
-.option-standard,
-.option-selected {
-    text-align: center;
-}
-
-/* Contenitore delle etichette nelle impostazioni */
-.settings-label-container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: flex-start;
-}
-
 /* Stile per slider del toggle con e senza check */
 .slider.checked {
     background-color: #3db4f2;
@@ -594,14 +717,6 @@ input:checked + .slider:before {
 [data-theme='light'] .slider.checked {
     background-color: #3577b1;
 }
-
-/* Dimensioni per wrapper degli input numerici */
-.number-input-wrapper {
-    width: 160px;
-    display: inline-block;
-}
-
-/* Aggiungere questi stili a calendar.css */
 
 /* Miglioriamo il layout delle gallery-page */
 .gallery-page {
@@ -671,7 +786,7 @@ input:checked + .slider:before {
 
 .site-theme-light .gallery-nav-button:hover,
 [data-theme='light'] .gallery-nav-button:hover {
-    background-color: rgba(61, 180, 242, 0.8) !important;
+    background-color: rgba(61, 180, 242, 0.7) !important;
     color: white;
 }
 

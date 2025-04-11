@@ -84,10 +84,10 @@ window.AnilistCalendar.settingsUI.initSettingsButtonEvents = function() {
 
             while (toElement && toElement !== document.body) {
                 if (toElement.classList && (
-                    toElement.classList.contains('anilist-weekly-calendar') ||
-                    (toElement.classList.contains('section-header') && toElement.querySelector('.airing-replaced-header')) ||
+                        toElement.classList.contains('anilist-weekly-calendar') ||
+                        toElement.classList.contains('section-header') && toElement.querySelector('.airing-replaced-header')) ||
                     toElement.classList.contains('header-settings-btn')
-                )) {
+                ) {
                     isMovingToRelevantElement = true;
                     break;
                 }
@@ -208,7 +208,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     //-----------------------------------------------------
     // Layout mode setting
     const currentLayoutMode = window.AnilistCalendar.userPreferences.layoutMode;
-    const layoutModeWrapper = createFilteredSelect('layout-mode', [
+    const layoutModeWrapper = createFixedSelect('layout-mode', [
         { value: 'standard', text: 'Standard' },
         { value: 'compact', text: 'Compact' },
         { value: 'extended', text: 'Gallery' },
@@ -257,7 +257,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     const titleAlignmentRow = createSettingRow(
         'Title alignment',
         'Choose how anime titles are aligned',
-        createSelect('title-alignment', [
+        createFixedSelect('title-alignment', [
             { value: 'left', text: 'Left aligned' },
             { value: 'center', text: 'Center aligned' }
         ], window.AnilistCalendar.userPreferences.titleAlignment)
@@ -274,7 +274,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     const columnJustifyRow = createSettingRow(
         'Column justify',
         'Choose how columns are justified in the calendar',
-        createSelect('column-justify', [
+        createFixedSelect('column-justify', [
             { value: 'top', text: 'Top aligned' },
             { value: 'center', text: 'Center aligned' }
         ], window.AnilistCalendar.userPreferences.columnJustify || 'top')
@@ -322,7 +322,16 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
                 // In modalità gallery, il titolo è sempre centrato
                 const titleAlignmentSelect = document.getElementById('title-alignment');
                 if (titleAlignmentSelect) {
-                    titleAlignmentSelect.value = 'center';
+                    // Fully replace the select to update the selection
+                    const titleAlignmentWrapper = titleAlignmentSelect.closest('.select-wrapper');
+                    if (titleAlignmentWrapper) {
+                        const newWrapper = createFixedSelect('title-alignment', [
+                            { value: 'left', text: 'Left aligned' },
+                            { value: 'center', text: 'Center aligned' }
+                        ], 'center');
+
+                        titleAlignmentWrapper.parentNode.replaceChild(newWrapper, titleAlignmentWrapper);
+                    }
                 }
             }
         });
@@ -346,7 +355,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         { value: '0', text: 'Sunday', group: 'weekday' }
     ];
 
-    const startDaySelect = createFilteredSelect('start-day', startDayOptions, window.AnilistCalendar.userPreferences.startDay);
+    const startDaySelect = createFixedSelect('start-day', startDayOptions, window.AnilistCalendar.userPreferences.startDay, true);
 
     const startDayRow = createSettingRow(
         'First day of the week',
@@ -378,7 +387,7 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
     const timeFormatRow = createSettingRow(
         'Time format',
         'Choose between countdown or release time',
-        createFilteredSelect('time-format', [
+        createFixedSelect('time-format', [
             { value: 'release', text: 'Release Time' },
             { value: 'countdown', text: 'Countdown' }
         ], window.AnilistCalendar.userPreferences.timeFormat)
@@ -518,7 +527,6 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
             );
 
             // Force the application of column justification
-            const columnJustify = window.AnilistCalendar.userPreferences.columnJustify || 'top';
             window.AnilistCalendar.calendar.forceColumnJustification(columnJustify);
         }
     });
@@ -617,210 +625,121 @@ function createSettingRow(label, description, control) {
 }
 
 /**
- * Creates a select element with the currently selected option at the top
- * and the rest of the options below. The selected option is not duplicated
- * in the dropdown list.
- * @param {string} id - The select ID.
- * @param {Array} options - The options to include.
- * @param {string} selectedValue - The initially selected value.
- * @return {HTMLElement} The wrapper containing the select.
+ * Crea un elemento select “fissata” in cui la voce selezionata viene mostrata come valore visibile,
+ * ma non compare più tra le opzioni del dropdown.
+ * Per il caso speciale 'start-day', se 'today' è selezionato, il divisore viene escluso.
+ *
+ * @param {string} id - L'ID della select.
+ * @param {Array} options - Array di opzioni. Ogni opzione può avere:
+ *     - value: stringa (ad esempio, "today", "1", "2", …)
+ *     - text: stringa da visualizzare
+ *     - disabled: (opzionale) se true, indica un divisore o voce non selezionabile
+ *     - group: (opzionale) ad esempio "special" o "weekday"
+ * @param {string} selectedValue - Il valore inizialmente selezionato.
+ * @param {boolean} isSpecial - Indica se questa select necessita della logica speciale (es. start-day).
+ * @return {HTMLElement} L'elemento wrapper contenente la select.
  */
-function createSelect(id, options, selectedValue) {
+function createFixedSelect(id, options, selectedValue, isSpecial = false) {
     const wrapper = document.createElement('div');
     wrapper.className = 'select-wrapper';
 
-    const select = document.createElement('select');
-    select.id = id;
-    select.className = 'settings-select';
-
-    // Find the selected option
-    const selectedOption = options.find(opt => opt.value === selectedValue);
-
-    // Add the selected option first
-    if (selectedOption) {
-        const selectedEl = document.createElement('option');
-        selectedEl.value = selectedValue;
-        selectedEl.textContent = selectedOption.text;
-        selectedEl.selected = true;
-        selectedEl.className = 'option-selected';
-        select.appendChild(selectedEl);
+    // Funzione per aggiungere un'opzione alla select
+    function addOption(selectEl, optionData) {
+        const optEl = document.createElement('option');
+        optEl.value = optionData.value;
+        optEl.textContent = optionData.text;
+        if (optionData.className) optEl.className = optionData.className;
+        if (optionData.disabled) optEl.disabled = true;
+        if (optionData.group) optEl.dataset.group = optionData.group;
+        selectEl.appendChild(optEl);
     }
 
-    // Add all other options (skipping the selected one)
-    options.forEach(option => {
-        if (option.value !== selectedValue) {
-            const optEl = document.createElement('option');
-            optEl.value = option.value;
-            optEl.textContent = option.text;
-            optEl.className = 'option-standard';
-            select.appendChild(optEl);
-        }
-    });
+    // Normalizza le opzioni eliminando spazi superflui
+    const trimmedOptions = options.map(opt => ({
+        ...opt,
+        text: opt.text ? opt.text.trim() : ''
+    }));
 
-    // Add change handler to update the selected option formatting
-    select.addEventListener('change', function() {
-        const newValue = this.value;
-        const newSelectedOption = options.find(opt => opt.value === newValue);
+    // Funzione che costruisce il contenuto della select in base al valore selezionato
+    function buildSelectContent(currentValue) {
+        const newSelect = document.createElement('select');
+        newSelect.id = id;
+        newSelect.className = 'settings-select';
 
-        // Clear current options
-        while (select.firstChild) {
-            select.removeChild(select.firstChild);
-        }
-
-        // Add the newly selected option first
-        if (newSelectedOption) {
-            const selectedEl = document.createElement('option');
-            selectedEl.value = newValue;
-            selectedEl.textContent = newSelectedOption.text;
-            selectedEl.selected = true;
-            selectedEl.className = 'option-selected';
-            select.appendChild(selectedEl);
+        // Trova l'opzione selezionata (escludendo eventuali disabled)
+        const selectedOpt = trimmedOptions.find(opt => opt.value === currentValue && !opt.disabled) ||
+            trimmedOptions.find(opt => !opt.disabled);
+        // Aggiunge in cima la voce selezionata
+        if (selectedOpt) {
+            const selEl = document.createElement('option');
+            selEl.value = selectedOpt.value;
+            selEl.textContent = selectedOpt.text;
+            selEl.selected = true;
+            selEl.hidden = true;  // Nasconde l'opzione selezionata dal dropdown
+            newSelect.appendChild(selEl);
         }
 
-        // Add all other options
-        options.forEach(option => {
-            if (option.value !== newValue) {
-                const optEl = document.createElement('option');
-                optEl.value = option.value;
-                optEl.textContent = option.text;
-                optEl.className = 'option-standard';
-                select.appendChild(optEl);
-            }
-        });
-    });
-
-    wrapper.appendChild(select);
-    return wrapper;
-}
-
-/**
- * Creates a filtered select element with options grouped by type.
- * The selected option is placed at the top and not duplicated in the list.
- * @param {string} id - The select ID.
- * @param {Array} options - The options to include.
- * @param {string} selectedValue - The initially selected value.
- * @return {HTMLElement} The wrapper containing the select.
- */
-function createFilteredSelect(id, options, selectedValue) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'select-wrapper';
-
-    const select = document.createElement('select');
-    select.id = id;
-    select.className = 'settings-select';
-
-    // Find the selected option
-    const selectedOption = options.find(opt => opt.value === selectedValue && !opt.disabled);
-
-    // Add the selected option first
-    if (selectedOption) {
-        const selectedEl = document.createElement('option');
-        selectedEl.value = selectedValue;
-        selectedEl.textContent = selectedOption.text;
-        selectedEl.selected = true;
-        selectedEl.className = 'option-selected';
-        if (selectedOption.group) {
-            selectedEl.dataset.group = selectedOption.group;
-        }
-        select.appendChild(selectedEl);
-    }
-
-    // Handle special case for 'today' in start day to include separator
-    let includeSeparator = true;
-    if (id === 'start-day' && selectedValue === 'today') {
-        includeSeparator = false;
-    }
-
-    // Add separator if needed
-    if (includeSeparator) {
-        const separatorOption = options.find(opt => opt.disabled);
-        if (separatorOption) {
-            const separatorEl = document.createElement('option');
-            separatorEl.disabled = true;
-            separatorEl.className = separatorOption.className || 'day-separator';
-            separatorEl.textContent = separatorOption.text || '─────────────';
-            select.appendChild(separatorEl);
-        }
-    }
-
-    // Add all other non-disabled options (skipping the selected one)
-    options.forEach(option => {
-        if (!option.disabled && option.value !== selectedValue) {
-            const optEl = document.createElement('option');
-            optEl.value = option.value;
-            optEl.textContent = option.text;
-            optEl.className = 'option-standard';
-            if (option.group) {
-                optEl.dataset.group = option.group;
-            }
-            select.appendChild(optEl);
-        }
-    });
-
-    // Add change handler to update the selected option formatting
-    select.addEventListener('change', function() {
-        const newValue = this.value;
-
-        // Clear current options
-        while (select.firstChild) {
-            select.removeChild(select.firstChild);
-        }
-
-        // Find the newly selected option
-        const newSelectedOption = options.find(opt => opt.value === newValue && !opt.disabled);
-
-        // Add the newly selected option first
-        if (newSelectedOption) {
-            const selectedEl = document.createElement('option');
-            selectedEl.value = newValue;
-            selectedEl.textContent = newSelectedOption.text;
-            selectedEl.selected = true;
-            selectedEl.className = 'option-selected';
-            if (newSelectedOption.group) {
-                selectedEl.dataset.group = newSelectedOption.group;
-            }
-            select.appendChild(selectedEl);
-        }
-
-        // Handle special case for start day dropdown
-        let includeSep = true;
-        if (id === 'start-day' && newValue === 'today') {
-            includeSep = false;
-        }
-
-        // Add separator if needed
-        if (includeSep) {
-            const separatorOption = options.find(opt => opt.disabled);
-            if (separatorOption) {
-                const separatorEl = document.createElement('option');
-                separatorEl.disabled = true;
-                separatorEl.className = separatorOption.className || 'day-separator';
-                separatorEl.textContent = separatorOption.text || '─────────────';
-                select.appendChild(separatorEl);
-            }
-        }
-
-        // Add all other non-disabled options
-        options.forEach(option => {
-            if (!option.disabled && option.value !== newValue) {
-                const optEl = document.createElement('option');
-                optEl.value = option.value;
-                optEl.textContent = option.text;
-                optEl.className = 'option-standard';
-                if (option.group) {
-                    optEl.dataset.group = option.group;
+        // Gestione per il caso speciale (ad esempio 'start-day')
+        if (isSpecial && id === 'start-day') {
+            if (currentValue === 'today') {
+                // Se 'today' è selezionato, non aggiungiamo né 'today' né il divisore;
+                // visualizziamo soltanto le opzioni del gruppo 'weekday'
+                trimmedOptions.forEach(option => {
+                    if (!option.disabled && option.value !== 'today' && option.group === 'weekday') {
+                        addOption(newSelect, option);
+                    }
+                });
+            } else {
+                // Per valori diversi da 'today':
+                // 1. Aggiunge l'opzione 'today'
+                const todayOption = trimmedOptions.find(opt => opt.value === 'today');
+                if (todayOption) addOption(newSelect, todayOption);
+                // 2. Aggiunge il divisore (se presente)
+                const divider = trimmedOptions.find(opt => opt.disabled);
+                if (divider) {
+                    const dividerEl = document.createElement('option');
+                    dividerEl.disabled = true;
+                    dividerEl.className = divider.className || 'day-separator';
+                    dividerEl.textContent = divider.text || '─────────────';
+                    newSelect.appendChild(dividerEl);
                 }
-                select.appendChild(optEl);
+                // 3. Aggiunge le opzioni del gruppo 'weekday', escludendo quella attualmente selezionata
+                trimmedOptions.forEach(option => {
+                    if (!option.disabled && option.value !== currentValue && option.group === 'weekday') {
+                        addOption(newSelect, option);
+                    }
+                });
             }
-        });
-    });
+        } else {
+            // Caso standard: aggiunge tutte le opzioni non disabilitate tranne quella selezionata
+            trimmedOptions.forEach(option => {
+                if (!option.disabled && option.value !== currentValue) {
+                    addOption(newSelect, option);
+                }
+            });
+        }
+        return newSelect;
+    }
 
-    wrapper.appendChild(select);
+    // Funzione che gestisce l'evento di cambio e ricostruisce la select
+    function updateSelect() {
+        const newValue = this.value;
+        const newSelect = buildSelectContent(newValue);
+        // Riapplica lo stesso gestore alla nuova select
+        newSelect.addEventListener('change', updateSelect);
+        this.parentNode.replaceChild(newSelect, this);
+    }
+
+    // Crea la select iniziale e registrane l'evento di change
+    const initialSelect = buildSelectContent(selectedValue);
+    initialSelect.addEventListener('change', updateSelect);
+    wrapper.appendChild(initialSelect);
+
     return wrapper;
 }
 
 /**
- * Creates a custom number input with - and + buttons.
+ * Creates a custom number input with - and + buttons inside the field.
  * @param {string} id - The input ID.
  * @param {number} value - The initial value.
  * @param {number} min - The minimum value.
@@ -832,13 +751,7 @@ function createCustomNumberInput(id, value, min, max, step) {
     const wrapper = document.createElement('div');
     wrapper.className = 'number-input-wrapper';
 
-    // Minus button
-    const minusBtn = document.createElement('button');
-    minusBtn.className = 'number-control-btn number-minus-btn';
-    minusBtn.innerHTML = '<i class="fa fa-minus"></i>';
-    minusBtn.type = 'button';
-
-    // Input field
+    // Input field first (buttons will be positioned inside it via CSS)
     const input = document.createElement('input');
     input.type = 'number';
     input.id = id;
@@ -848,23 +761,48 @@ function createCustomNumberInput(id, value, min, max, step) {
     input.max = max.toString();
     input.step = step.toString();
 
+    // Add input to wrapper
+    wrapper.appendChild(input);
+
+    // Minus button
+    const minusBtn = document.createElement('button');
+    minusBtn.className = 'number-control-btn number-minus-btn';
+    minusBtn.innerHTML = '<i class="fa fa-minus"></i>';
+    minusBtn.type = 'button';
+    minusBtn.tabIndex = -1; // Prevent tab focus
+
     // Plus button
     const plusBtn = document.createElement('button');
     plusBtn.className = 'number-control-btn number-plus-btn';
     plusBtn.innerHTML = '<i class="fa fa-plus"></i>';
     plusBtn.type = 'button';
+    plusBtn.tabIndex = -1; // Prevent tab focus
 
     // Add event listeners
-    minusBtn.addEventListener('click', () => {
+    minusBtn.addEventListener('click', (e) => {
+        e.preventDefault(); // Prevent form submission
         let currentValue = parseInt(input.value) || 0;
         currentValue = Math.max(min, currentValue - step);
         input.value = currentValue.toString();
+
+        // Trigger visual feedback
+        minusBtn.style.transform = 'scale(0.9)';
+        setTimeout(() => {
+            minusBtn.style.transform = '';
+        }, 100);
     });
 
-    plusBtn.addEventListener('click', () => {
+    plusBtn.addEventListener('click', (e) => {
+        e.preventDefault(); // Prevent form submission
         let currentValue = parseInt(input.value) || 0;
         currentValue = Math.min(max, currentValue + step);
         input.value = currentValue.toString();
+
+        // Trigger visual feedback
+        plusBtn.style.transform = 'scale(0.9)';
+        setTimeout(() => {
+            plusBtn.style.transform = '';
+        }, 100);
     });
 
     // Validate input changes
@@ -874,8 +812,32 @@ function createCustomNumberInput(id, value, min, max, step) {
         input.value = currentValue.toString();
     });
 
+    // Prevent manual typing of non-numeric characters
+    input.addEventListener('keydown', (e) => {
+        // Allow navigation keys and special keys
+        const allowedKeys = [
+            'Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'Period', '.',
+            'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+            'Home', 'End', 'NumpadDecimal', 'Decimal'
+        ];
+
+        // Allow if it's a special key or Ctrl+A/Command+A
+        if (allowedKeys.includes(e.key) ||
+            ((e.key === 'a' || e.key === 'A') && (e.ctrlKey || e.metaKey))) {
+            return;
+        }
+
+        // Allow if it's a digit (0-9) or numpad digit
+        const isDigit = /^\d$/.test(e.key) ||
+            /^Numpad\d$/.test(e.key);
+
+        if (!isDigit) {
+            e.preventDefault();
+        }
+    });
+
+    // Add buttons to wrapper (they'll be positioned via CSS)
     wrapper.appendChild(minusBtn);
-    wrapper.appendChild(input);
     wrapper.appendChild(plusBtn);
 
     return wrapper;
