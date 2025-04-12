@@ -1,102 +1,40 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Anilist Weekly Schedule</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-      width: 300px;
-      margin: 0;
-      padding: 0;
-      background-color: #152232;
-      color: #edf1f5;
-    }
-
-    .container {
-      padding: 16px;
-    }
-
-    header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding-bottom: 12px;
-    }
-
-    .logo {
-      width: 28px;
-      height: 28px;
-      margin-right: 12px;
-    }
-
-    h1 {
-      font-size: 18px;
-      font-weight: 600;
-      margin: 0;
-      color: #3db4f2;
-    }
-
-    .menu-item {
-      display: flex;
-      align-items: center;
-      padding: 10px 12px;
-      border-radius: 4px;
-      margin-bottom: 8px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-      text-decoration: none;
-      color: #edf1f5;
-    }
-
-    .menu-item:hover {
-      background-color: rgba(61, 180, 242, 0.1);
-    }
-
-    .menu-item i {
-      width: 24px;
-      margin-right: 12px;
-      text-align: center;
-      color: #3db4f2;
-    }
-
-    .version {
-      font-size: 12px;
-      color: #9fadbd;
-      text-align: center;
-      margin-top: 16px;
-    }
-  </style>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="stylesheet" href="../../styles/popup.css">
 </head>
 <body>
-<div class="container">
-  <header>
-    <img src="../../icons/icon48.png" alt="Logo" class="logo">
-    <h1>Anilist Weekly Schedule</h1>
-  </header>
+<div class="popup-container">
+  <div class="popup-header">
+    <h1 class="extension-title">Anilist Weekly Schedule</h1>
+    <p class="extension-version">v1.0.0</p>
+  </div>
 
-  <a class="menu-item" id="goto-anilist">
-    <i class="fa fa-home"></i>
-    Go to Anilist
-  </a>
+  <div class="action-buttons">
+    <a href="https://github.com/rikymarche-ctrl/anilist-weekly-schedule" target="_blank" class="action-btn github">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+      </svg>
+      View on GitHub
+    </a>
 
-  <a class="menu-item" id="open-options">
-    <i class="fa fa-cog"></i>
-    Open Settings
-  </a>
+    <a href="https://anilist.co/" target="_blank" class="action-btn anilist">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      Go to AniList
+    </a>
+  </div>
 
-  <a class="menu-item" href="https://github.com/rikymarche-ctrl/anilist-weekly-schedule" target="_blank">
-    <i class="fab fa-github"></i>
-    View on GitHub
-  </a>
+  <div class="divider"></div>
 
-  <div class="version">
-    Version 1.0.0
+  <div class="footer">
+    A weekly calendar view for your anime schedule
   </div>
 </div>
-
-<script src="popup.js"></script>
 </body>
 </html>

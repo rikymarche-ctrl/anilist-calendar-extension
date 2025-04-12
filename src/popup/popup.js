@@ -1,17 +1,19 @@
 /**
- * Anilist Weekly Schedule - Popup
- * Handles interactions in the extension popup
+ * Anilist Weekly Schedule - Popup Script
+ * Handles navigation and button interactions in the popup
  */
 
-// Initialize event listeners once the DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-  // Go to Anilist
-  document.getElementById('goto-anilist').addEventListener('click', function() {
-    chrome.tabs.create({ url: 'https://anilist.co' });
-  });
+// Handle navigation to AniList
+document.getElementById('goToAnilist').addEventListener('click', function() {
+  chrome.tabs.create({ url: 'https://anilist.co/' });
+});
 
-  // Open options page
-  document.getElementById('open-options').addEventListener('click', function() {
-    chrome.runtime.openOptionsPage();
-  });
+// Listen for keydown events to handle keyboard navigation
+document.addEventListener('keydown', function(e) {
+  // Allow Enter key to activate focused elements
+  if (e.key === 'Enter') {
+    if (document.activeElement.tagName === 'BUTTON') {
+      document.activeElement.click();
+    }
+  }
 });

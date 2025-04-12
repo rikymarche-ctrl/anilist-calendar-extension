@@ -1,0 +1,141 @@
+body {
+    width: 250px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #152232;
+    color: #e5e7eb;
+}
+
+.popup-container {
+    padding: 16px;
+}
+
+.popup-header {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.extension-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin: 0 0 8px 0;
+    color: #e5e7eb;
+}
+
+.extension-version {
+    font-size: 12px;
+    color: #9ca3af;
+    margin: 0;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 6px;
+    background-color: #1f2d3d;
+    color: #e5e7eb;
+    text-decoration: none;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.action-btn:hover {
+    background-color: #2c3e50;
+}
+
+.action-btn.github {
+    background-color: #2d3748;
+}
+
+.action-btn.github:hover {
+    background-color: #3a4a5e;
+}
+
+.action-btn.anilist {
+    background-color: #3db4f2;
+    color: #ffffff;
+}
+
+.action-btn.anilist:hover {
+    background-color: #2a9fd6;
+}
+
+.divider {
+    height: 1px;
+    background-color: #2c3e50;
+    margin: 16px 0;
+}
+
+.footer {
+    font-size: 11px;
+    color: #9ca3af;
+    text-align: center;
+    margin-top: 16px;
+}
+
+/* Icons */
+.icon {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Light mode support */
+@media (prefers-color-scheme: light) {
+    body {
+        background-color: #ffffff;
+        color: #2c3e50;
+    }
+
+    .extension-title {
+        color: #2c3e50;
+    }
+
+    .extension-version {
+        color: #64748b;
+    }
+
+    .action-btn {
+        background-color: #f1f5f9;
+        color: #2c3e50;
+    }
+
+    .action-btn:hover {
+        background-color: #e2e8f0;
+    }
+
+    .action-btn.github {
+        background-color: #e2e8f0;
+    }
+
+    .action-btn.github:hover {
+        background-color: #cbd5e1;
+    }
+
+    .action-btn.anilist {
+        background-color: #3db4f2;
+        color: #ffffff;
+    }
+
+    .divider {
+        background-color: #e2e8f0;
+    }
+
+    .footer {
+        color: #64748b;
+    }
+}
