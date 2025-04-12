@@ -13,13 +13,13 @@ window.AnilistCalendar = {
 
     // Default user preferences
     userPreferences: {
-        startDay: 'today',                 // 'today' or index 0-6 (Sunday-Saturday)
+        startDay: '1',                     // 'today' or index 0-6 (Sunday-Saturday), changed to Monday (1)
         hideEmptyDays: false,              // Hide days without episodes
         layoutMode: 'standard',            // Layout mode: 'compact', 'standard', 'extended'
-        timeFormat: 'release',             // Time format: 'release' or 'countdown'
+        timeFormat: 'countdown',           // Time format: 'release' or 'countdown', changed to countdown
         showTime: true,                    // Show time information
         showEpisodeNumbers: true,          // Show episode numbers
-        titleAlignment: 'center',          // Title alignment: 'left' or 'center'
+        titleAlignment: 'center',          // Title alignment: 'left' or 'center', changed to center
         columnJustify: 'top',              // Column justification: 'top' or 'center'
         maxCardsPerDay: 0,                 // Maximum cards per day in gallery mode (0 = unlimited)
         fullWidthImages: false             // Whether to expand images to full width in standard mode
