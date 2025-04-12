@@ -20,10 +20,17 @@ AniCal.main.initialize = function() {
             AniCal.state.countdownInterval = null;
         }
 
-        // Reset global variables on each initialization
-        AniCal.state.originalPlusButtons = {};
-        AniCal.state.originalCoverImages = {};
-        AniCal.state.isCalendarInitialized = false; // Reset initialization flag
+        // Initialize global state objects if they don't exist
+        if (!AniCal.state.originalPlusButtons) {
+            AniCal.state.originalPlusButtons = {};
+        }
+
+        if (!AniCal.state.originalCoverImages) {
+            AniCal.state.originalCoverImages = {};
+        }
+
+        // Only reset initialization flag - preserve button and image references
+        AniCal.state.isCalendarInitialized = false;
 
         // Detect and apply current theme
         AniCal.detectTheme();
@@ -441,26 +448,306 @@ function replaceAiringSection(container, headerElement, skipHeader = false) {
     }
 }
 
+/**
+ * Check if current page is home page
+ * @return {boolean} Whether the current page is the home page
+ */
+AniCal.main.isHomePage = function() {
+    const url = window.location.href;
+    return url === 'https://anilist.co/' ||
+        url === 'https://anilist.co/home' ||
+        url === 'http://anilist.co/' ||
+        url === 'http://anilist.co/home' ||
+        url.endsWith('anilist.co/') ||
+        url.endsWith('anilist.co/home') ||
+        url.match(/anilist\.co\/?(\?.*)?$/);  // Matches home with query params
+};
+
+/**
+ * Attempts to scan the page for anime plus buttons and store them
+ * This can be called periodically to collect buttons even when not on the home page
+ * @param {boolean} isFullScan - Whether this is a full scan that should look more aggressively
+ */
+AniCal.main.scanForAnimeButtons = function(isFullScan = false) {
+    try {
+        // Use more extensive selectors for the home page or full scans
+        const isHome = AniCal.main.isHomePage();
+        const selectors = isHome || isFullScan ?
+            // Extended selectors for home page
+            '.media-preview-card, .airing-anime, .countdown-card, .media-card, .list-preview-wrap .cover, [data-media-type="ANIME"]' :
+            // Standard selectors for other pages
+            '.media-preview-card, .airing-anime, .countdown-card, .media-card';
+
+        const animeCards = document.querySelectorAll(selectors);
+
+        if (animeCards.length === 0) {
+            AniCal.utils.log(`No anime cards found to scan ${isHome ? '(on home page)' : ''}`);
+            return;
+        }
+
+        AniCal.utils.log(`Found ${animeCards.length} anime cards to scan for buttons ${isHome ? '(on home page)' : ''}`);
+
+        // If we're on the home page, also look for anime-specific elements throughout the page
+        if (isHome || isFullScan) {
+            // Find all links that might point to anime pages
+            const animeLinks = document.querySelectorAll('a[href*="/anime/"]');
+            AniCal.utils.log(`Also found ${animeLinks.length} potential anime links`);
+
+            // Process these links to extract IDs and find related buttons
+            animeLinks.forEach(link => {
+                try {
+                    const hrefMatch = link.href.match(/\/anime\/(\d+)/);
+                    if (hrefMatch && hrefMatch[1]) {
+                        const animeId = hrefMatch[1];
+
+                        // Look for a plus button in the same container
+                        const container = link.closest('.media-preview-card, .airing-anime, .countdown-card, .media-card, .cover-wrap');
+                        if (container) {
+                            // Find plus button
+                            const plusButton = container.querySelector('.plus-button, .plus-progress, button[data-test="plusButton"]');
+                            if (plusButton && !AniCal.state.originalPlusButtons[animeId]) {
+                                AniCal.state.originalPlusButtons[animeId] = plusButton;
+                                AniCal.utils.log(`Found and stored plus button for anime ID: ${animeId} from link`);
+                            }
+
+                            // Look for cover images
+                            const coverEl = container.querySelector('a.cover, .cover img, .image img, img.cover, img.image');
+                            if (coverEl) {
+                                let imageUrl = '';
+
+                                if (coverEl.tagName.toLowerCase() === 'a' && coverEl.classList.contains('cover')) {
+                                    if (coverEl.dataset.src) {
+                                        imageUrl = coverEl.dataset.src;
+                                    } else if (coverEl.style.backgroundImage) {
+                                        const bgImgMatch = coverEl.style.backgroundImage.match(/url\(['"]?(.*?)['"]?\)/);
+                                        if (bgImgMatch && bgImgMatch[1]) {
+                                            imageUrl = bgImgMatch[1];
+                                        }
+                                    }
+                                } else if (coverEl.tagName.toLowerCase() === 'img') {
+                                    imageUrl = coverEl.src;
+                                }
+
+                                if (imageUrl && (!AniCal.state.originalCoverImages[animeId] || !AniCal.state.originalCoverImages[animeId].url)) {
+                                    AniCal.state.originalCoverImages[animeId] = {
+                                        element: coverEl,
+                                        url: imageUrl
+                                    };
+                                    AniCal.utils.log(`Found and stored cover image for anime ID: ${animeId} from link`);
+                                }
+                            }
+                        }
+                    }
+                } catch (linkErr) {
+                    AniCal.utils.log(`Error processing anime link:`, linkErr);
+                }
+            });
+        }
+
+        // Process each card to extract button and ID
+        animeCards.forEach(card => {
+            try {
+                // Extract anime ID from various possible sources
+                let animeId = null;
+                const linkElement = card.querySelector('a');
+
+                if (linkElement && linkElement.href) {
+                    const hrefMatch = linkElement.href.match(/\/anime\/(\d+)/);
+                    if (hrefMatch && hrefMatch[1]) {
+                        animeId = hrefMatch[1];
+                    }
+                }
+
+                // Fallback: try to get ID from data attribute
+                if (!animeId) {
+                    animeId = card.dataset.mediaId || card.dataset.id || null;
+                    if (!animeId) return; // Skip if no ID found
+                }
+
+                // Find and store plus button if it exists
+                const plusButton = card.querySelector('.plus-button, .plus-progress, button[data-test="plusButton"]');
+                if (plusButton) {
+                    AniCal.state.originalPlusButtons[animeId] = plusButton;
+                    AniCal.utils.log(`Stored plus button for anime ID: ${animeId}`);
+                }
+
+                // Find and store cover image if it exists
+                const coverLink = card.querySelector('a.cover');
+                if (coverLink) {
+                    // Get URL from data-src or background-image
+                    let imageUrl = '';
+                    if (coverLink.dataset.src) {
+                        imageUrl = coverLink.dataset.src;
+                    } else if (coverLink.style.backgroundImage) {
+                        const bgImgMatch = coverLink.style.backgroundImage.match(/url\(['"]?(.*?)['"]?\)/);
+                        if (bgImgMatch && bgImgMatch[1]) {
+                            imageUrl = bgImgMatch[1];
+                        }
+                    }
+
+                    if (imageUrl) {
+                        AniCal.state.originalCoverImages[animeId] = {
+                            element: coverLink,
+                            url: imageUrl
+                        };
+                        AniCal.utils.log(`Stored cover image for anime ID: ${animeId}`);
+                    }
+                } else {
+                    // Try alternative selectors for cover images
+                    const coverImg = card.querySelector('.cover img, .image img, img.cover, img.image');
+                    if (coverImg && coverImg.src) {
+                        AniCal.state.originalCoverImages[animeId] = {
+                            element: coverImg,
+                            url: coverImg.src
+                        };
+                        AniCal.utils.log(`Stored cover image (alternative) for anime ID: ${animeId}`);
+                    }
+                }
+            } catch (cardErr) {
+                AniCal.utils.log(`Error processing anime card in scan:`, cardErr);
+            }
+        });
+
+        // Log summary of what we've collected
+        AniCal.utils.log(`Scan complete. We now have ${Object.keys(AniCal.state.originalPlusButtons).length} plus buttons and ${Object.keys(AniCal.state.originalCoverImages).length} cover images in our cache.`);
+
+    } catch (err) {
+        AniCal.utils.log("Error scanning for anime buttons:", err);
+    }
+};
+
 // Initialize when the page is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         console.log("[Anilist Calendar] DOM Content Loaded - initializing...");
         AniCal.utils.loadFontAwesome();
         AniCal.main.initialize();
+
+        // Initial aggressive scan for buttons and images
+        // Run multiple scans with increasing delays to catch everything
+        const scanDelays = [500, 1000, 2000, 3500, 5000];
+
+        scanDelays.forEach(delay => {
+            setTimeout(() => {
+                const isHome = AniCal.main.isHomePage();
+                AniCal.utils.log(`Running scan at ${delay}ms delay${isHome ? ' (on home page)' : ''}`);
+                AniCal.main.scanForAnimeButtons(true); // true = full scan
+            }, delay);
+        });
     });
 } else {
     console.log("[Anilist Calendar] Document already loaded - initializing immediately...");
     AniCal.utils.loadFontAwesome();
     AniCal.main.initialize();
+
+    // Initial aggressive scan for buttons and images
+    // Run multiple scans with increasing delays to catch everything
+    const scanDelays = [500, 1000, 2000, 3500, 5000];
+
+    scanDelays.forEach(delay => {
+        setTimeout(() => {
+            const isHome = AniCal.main.isHomePage();
+            AniCal.utils.log(`Running scan at ${delay}ms delay${isHome ? ' (on home page)' : ''}`);
+            AniCal.main.scanForAnimeButtons(true); // true = full scan
+        }, delay);
+    });
 }
 
-// Also run when URL changes (SPA navigation)
+// URL change detection with button scanning
+let scanTimer = null;
 setInterval(() => {
     const currentUrl = location.href;
+
+    // If URL changed
     if (currentUrl !== AniCal.state.lastUrl) {
+        const wasHome = AniCal.main.isHomePage(AniCal.state.lastUrl);
+        const isNowHome = AniCal.main.isHomePage(currentUrl);
+
         AniCal.state.lastUrl = currentUrl;
-        AniCal.utils.log("URL changed, re-initializing");
-        AniCal.state.isCalendarInitialized = false;
-        AniCal.main.initialize();
+        AniCal.utils.log(`URL changed to: ${currentUrl}`);
+
+        // If we're going to the home page, do a complete reset
+        if (isNowHome) {
+            AniCal.utils.log("Home page detected, performing complete reset and scan");
+
+            // Reset state while preserving critical collections
+            const savedPlusButtons = {...AniCal.state.originalPlusButtons};
+            const savedCoverImages = {...AniCal.state.originalCoverImages};
+
+            // Reset initialization flag
+            AniCal.state.isCalendarInitialized = false;
+
+            // Initialize as if starting from scratch
+            AniCal.main.initialize();
+
+            // After initialization, run a thorough scan for buttons and images
+            // Do this immediately and then again after a delay to catch everything
+            AniCal.main.scanForAnimeButtons();
+
+            // Clear any existing scan timer
+            if (scanTimer) {
+                clearInterval(scanTimer);
+            }
+
+            // Perform multiple scans with increasing intervals to catch elements
+            // as they are loaded into the page
+            let scanCount = 0;
+            const scanIntervals = [500, 1000, 2000, 3000, 5000]; // Increasing intervals
+
+            scanTimer = setInterval(() => {
+                AniCal.utils.log(`Running scan #${scanCount + 1} for anime buttons and images`);
+                AniCal.main.scanForAnimeButtons();
+                scanCount++;
+
+                // Stop scanning after all intervals
+                if (scanCount >= scanIntervals.length) {
+                    AniCal.utils.log("Completed scheduled button and image scans");
+                    clearInterval(scanTimer);
+                    scanTimer = null;
+                }
+            }, 1000);
+        } else {
+            // For non-home pages, just re-initialize normally
+            AniCal.utils.log("Non-home page, re-initializing");
+            AniCal.state.isCalendarInitialized = false;
+            AniCal.main.initialize();
+
+            // Clear any existing scan timer
+            if (scanTimer) {
+                clearInterval(scanTimer);
+            }
+
+            // Set up periodic button scanning for the next few seconds
+            let scanCount = 0;
+            scanTimer = setInterval(() => {
+                AniCal.main.scanForAnimeButtons();
+                scanCount++;
+
+                // Stop scanning after a few attempts
+                if (scanCount >= 3) {
+                    clearInterval(scanTimer);
+                    scanTimer = null;
+                }
+            }, 1000);
+        }
     }
 }, 1000);
+
+// Periodically scan for anime buttons to ensure we have the latest references
+// This helps with pages that load content dynamically
+setInterval(() => {
+    // Only scan when not actively navigating
+    if (!scanTimer) {
+        // Do a more aggressive scan if we're on the home page
+        const isHome = AniCal.main.isHomePage();
+        AniCal.main.scanForAnimeButtons(isHome); // Full scan on home page
+
+        // If we're on the home page, also do additional scans with slight delays
+        // to catch elements that may load with animation or lazy loading
+        if (isHome) {
+            AniCal.utils.log("Home page detected in periodic scan, running additional scans");
+            setTimeout(() => AniCal.main.scanForAnimeButtons(true), 1000);
+            setTimeout(() => AniCal.main.scanForAnimeButtons(true), 2500);
+        }
+    }
+}, 30000);
