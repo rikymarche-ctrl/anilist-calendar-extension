@@ -1,0 +1,251 @@
+/* =====================================================================
+   Anilist Weekly Schedule Extension - Common Styles
+   ===================================================================== */
+
+/* -----------------------------------------------------------
+   1. THEME VARIABLES
+   ----------------------------------------------------------- */
+
+/* Dark Theme */
+.anilist-weekly-calendar {
+    --cal-text: #e5e7eb;
+    --cal-text-light: #9ca3af;
+    --cal-background: #151f2e;
+    --cal-foreground: #11161d;
+    --cal-border: rgba(49, 54, 68, 0.6);
+    --cal-blue: #3db4f2;
+    --cal-blue-dim: rgba(61, 180, 242, 0.8);
+    --cal-anime-bg: rgba(23, 34, 51, 0.95);
+    --cal-anime-hover: rgba(30, 43, 60, 0.98);
+}
+
+/* Light Theme */
+.site-theme-light .anilist-weekly-calendar,
+[data-theme='light'] .anilist-weekly-calendar,
+.anilist-weekly-calendar-light-theme {
+    --cal-text: #5c728a;
+    --cal-text-light: #8795a6;
+    --cal-background: #ffffff;
+    --cal-foreground: #ffffff;
+    --cal-border: rgba(125, 125, 125, 0.1);
+    --cal-blue: #3577b1;
+    --cal-blue-dim: rgba(53, 119, 177, 0.8);
+    --cal-anime-bg: rgba(245, 247, 250, 0.98);
+    --cal-anime-hover: rgba(237, 240, 245, 0.98);
+}
+
+/* High Contrast Theme */
+.high-contrast .anilist-weekly-calendar,
+.site-theme-contrast .anilist-weekly-calendar,
+.anilist-weekly-calendar-high-contrast {
+    --cal-text: #1a1a1a;
+    --cal-text-light: #2c2c2c;
+    --cal-background: #ffffff;
+    --cal-foreground: #ffffff;
+    --cal-border: rgba(0, 0, 0, 0.2);
+    --cal-blue: #0066cc;
+    --cal-blue-dim: rgba(0, 102, 204, 0.9);
+    --cal-anime-bg: rgba(250, 250, 250, 0.95);
+    --cal-anime-hover: rgba(245, 245, 245, 0.95);
+}
+
+/* -----------------------------------------------------------
+   2. GLOBAL STYLES
+   ----------------------------------------------------------- */
+
+.anilist-weekly-calendar,
+.anilist-calendar-grid,
+.anilist-calendar-day,
+.day-header,
+.day-anime-list {
+    background-color: var(--cal-background) !important;
+    color: var(--cal-text) !important;
+}
+
+.day-name,
+.day-number,
+.separator {
+    color: var(--cal-text) !important;
+}
+
+/* Current day highlight */
+.anilist-calendar-day.current-day .day-header {
+    border-bottom: 2px solid var(--cal-blue);
+    background-color: rgba(61, 180, 242, 0.05);
+}
+
+.anilist-calendar-day.current-day .day-number,
+.anilist-calendar-day.current-day .separator,
+.anilist-calendar-day.current-day .day-name {
+    color: var(--cal-blue);
+    font-weight: 600;
+}
+
+/* Today column header */
+.anilist-calendar-day.today-column .day-header {
+    background-color: rgba(61, 180, 242, 0.05);
+    border-bottom: 2px solid var(--cal-blue);
+}
+
+/* Light theme specific refinements */
+.site-theme-light .anilist-weekly-calendar .day-header,
+[data-theme='light'] .anilist-weekly-calendar .day-header,
+.anilist-weekly-calendar-light-theme .day-header {
+    border-bottom: 1px solid rgba(125, 125, 125, 0.08);
+}
+
+.site-theme-light .anilist-weekly-calendar .anime-entry,
+[data-theme='light'] .anilist-weekly-calendar .anime-entry,
+.anilist-weekly-calendar-light-theme .anime-entry {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.site-theme-light .anilist-weekly-calendar .anime-entry:hover,
+[data-theme='light'] .anilist-weekly-calendar .anime-entry:hover,
+.anilist-weekly-calendar-light-theme .anime-entry:hover {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+/* High contrast specific refinements */
+.site-theme-contrast .anilist-weekly-calendar .day-header,
+.anilist-weekly-calendar-high-contrast .day-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.site-theme-contrast .anilist-weekly-calendar .anime-entry,
+.anilist-weekly-calendar-high-contrast .anime-entry {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.site-theme-contrast .anilist-weekly-calendar .anime-entry:hover,
+.anilist-weekly-calendar-high-contrast .anime-entry:hover {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.site-theme-contrast .anilist-weekly-calendar .anime-title,
+.anilist-weekly-calendar-high-contrast .anime-title {
+    font-weight: 600;
+    color: #000000 !important;
+}
+
+.site-theme-contrast .anilist-weekly-calendar .episode-number,
+.site-theme-contrast .anilist-weekly-calendar .anime-time,
+.anilist-weekly-calendar-high-contrast .episode-number,
+.anilist-weekly-calendar-high-contrast .anime-time {
+    color: #333333 !important;
+    font-weight: 500;
+}
+
+/* -----------------------------------------------------------
+   3. ANIMATIONS
+   ----------------------------------------------------------- */
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fadeInButton {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+@keyframes click-feedback {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.98); box-shadow: 0 0 8px rgba(61, 180, 242, 0.35); }
+    100% { transform: scale(1); }
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+@keyframes pushUp {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0); }
+}
+
+/* -----------------------------------------------------------
+   4. HEADER
+   ----------------------------------------------------------- */
+
+.airing-replaced-header {
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    color: var(--cal-text);
+    font-size: 1.4rem;
+    font-weight: 500;
+    line-height: 1.6;
+}
+
+.section-header {
+    position: relative;
+    margin-bottom: 0 !important;
+    padding: 12px 20px;
+}
+
+/* -----------------------------------------------------------
+   5. SETTINGS BUTTONS
+   ----------------------------------------------------------- */
+
+.calendar-settings-btn, .header-settings-btn {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--cal-text-light);
+    transition: opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0.7;
+}
+
+.calendar-settings-btn {
+    width: 32px;
+    height: 32px;
+}
+
+.header-settings-btn {
+    position: absolute;
+    right: 0;
+    margin-top: -6px !important;
+    width: 28px;
+    height: 28px;
+    z-index: 10;
+}
+
+.header-settings-btn:hover i,
+.calendar-settings-btn:hover i {
+    color: #3db4f2 !important;
+}
+
+.header-settings-btn:hover,
+.calendar-settings-btn:hover,
+.section-header:hover .header-settings-btn,
+.calendar-header:hover .calendar-settings-btn,
+.anilist-weekly-calendar:hover .calendar-settings-btn,
+.anilist-weekly-calendar:hover .header-settings-btn {
+    opacity: 1;
+}
