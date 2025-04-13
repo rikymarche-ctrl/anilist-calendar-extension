@@ -3,7 +3,7 @@
    ===================================================================== */
 
 /* ---------------------------------------------------------------------
-   SECTION 1: Overlay & Panel
+   OVERLAY & PANEL
 --------------------------------------------------------------------- */
 .settings-overlay {
     position: fixed;
@@ -62,7 +62,7 @@
 }
 
 /* ---------------------------------------------------------------------
-   SECTION 2: Tabs & Tab Content
+   TABS & TAB CONTENT
 --------------------------------------------------------------------- */
 .settings-tabs {
     display: flex;
@@ -129,7 +129,7 @@
 }
 
 /* ---------------------------------------------------------------------
-   SECTION 3: Sections, Header & Titles
+   SECTIONS, HEADERS & TITLES
 --------------------------------------------------------------------- */
 .settings-section {
     margin-bottom: 8px;
@@ -198,7 +198,7 @@
 }
 
 /* ---------------------------------------------------------------------
-   SECTION 4: Rows, Labels & Descriptions
+   ROWS, LABELS & DESCRIPTIONS
 --------------------------------------------------------------------- */
 .settings-row {
     display: flex;
@@ -234,7 +234,7 @@
 }
 
 /* ---------------------------------------------------------------------
-   SECTION 5: Selects, Dropdowns & Numeric Inputs
+   SELECTS, DROPDOWNS & NUMERIC INPUTS
 --------------------------------------------------------------------- */
 
 /* ----- Select Styles ----- */
@@ -472,7 +472,7 @@ input[type="number"] {
 }
 
 /* ---------------------------------------------------------------------
-   SECTION 6: Toggle Switch
+   TOGGLE SWITCH
 --------------------------------------------------------------------- */
 .toggle-switch {
     position: relative;
@@ -548,7 +548,7 @@ input:checked + .slider:before {
 }
 
 /* ---------------------------------------------------------------------
-   SECTION 7: Save Button & Notifications
+   SAVE BUTTON & NOTIFICATION
 --------------------------------------------------------------------- */
 .settings-save-container {
     margin-top: 25px;
@@ -684,7 +684,7 @@ input:checked + .slider:before {
 }
 
 /* ---------------------------------------------------------------------
-   SECTION 8: Responsive Adjustments
+   RESPONSIVE ASDJUSTMENTS
 --------------------------------------------------------------------- */
 @media screen and (max-width: 600px) {
     .settings-row {
@@ -708,7 +708,7 @@ input:checked + .slider:before {
 }
 
 /* ---------------------------------------------------------------------
-   SECTION 9: Miscellaneous & Theming Overrides
+   MISCELLANEOUS & THEMING OVERRIEDS
 --------------------------------------------------------------------- */
 /* Settings button visibility */
 .header-settings-btn {
@@ -746,7 +746,7 @@ input:checked + .slider:before {
 }
 
 /* ---------------------------------------------------------------------
-   SECTION 10: Gallery & Navigation Styles
+   GALLERY & NAVIGATION STYLES
 --------------------------------------------------------------------- */
 .gallery-page {
     display: flex;

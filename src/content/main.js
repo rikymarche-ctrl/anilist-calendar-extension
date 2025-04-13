@@ -29,6 +29,11 @@ AniCal.main.initialize = function() {
             AniCal.state.originalCoverImages = {};
         }
 
+        // Initialize startup attempts counter if it doesn't exist
+        if (typeof AniCal.state.startupAttempts !== 'number') {
+            AniCal.state.startupAttempts = 0;
+        }
+
         // Only reset initialization flag - preserve button and image references
         AniCal.state.isCalendarInitialized = false;
 
@@ -44,7 +49,12 @@ AniCal.main.initialize = function() {
         AniCal.settings.loadUserPreferences()
             .then(() => {
                 // Look for the Airing section
-                AniCal.main.findAndReplaceAiringSection();
+                const isFound = AniCal.main.findAndReplaceAiringSection();
+                AniCal.utils.log(`Initial calendar initialization ${isFound ? 'successful' : 'not successful'}`);
+
+                // Record attempt result
+                AniCal.state.startupAttempts++;
+                AniCal.state.lastAttemptTime = Date.now();
 
                 // Set up observer for future DOM changes
                 AniCal.main.setupObserver();
@@ -53,11 +63,17 @@ AniCal.main.initialize = function() {
                 if (AniCal.userPreferences.timeFormat === 'countdown') {
                     AniCal.calendar.startCountdownTimer();
                 }
+
+                // Set up safety initialization check
+                AniCal.main.setupSafetyInitialization();
             })
             .catch(err => {
                 AniCal.utils.log("Error loading preferences", err);
                 // Still try to initialize even if preferences fail
                 AniCal.main.findAndReplaceAiringSection();
+
+                // Set up safety initialization as well
+                AniCal.main.setupSafetyInitialization();
             });
 
         // Set up error handler - use once to avoid duplicates
@@ -70,6 +86,138 @@ AniCal.main.initialize = function() {
     } catch (err) {
         AniCal.utils.log("Error during initialization", err);
         console.error("Anilist Weekly Calendar: Error during initialization", err);
+
+        // Even if we have an error, set up safety initialization
+        AniCal.main.setupSafetyInitialization();
+    }
+};
+
+/**
+ * Sets up a safety initialization mechanism that performs additional
+ * initialization attempts if the calendar hasn't loaded properly
+ */
+AniCal.main.setupSafetyInitialization = function() {
+    // Clear any existing safety timers
+    if (AniCal.state.safetyTimer) {
+        clearTimeout(AniCal.state.safetyTimer);
+        AniCal.state.safetyTimer = null;
+    }
+
+    // Schedule staggered safety initialization attempts
+    const safetyChecks = [
+        { delay: 1000, reason: "Quick safety check" },
+        { delay: 3000, reason: "Medium delay safety check" },
+        { delay: 6000, reason: "Long delay safety check" },
+        { delay: 12000, reason: "Final safety check" }
+    ];
+
+    safetyChecks.forEach(check => {
+        setTimeout(() => {
+            // Only proceed if calendar is not already initialized
+            if (!AniCal.state.isCalendarInitialized) {
+                AniCal.utils.log(`Safety initialization attempt (${check.reason})`);
+                AniCal.state.startupAttempts++;
+
+                // Try to find the Airing section again
+                const isFound = AniCal.main.findAndReplaceAiringSection();
+                AniCal.utils.log(`Safety initialization ${isFound ? 'successful' : 'still not successful'}`);
+
+                // If still not initialized and this is the final check, try a more aggressive approach
+                if (!AniCal.state.isCalendarInitialized && check.delay === 12000) {
+                    AniCal.utils.log("Final safety check - performing aggressive initialization");
+                    AniCal.main.performAggressiveInitialization();
+                }
+            }
+        }, check.delay);
+    });
+};
+
+/**
+ * Performs a more aggressive initialization attempt as a last resort
+ * This tries multiple selector approaches and DOM traversal strategies
+ */
+AniCal.main.performAggressiveInitialization = function() {
+    AniCal.utils.log("Performing aggressive initialization");
+
+    try {
+        // Check if any anime data is visible on the page
+        const animeCards = document.querySelectorAll('.media-preview-card, .airing-anime, .countdown-card, .media-card, [class*="airing" i], [data-media-id], [data-media-type="ANIME"]');
+
+        if (animeCards.length > 0) {
+            AniCal.utils.log(`Found ${animeCards.length} potential anime cards, attempting direct initialization`);
+
+            // Scan for buttons and images
+            AniCal.main.scanForAnimeButtons(true);
+
+            // Try to extract anime data directly from the page
+            const container = document.createElement('div');
+            animeCards.forEach(card => container.appendChild(card.cloneNode(true)));
+
+            // Process the extracted data
+            const animeData = AniCal.calendar.extractAnimeDataFromDOM(container);
+
+            if (animeData && animeData.length > 0) {
+                AniCal.utils.log(`Successfully extracted ${animeData.length} anime entries, creating calendar`);
+
+                // Check if we already have a calendar container
+                if (!AniCal.state.calendarContainer) {
+                    // Try to find a suitable container for our calendar
+                    const possibleContainers = [
+                        document.querySelector('.list-preview-wrap'),
+                        document.querySelector('.content-wrap'),
+                        document.querySelector('.list-wrap'),
+                        document.querySelector('.page-content'),
+                        document.querySelector('main'),
+                        document.querySelector('.airing-content'),
+                        // Fallback to body if nothing else works
+                        document.body
+                    ];
+
+                    let targetContainer = null;
+                    for (const container of possibleContainers) {
+                        if (container) {
+                            targetContainer = container;
+                            break;
+                        }
+                    }
+
+                    if (targetContainer) {
+                        AniCal.utils.log(`Found target container: ${targetContainer.tagName}${targetContainer.className ? ' with class ' + targetContainer.className : ''}`);
+
+                        // Create our calendar container
+                        AniCal.state.calendarContainer = document.createElement('div');
+                        AniCal.state.calendarContainer.className = 'anilist-weekly-calendar';
+                        AniCal.state.calendarContainer.classList.add(`${AniCal.userPreferences.layoutMode}-mode`);
+                        AniCal.state.calendarContainer.classList.add(`title-${AniCal.userPreferences.titleAlignment}`);
+
+                        // Add our calendar to the page
+                        targetContainer.prepend(AniCal.state.calendarContainer);
+
+                        // Process data and render calendar
+                        AniCal.state.weeklySchedule = AniCal.calendar.processAnimeData(animeData);
+                        AniCal.calendar.renderCalendar(AniCal.state.weeklySchedule, false);
+
+                        // Start countdown timer if needed
+                        if (AniCal.userPreferences.timeFormat === 'countdown') {
+                            AniCal.calendar.startCountdownTimer();
+                        }
+
+                        // Mark as initialized
+                        AniCal.state.isCalendarInitialized = true;
+                        AniCal.utils.log("Aggressive initialization successful");
+
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // If we couldn't do direct initialization, try one more attempt with the standard approach
+        return AniCal.main.findAndReplaceAiringSection();
+
+    } catch (err) {
+        AniCal.utils.log("Error during aggressive initialization", err);
+        return false;
     }
 };
 
@@ -441,6 +589,7 @@ function replaceAiringSection(container, headerElement, skipHeader = false) {
         }
 
         AniCal.state.isCalendarInitialized = true;
+        AniCal.utils.log("Calendar successfully initialized");
         return true;
     } catch (err) {
         AniCal.utils.log("Error replacing section", err);
@@ -745,3 +894,15 @@ setInterval(() => {
         }
     }
 }, 30000);
+
+// Additional safety check that runs every page load
+// This ensures that if the calendar somehow failed to initialize, we try again
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        // Only attempt if calendar is not already initialized
+        if (!AniCal.state.isCalendarInitialized) {
+            AniCal.utils.log("Window load event - performing safety initialization check");
+            AniCal.main.setupSafetyInitialization();
+        }
+    }, 2000);
+});
