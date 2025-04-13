@@ -456,8 +456,6 @@ AniCal.main.isHomePage = function() {
     const url = window.location.href;
     return url === 'https://anilist.co/' ||
         url === 'https://anilist.co/home' ||
-        url === 'http://anilist.co/' ||
-        url === 'http://anilist.co/home' ||
         url.endsWith('anilist.co/') ||
         url.endsWith('anilist.co/home') ||
         url.match(/anilist\.co\/?(\?.*)?$/);  // Matches home with query params
@@ -660,8 +658,7 @@ setInterval(() => {
 
     // If URL changed
     if (currentUrl !== AniCal.state.lastUrl) {
-        const wasHome = AniCal.main.isHomePage(AniCal.state.lastUrl);
-        const isNowHome = AniCal.main.isHomePage(currentUrl);
+        const isNowHome = AniCal.main.isHomePage();
 
         AniCal.state.lastUrl = currentUrl;
         AniCal.utils.log(`URL changed to: ${currentUrl}`);
@@ -669,10 +666,6 @@ setInterval(() => {
         // If we're going to the home page, do a complete reset
         if (isNowHome) {
             AniCal.utils.log("Home page detected, performing complete reset and scan");
-
-            // Reset state while preserving critical collections
-            const savedPlusButtons = {...AniCal.state.originalPlusButtons};
-            const savedCoverImages = {...AniCal.state.originalCoverImages};
 
             // Reset initialization flag
             AniCal.state.isCalendarInitialized = false;

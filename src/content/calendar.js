@@ -1,13 +1,8 @@
 /**
- * Configura il sistema di paginazione per la gallery mode
- * Posizionamento dei controlli a livello superiore
- *
- * @param {HTMLElement} dayCol - La colonna del giorno
- * @param {HTMLElement} animeListContainer - Il contenitore della lista anime
- * @param {Array} animeList - Array di oggetti anime da visualizzare
- * @param {number} maxCards - Numero massimo di card per pagina
- * @param {string} justify - Tipo di giustificamento ('top' o 'center')
+ * Anilist Weekly Schedule - Calendar
+ * Manages the settings overlay and UI elements in the content page
  */
+
 /**
  * Configura il sistema di paginazione per la gallery mode
  * Posizionamento dei controlli dentro il contenitore delle card, a destra
@@ -144,10 +139,7 @@ function setupCardPagination(dayCol, animeListContainer, animeList, maxCards, ju
             return false;
         });
     }
-}/**
- * Anilist Weekly Schedule - Calendar
- * Creates and manages the weekly calendar view
- */
+}
 
 /**
  * Configures an image element applying common attributes, styles and events
@@ -205,45 +197,50 @@ window.AnilistCalendar.calendar.forceTitleAlignment = function(alignment) {
     const oldStyle = document.getElementById('force-title-alignment-style');
     if (oldStyle) oldStyle.remove();
 
-    // Create a style element with CSS rules rather than applying inline styles
+    // Create a style element
     const titleStyle = document.createElement('style');
     titleStyle.id = 'force-title-alignment-style';
-
-    // Create super-specific styles with !important for each layout type
-    titleStyle.innerHTML = `
-        /* Common title alignment for all layouts */
-        .anilist-weekly-calendar .anime-title.text-${alignment} {
-            text-align: ${alignment} !important;
-        }
-        
-        /* Standard mode specific */
-        .anilist-weekly-calendar.standard-mode .anime-title {
-            text-align: ${alignment} !important;
-        }
-        
-        /* Compact mode specific */
-        .anilist-weekly-calendar.compact-mode .anime-title {
-            text-align: ${alignment} !important;
-        }
-        
-        /* Extended/Gallery mode always uses center alignment */
-        .anilist-weekly-calendar.extended-mode .anime-title {
-            text-align: center !important;
-        }
-        
-        /* Add extra specificity */
-        .anilist-weekly-calendar .anilist-calendar-grid .anilist-calendar-day .anime-entry .anime-title {
-            text-align: ${alignment} !important;
-        }
-        
-        /* But gallery mode is always centered regardless of setting */
-        .anilist-weekly-calendar.extended-mode .anilist-calendar-grid .anilist-calendar-day .anime-entry .anime-title {
-            text-align: center !important;
-        }
-    `;
-
-    // Add style to document
     document.head.appendChild(titleStyle);
+
+    // Get the stylesheet from the style element
+    const styleSheet = titleStyle.sheet;
+
+    // Define CSS selectors and their properties
+    const cssRules = [
+        {
+            selector: `.anilist-weekly-calendar .anime-title.text-${alignment}`,
+            properties: { 'text-align': `${alignment} !important` }
+        },
+        {
+            selector: `.anilist-weekly-calendar.standard-mode .anime-title`,
+            properties: { 'text-align': `${alignment} !important` }
+        },
+        {
+            selector: `.anilist-weekly-calendar.compact-mode .anime-title`,
+            properties: { 'text-align': `${alignment} !important` }
+        },
+        {
+            selector: `.anilist-weekly-calendar.extended-mode .anime-title`,
+            properties: { 'text-align': 'center !important' }
+        },
+        {
+            selector: `.anilist-weekly-calendar .anilist-calendar-grid .anilist-calendar-day .anime-entry .anime-title`,
+            properties: { 'text-align': `${alignment} !important` }
+        },
+        {
+            selector: `.anilist-weekly-calendar.extended-mode .anilist-calendar-grid .anilist-calendar-day .anime-entry .anime-title`,
+            properties: { 'text-align': 'center !important' }
+        }
+    ];
+
+    // Convert rules to CSS text and add to stylesheet
+    cssRules.forEach((rule, index) => {
+        const propsText = Object.entries(rule.properties)
+            .map(([prop, value]) => `${prop}: ${value};`)
+            .join(' ');
+
+        styleSheet.insertRule(`${rule.selector} { ${propsText} }`, index);
+    });
 
     window.AnilistCalendar.utils.log("Title alignment forced application complete");
 };
@@ -631,9 +628,6 @@ window.AnilistCalendar.calendar.forceColumnJustification = function(justificatio
     const currentLayoutMode = window.AnilistCalendar.userPreferences.layoutMode || 'standard';
     window.AnilistCalendar.utils.log(`Current layout mode: ${currentLayoutMode}`);
 
-    // Get all day columns
-    const dayColumns = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.anilist-calendar-day');
-
     // Remove any previous styles
     const oldStyle = document.getElementById('force-column-justify-style');
     if (oldStyle) oldStyle.remove();
@@ -641,52 +635,79 @@ window.AnilistCalendar.calendar.forceColumnJustification = function(justificatio
     // Create a style element with CSS rules rather than applying inline styles
     const columnStyle = document.createElement('style');
     columnStyle.id = 'force-column-justify-style';
+    document.head.appendChild(columnStyle);
 
-    // Base styles for all modes
-    let styleRules = `
-        .anilist-weekly-calendar .anilist-calendar-day {
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: ${justification === 'center' ? 'center' : 'flex-start'} !important;
-            align-items: stretch !important;
-        }
-        
-        .anilist-weekly-calendar .day-anime-list {
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: ${justification === 'center' ? 'center' : 'flex-start'} !important;
-            align-items: stretch !important;
-            flex: 1 !important;
-        }
-        
-        .anilist-weekly-calendar .empty-day {
-            margin: ${justification === 'center' ? 'auto' : '0'} !important;
-        }
-    `;
+    // Get the stylesheet from the style element
+    const styleSheet = columnStyle.sheet;
 
-    // Add specific styles for gallery/extended mode
+    // Define CSS rules as objects with selectors and properties
+    const cssRules = [
+        {
+            selector: '.anilist-weekly-calendar .anilist-calendar-day',
+            properties: {
+                'display': 'flex !important',
+                'flex-direction': 'column !important',
+                'justify-content': justification === 'center' ? 'center !important' : 'flex-start !important',
+                'align-items': 'stretch !important'
+            }
+        },
+        {
+            selector: '.anilist-weekly-calendar .day-anime-list',
+            properties: {
+                'display': 'flex !important',
+                'flex-direction': 'column !important',
+                'justify-content': justification === 'center' ? 'center !important' : 'flex-start !important',
+                'align-items': 'stretch !important',
+                'flex': '1 !important'
+            }
+        },
+        {
+            selector: '.anilist-weekly-calendar .empty-day',
+            properties: {
+                'margin': justification === 'center' ? 'auto !important' : '0 !important'
+            }
+        }
+    ];
+
+    // Add specific rules for gallery/extended mode
     if (currentLayoutMode === 'extended') {
-        styleRules += `
-            .anilist-weekly-calendar.extended-mode .anilist-calendar-day {
-                display: flex !important;
-                flex-direction: column !important;
-                justify-content: ${justification === 'center' ? 'center' : 'flex-start'} !important;
-                align-items: center !important;
+        cssRules.push(
+            {
+                selector: '.anilist-weekly-calendar.extended-mode .anilist-calendar-day',
+                properties: {
+                    'display': 'flex !important',
+                    'flex-direction': 'column !important',
+                    'justify-content': justification === 'center' ? 'center !important' : 'flex-start !important',
+                    'align-items': 'center !important'
+                }
+            },
+            {
+                selector: '.anilist-weekly-calendar.extended-mode .day-anime-list',
+                properties: {
+                    'display': 'flex !important',
+                    'flex-direction': 'row !important',
+                    'flex-wrap': 'wrap !important',
+                    'justify-content': 'center !important',
+                    'align-content': justification === 'center' ? 'center !important' : 'flex-start !important',
+                    'align-items': justification === 'center' ? 'center !important' : 'flex-start !important'
+                }
             }
-            
-            .anilist-weekly-calendar.extended-mode .day-anime-list {
-                display: flex !important;
-                flex-direction: row !important;
-                flex-wrap: wrap !important;
-                justify-content: center !important;
-                align-content: ${justification === 'center' ? 'center' : 'flex-start'} !important;
-                align-items: ${justification === 'center' ? 'center' : 'flex-start'} !important;
-            }
-        `;
+        );
     }
 
-    columnStyle.innerHTML = styleRules;
-    document.head.appendChild(columnStyle);
+    // Add each rule to the stylesheet
+    cssRules.forEach((rule, index) => {
+        // Convert properties object to CSS text
+        const propsText = Object.entries(rule.properties)
+            .map(([prop, value]) => `${prop}: ${value};`)
+            .join(' ');
+
+        // Insert the rule into the stylesheet
+        styleSheet.insertRule(`${rule.selector} { ${propsText} }`, index);
+    });
+
+    // Get all day columns to apply classes directly
+    const dayColumns = window.AnilistCalendar.state.calendarContainer.querySelectorAll('.anilist-calendar-day');
 
     // Apply the class directly to all day columns for extra reliability
     dayColumns.forEach(dayColumn => {
@@ -801,7 +822,7 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
         const loadThumbnail = () => {
             if (window.AnilistCalendar.state.originalCoverImages[anime.id]) {
                 const originalElement = window.AnilistCalendar.state.originalCoverImages[anime.id];
-                if (originalElement.tagName.toLowerCase() === 'a' && originalElement.classList.contains('cover')) {
+                if (originalElement && originalElement.tagName && originalElement.tagName.toLowerCase() === 'a' && originalElement.classList.contains('cover')) {
                     let imageUrl = '';
                     if (originalElement.dataset.src) {
                         imageUrl = originalElement.dataset.src;
@@ -816,7 +837,7 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
                         imageContainer.appendChild(img);
                         return;
                     }
-                } else if (originalElement.tagName.toLowerCase() === 'img') {
+                } else if (originalElement && originalElement.tagName && originalElement.tagName.toLowerCase() === 'img') {
                     const img = createConfiguredImage(originalElement.src, anime, imageContainer, { onError: loadDirectImageUrl });
                     imageContainer.appendChild(img);
                     return;
@@ -1105,7 +1126,7 @@ window.AnilistCalendar.calendar.renderCalendar = function(schedule, skipHeader =
 
     daysToShow.forEach((day, index) => {
         const dayCol = document.createElement('div');
-        dayCol.id = `calendar-day-${day.toLowerCase()}`;
+        dayCol.id = `calendar-day-${day ? day.toLowerCase() : 'unknown'}`;
 
         const classes = ['anilist-calendar-day'];
         if (day === currentDayName) {
@@ -1456,18 +1477,4 @@ window.AnilistCalendar.calendar.startCountdownTimer = function() {
             }
         });
     }, 1000);
-};
-
-/**
- * Calculate time components (days, hours, minutes) from a time difference
- * @param {number} diff - Time difference in milliseconds
- * @return {Object} Object containing days, hours, and minutes
- */
-window.AnilistCalendar.calendar.calculateTimeComponents = function(diff) {
-    return {
-        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
-        seconds: Math.floor((diff % (1000 * 60)) / 1000)
-    };
 };
