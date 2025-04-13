@@ -527,6 +527,7 @@ AniCal.main.scanForAnimeButtons = function(isFullScan = false) {
                                 }
 
                                 if (imageUrl && (!AniCal.state.originalCoverImages[animeId] || !AniCal.state.originalCoverImages[animeId].url)) {
+                                    // UPDATED: Always store in standardized format
                                     AniCal.state.originalCoverImages[animeId] = {
                                         element: coverEl,
                                         url: imageUrl
@@ -569,7 +570,7 @@ AniCal.main.scanForAnimeButtons = function(isFullScan = false) {
                     AniCal.utils.log(`Stored plus button for anime ID: ${animeId}`);
                 }
 
-                // Find and store cover image if it exists
+                // Find and store cover image if it exists - UPDATED for consistent structure
                 const coverLink = card.querySelector('a.cover');
                 if (coverLink) {
                     // Get URL from data-src or background-image

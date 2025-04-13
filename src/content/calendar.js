@@ -1,145 +1,7 @@
 /**
  * Anilist Weekly Schedule - Calendar
- * Manages the settings overlay and UI elements in the content page
+ * Creates and manages the weekly calendar view
  */
-
-/**
- * Configura il sistema di paginazione per la gallery mode
- * Posizionamento dei controlli dentro il contenitore delle card, a destra
- *
- * @param {HTMLElement} dayCol - La colonna del giorno
- * @param {HTMLElement} animeListContainer - Il contenitore della lista anime
- * @param {Array} animeList - Array di oggetti anime da visualizzare
- * @param {number} maxCards - Numero massimo di card per pagina
- * @param {string} justify - Tipo di giustificamento ('top' o 'center')
- */
-function setupCardPagination(dayCol, animeListContainer, animeList, maxCards, justify) {
-    // Log per debug
-    window.AnilistCalendar.utils.log(`Setting up pagination: ${animeList.length} anime, max ${maxCards} per page`);
-
-    // Calcola il numero totale di pagine
-    const totalPages = Math.ceil(animeList.length / maxCards);
-    window.AnilistCalendar.utils.log(`Total pages: ${totalPages}`);
-
-    // Crea i contenitori per ogni pagina
-    const pageContainers = [];
-    for (let i = 0; i < totalPages; i++) {
-        const pageContainer = document.createElement('div');
-        pageContainer.className = `page-container page-${i}`;
-        pageContainer.classList.add(`justify-${justify}`); // Applica allineamento in base alle preferenze
-
-        // La prima pagina è visibile, le altre nascoste
-        if (i > 0) {
-            pageContainer.classList.add('hidden');
-        }
-
-        // Calcola gli indici per questa pagina
-        const startIdx = i * maxCards;
-        const endIdx = Math.min(startIdx + maxCards, animeList.length);
-
-        // Aggiungi le card a questa pagina
-        for (let j = startIdx; j < endIdx; j++) {
-            window.AnilistCalendar.calendar.createAnimeEntry(pageContainer, animeList[j]);
-
-            // Aggiungi attributo per l'ultimo elemento
-            if (j === endIdx - 1) {
-                const lastEntry = pageContainer.lastChild;
-                if (lastEntry) {
-                    lastEntry.setAttribute('data-last-entry', 'true');
-                }
-            }
-        }
-
-        // Aggiungi il contenitore alla lista
-        animeListContainer.appendChild(pageContainer);
-        pageContainers.push(pageContainer);
-    }
-
-    // Se c'è più di una pagina, crea i controlli di navigazione
-    if (totalPages > 1) {
-        let currentPage = 0;
-
-        // IMPORTANTE: aggiungi i controlli alla COLONNA DEL GIORNO (livello superiore)
-        // anziché al contenitore degli anime
-
-        // Controlli di paginazione
-        const paginationControls = document.createElement('div');
-        paginationControls.className = 'pagination-controls';
-
-        // Bottone pagina precedente
-        const prevBtn = document.createElement('button');
-        prevBtn.className = 'pagination-btn prev-btn';
-        prevBtn.innerHTML = '<i class="fa fa-chevron-up"></i>';
-        prevBtn.setAttribute('aria-label', 'Previous page');
-        prevBtn.classList.add('hidden'); // Inizialmente nascosto (prima pagina)
-
-        // Bottone pagina successiva
-        const nextBtn = document.createElement('button');
-        nextBtn.className = 'pagination-btn next-btn';
-        nextBtn.innerHTML = '<i class="fa fa-chevron-down"></i>';
-        nextBtn.setAttribute('aria-label', 'Next page');
-
-        // Aggiungi bottoni al contenitore
-        paginationControls.appendChild(prevBtn);
-        paginationControls.appendChild(nextBtn);
-
-        // IMPORTANTE: aggiungi i controlli DENTRO IL CONTENITORE ANIME
-        animeListContainer.appendChild(paginationControls);
-
-        // Funzione per aggiornare la visualizzazione delle pagine
-        const updatePageView = () => {
-            // Aggiorna visibilità pagine
-            pageContainers.forEach((page, index) => {
-                if (index === currentPage) {
-                    page.classList.remove('hidden');
-                } else {
-                    page.classList.add('hidden');
-                }
-            });
-
-            // Aggiorna stato bottoni - nascondiamo visivamente i bottoni ma manteniamo lo spazio
-            // per evitare che l'interfaccia "salti" quando un bottone scompare
-            if (currentPage === 0) {
-                prevBtn.classList.add('hidden');
-            } else {
-                prevBtn.classList.remove('hidden');
-            }
-
-            if (currentPage === totalPages - 1) {
-                nextBtn.classList.add('hidden');
-            } else {
-                nextBtn.classList.remove('hidden');
-            }
-
-            window.AnilistCalendar.utils.log(`Showing page ${currentPage + 1}/${totalPages}`);
-        };
-
-        // Event listener per i bottoni
-        prevBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            if (currentPage > 0) {
-                currentPage--;
-                updatePageView();
-            }
-
-            return false;
-        });
-
-        nextBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            if (currentPage < totalPages - 1) {
-                currentPage++;
-                updatePageView();
-            }
-
-            return false;
-        });
-    }
-}
 
 /**
  * Configures an image element applying common attributes, styles and events
@@ -317,8 +179,11 @@ window.AnilistCalendar.calendar.extractAnimeDataFromDOM = function(container) {
                         }
                     }
 
-                    // Store original element for reference
-                    window.AnilistCalendar.state.originalCoverImages[animeId] = coverLink;
+                    // Store original element and URL for reference
+                    window.AnilistCalendar.state.originalCoverImages[animeId] = {
+                        element: coverLink,
+                        url: coverImageUrl
+                    };
                 }
 
                 // Fallback for alternative structures
@@ -326,7 +191,10 @@ window.AnilistCalendar.calendar.extractAnimeDataFromDOM = function(container) {
                     const coverImg = card.querySelector('.cover img, .image img, img.cover, img.image');
                     if (coverImg && coverImg.src) {
                         coverImageUrl = coverImg.src;
-                        window.AnilistCalendar.state.originalCoverImages[animeId] = coverImg;
+                        window.AnilistCalendar.state.originalCoverImages[animeId] = {
+                            element: coverImg,
+                            url: coverImg.src
+                        };
                     }
                 }
 
@@ -785,7 +653,7 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
         overlay.className = 'anime-image-overlay';
         imageContainer.appendChild(overlay);
 
-        // Thumbnail loading function
+        // Thumbnail loading function - UPDATED for consistency
         const loadDirectImageUrl = () => {
             if (!anime.coverImage || anime.coverImage.length < 10) {
                 showFallbackImage();
@@ -819,28 +687,84 @@ window.AnilistCalendar.calendar.createAnimeEntry = function(container, anime) {
             imageContainer.appendChild(initialLetter);
         };
 
+        // UPDATED: Standardized image loading function
         const loadThumbnail = () => {
             if (window.AnilistCalendar.state.originalCoverImages[anime.id]) {
-                const originalElement = window.AnilistCalendar.state.originalCoverImages[anime.id];
-                if (originalElement && originalElement.tagName && originalElement.tagName.toLowerCase() === 'a' && originalElement.classList.contains('cover')) {
-                    let imageUrl = '';
-                    if (originalElement.dataset.src) {
-                        imageUrl = originalElement.dataset.src;
-                    } else if (originalElement.style.backgroundImage) {
-                        const bgImgMatch = originalElement.style.backgroundImage.match(/url\(['"]?(.*?)['"]?\)/);
-                        if (bgImgMatch && bgImgMatch[1]) {
-                            imageUrl = bgImgMatch[1];
+                const originalImage = window.AnilistCalendar.state.originalCoverImages[anime.id];
+
+                // First check if we have a URL directly in the object
+                if (originalImage.url) {
+                    const img = createConfiguredImage(originalImage.url, anime, imageContainer, { onError: loadDirectImageUrl });
+                    imageContainer.appendChild(img);
+                    return;
+                }
+
+                // Fallback to checking the element (for backwards compatibility)
+                if (originalImage.element) {
+                    const originalElement = originalImage.element;
+
+                    if (originalElement.tagName && originalElement.tagName.toLowerCase() === 'a' && originalElement.classList.contains('cover')) {
+                        let imageUrl = '';
+                        if (originalElement.dataset.src) {
+                            imageUrl = originalElement.dataset.src;
+                        } else if (originalElement.style.backgroundImage) {
+                            const bgImgMatch = originalElement.style.backgroundImage.match(/url\(['"]?(.*?)['"]?\)/);
+                            if (bgImgMatch && bgImgMatch[1]) {
+                                imageUrl = bgImgMatch[1];
+                            }
                         }
-                    }
-                    if (imageUrl) {
-                        const img = createConfiguredImage(imageUrl, anime, imageContainer, { onError: loadDirectImageUrl });
+                        if (imageUrl) {
+                            // Update the stored URL for future reference
+                            window.AnilistCalendar.state.originalCoverImages[anime.id].url = imageUrl;
+
+                            const img = createConfiguredImage(imageUrl, anime, imageContainer, { onError: loadDirectImageUrl });
+                            imageContainer.appendChild(img);
+                            return;
+                        }
+                    } else if (originalElement.tagName && originalElement.tagName.toLowerCase() === 'img') {
+                        // Update the stored URL for future reference
+                        window.AnilistCalendar.state.originalCoverImages[anime.id].url = originalElement.src;
+
+                        const img = createConfiguredImage(originalElement.src, anime, imageContainer, { onError: loadDirectImageUrl });
                         imageContainer.appendChild(img);
                         return;
                     }
-                } else if (originalElement && originalElement.tagName && originalElement.tagName.toLowerCase() === 'img') {
-                    const img = createConfiguredImage(originalElement.src, anime, imageContainer, { onError: loadDirectImageUrl });
-                    imageContainer.appendChild(img);
-                    return;
+                }
+
+                // Fallback to old format for backwards compatibility
+                if (typeof originalImage === 'object' && originalImage.tagName) {
+                    if (originalImage.tagName.toLowerCase() === 'a' && originalImage.classList.contains('cover')) {
+                        let imageUrl = '';
+                        if (originalImage.dataset.src) {
+                            imageUrl = originalImage.dataset.src;
+                        } else if (originalImage.style.backgroundImage) {
+                            const bgImgMatch = originalImage.style.backgroundImage.match(/url\(['"]?(.*?)['"]?\)/);
+                            if (bgImgMatch && bgImgMatch[1]) {
+                                imageUrl = bgImgMatch[1];
+                            }
+                        }
+                        if (imageUrl) {
+                            // Update to standardized format
+                            window.AnilistCalendar.state.originalCoverImages[anime.id] = {
+                                element: originalImage,
+                                url: imageUrl
+                            };
+
+                            const img = createConfiguredImage(imageUrl, anime, imageContainer, { onError: loadDirectImageUrl });
+                            imageContainer.appendChild(img);
+                            return;
+                        }
+                    } else if (originalImage.tagName.toLowerCase() === 'img') {
+                        // Update to standardized format
+                        window.AnilistCalendar.state.originalCoverImages[anime.id] = {
+                            element: originalImage,
+                            url: originalImage.src
+                        };
+
+                        const img = createConfiguredImage(originalImage.src, anime, imageContainer, { onError: loadDirectImageUrl });
+                        imageContainer.appendChild(img);
+                        return;
+                    }
                 }
             }
             loadDirectImageUrl();
@@ -1270,6 +1194,9 @@ window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, 
     if (window.AnilistCalendar.state.calendarContainer) {
         window.AnilistCalendar.utils.log("Updating UI with new settings");
 
+        // UPDATED: Save a copy of the original image references to preserve them
+        const originalImages = {...window.AnilistCalendar.state.originalCoverImages};
+
         // Remove all layout mode, alignment and justification classes
         window.AnilistCalendar.state.calendarContainer.classList.remove(
             'standard-mode', 'compact-mode', 'extended-mode', 'fan-mode',
@@ -1329,6 +1256,11 @@ window.AnilistCalendar.calendar.updateUIWithSettings = function(prevTimeFormat, 
 
         // Render the calendar with updated settings
         window.AnilistCalendar.calendar.renderCalendar(window.AnilistCalendar.state.weeklySchedule, true);
+
+        // UPDATED: Restore the original image references - merge with any new references that might have been added
+        window.AnilistCalendar.state.originalCoverImages = {...originalImages, ...window.AnilistCalendar.state.originalCoverImages};
+
+        window.AnilistCalendar.utils.log("Original image references preserved during settings update");
     }
 };
 
@@ -1478,3 +1410,141 @@ window.AnilistCalendar.calendar.startCountdownTimer = function() {
         });
     }, 1000);
 };
+
+/**
+ * Configura il sistema di paginazione per la gallery mode
+ * Posizionamento dei controlli dentro il contenitore delle card, a destra
+ *
+ * @param {HTMLElement} dayCol - La colonna del giorno
+ * @param {HTMLElement} animeListContainer - Il contenitore della lista anime
+ * @param {Array} animeList - Array di oggetti anime da visualizzare
+ * @param {number} maxCards - Numero massimo di card per pagina
+ * @param {string} justify - Tipo di giustificamento ('top' o 'center')
+ */
+function setupCardPagination(dayCol, animeListContainer, animeList, maxCards, justify) {
+    // Log per debug
+    window.AnilistCalendar.utils.log(`Setting up pagination: ${animeList.length} anime, max ${maxCards} per page`);
+
+    // Calcola il numero totale di pagine
+    const totalPages = Math.ceil(animeList.length / maxCards);
+    window.AnilistCalendar.utils.log(`Total pages: ${totalPages}`);
+
+    // Crea i contenitori per ogni pagina
+    const pageContainers = [];
+    for (let i = 0; i < totalPages; i++) {
+        const pageContainer = document.createElement('div');
+        pageContainer.className = `page-container page-${i}`;
+        pageContainer.classList.add(`justify-${justify}`); // Applica allineamento in base alle preferenze
+
+        // La prima pagina è visibile, le altre nascoste
+        if (i > 0) {
+            pageContainer.classList.add('hidden');
+        }
+
+        // Calcola gli indici per questa pagina
+        const startIdx = i * maxCards;
+        const endIdx = Math.min(startIdx + maxCards, animeList.length);
+
+        // Aggiungi le card a questa pagina
+        for (let j = startIdx; j < endIdx; j++) {
+            window.AnilistCalendar.calendar.createAnimeEntry(pageContainer, animeList[j]);
+
+            // Aggiungi attributo per l'ultimo elemento
+            if (j === endIdx - 1) {
+                const lastEntry = pageContainer.lastChild;
+                if (lastEntry) {
+                    lastEntry.setAttribute('data-last-entry', 'true');
+                }
+            }
+        }
+
+        // Aggiungi il contenitore alla lista
+        animeListContainer.appendChild(pageContainer);
+        pageContainers.push(pageContainer);
+    }
+
+    // Se c'è più di una pagina, crea i controlli di navigazione
+    if (totalPages > 1) {
+        let currentPage = 0;
+
+        // IMPORTANTE: aggiungi i controlli alla COLONNA DEL GIORNO (livello superiore)
+        // anziché al contenitore degli anime
+
+        // Controlli di paginazione
+        const paginationControls = document.createElement('div');
+        paginationControls.className = 'pagination-controls';
+
+        // Bottone pagina precedente
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'pagination-btn prev-btn';
+        prevBtn.innerHTML = '<i class="fa fa-chevron-up"></i>';
+        prevBtn.setAttribute('aria-label', 'Previous page');
+        prevBtn.classList.add('hidden'); // Inizialmente nascosto (prima pagina)
+
+        // Bottone pagina successiva
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'pagination-btn next-btn';
+        nextBtn.innerHTML = '<i class="fa fa-chevron-down"></i>';
+        nextBtn.setAttribute('aria-label', 'Next page');
+
+        // Aggiungi bottoni al contenitore
+        paginationControls.appendChild(prevBtn);
+        paginationControls.appendChild(nextBtn);
+
+        // IMPORTANTE: aggiungi i controlli DENTRO IL CONTENITORE ANIME
+        animeListContainer.appendChild(paginationControls);
+
+        // Funzione per aggiornare la visualizzazione delle pagine
+        const updatePageView = () => {
+            // Aggiorna visibilità pagine
+            pageContainers.forEach((page, index) => {
+                if (index === currentPage) {
+                    page.classList.remove('hidden');
+                } else {
+                    page.classList.add('hidden');
+                }
+            });
+
+            // Aggiorna stato bottoni - nascondiamo visivamente i bottoni ma manteniamo lo spazio
+            // per evitare che l'interfaccia "salti" quando un bottone scompare
+            if (currentPage === 0) {
+                prevBtn.classList.add('hidden');
+            } else {
+                prevBtn.classList.remove('hidden');
+            }
+
+            if (currentPage === totalPages - 1) {
+                nextBtn.classList.add('hidden');
+            } else {
+                nextBtn.classList.remove('hidden');
+            }
+
+            window.AnilistCalendar.utils.log(`Showing page ${currentPage + 1}/${totalPages}`);
+        };
+
+        // Event listener per i bottoni
+        prevBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (currentPage > 0) {
+                currentPage--;
+                updatePageView();
+            }
+
+            return false;
+        });
+
+        nextBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+                updatePageView();
+            }
+
+            return false;
+        });
+    }
+}
