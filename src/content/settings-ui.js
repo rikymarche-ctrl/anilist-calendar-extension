@@ -297,7 +297,6 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
                 fullWidthImagesRow.style.display = 'flex';
                 titleAlignmentRow.style.display = 'flex';
                 maxCardsPerDayRow.style.display = 'none';
-                columnAlignmentRow.style.display = 'none';
                 window.AnilistCalendar.utils.log("Showing standard mode options");
             }
             // Extended/Gallery mode: Shows max cards and column alignment
@@ -305,7 +304,6 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
                 fullWidthImagesRow.style.display = 'none';
                 titleAlignmentRow.style.display = 'none';
                 maxCardsPerDayRow.style.display = 'flex';
-                columnAlignmentRow.style.display = 'flex';
                 window.AnilistCalendar.utils.log("Showing gallery mode options");
             }
             // Compact mode: Shows title alignment only
@@ -313,7 +311,6 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
                 fullWidthImagesRow.style.display = 'none';
                 titleAlignmentRow.style.display = 'flex';
                 maxCardsPerDayRow.style.display = 'none';
-                columnAlignmentRow.style.display = 'none';
                 window.AnilistCalendar.utils.log("Showing compact mode options");
             }
         } else {
@@ -391,7 +388,6 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
         { value: 'compact', text: 'Compact' },
         { value: 'extended', text: 'Gallery' }
     ], currentLayoutMode, false, handleLayoutChange);
-    const layoutModeSelect = layoutModeWrapper.querySelector('select');
     const layoutModeRow = createSettingRow('Layout style', 'Choose how anime entries are displayed', layoutModeWrapper);
     layoutContent.appendChild(layoutModeRow);
 
@@ -426,23 +422,13 @@ window.AnilistCalendar.settingsUI.createSettingsOverlay = function() {
             { value: 'center', text: 'Center aligned' }
         ], window.AnilistCalendar.userPreferences.columnJustify || 'top'));
     columnAlignmentRow.id = 'column-alignment-row';
-    columnAlignmentRow.style.display = (currentLayoutMode === 'extended') ? 'flex' : 'none';
+    columnAlignmentRow.style.display = 'flex';
     layoutContent.appendChild(columnAlignmentRow);
 
     // Create Hide empty days toggle
     const hideEmptyDaysRow = createSettingRow('Hide empty days', 'Only show days with scheduled episodes',
         createToggle('hide-empty-days', window.AnilistCalendar.userPreferences.hideEmptyDays));
     layoutContent.appendChild(hideEmptyDaysRow);
-
-    // Listen for changes in layout mode and update the settings UI immediately without refreshing the calendar
-    // Note: We don't need this anymore because we pass handleLayoutChange directly to createSelect
-    // if (layoutModeSelect) {
-    //     layoutModeSelect.addEventListener('change', function() {
-    //         handleLayoutChange(this.value);
-    //     });
-    // } else {
-    //     console.error("Layout mode select element not found");
-    // }
 
     // -----------------------------------------------------
     // CALENDAR TAB CONTENT
@@ -723,7 +709,7 @@ function createSelect(id, options, selectedValue, isSpecial = false, onChange = 
 
             // And make sure to add this handler to the new select as well
             newSelect.addEventListener('change', function() {
-                onChange(this.value);
+                onChange(this);
             });
         }
 
