@@ -437,7 +437,7 @@ window.AnilistCalendar.calendar.updateAnimeEntryInUI = function(animeId, newProg
 
                     // Instead of setting textContent which removes all child elements,
                     // we'll clear the element and rebuild it properly
-                    const behindIndicator = episodeNumber.querySelector('.behind-indicator');
+                    episodeNumber.querySelector('.behind-indicator');
                     episodeNumber.textContent = ''; // Clear but keep the element
 
                     // Only add behind indicator if we're still behind after the update
