@@ -14,6 +14,12 @@ AniCal.main.initialize = function() {
     AniCal.utils.log("Initializing extension");
 
     try {
+        // Check if we're on the home page - if not, exit early
+        if (!AniCal.main.isHomePage()) {
+            AniCal.utils.log("Not on home page, skipping initialization");
+            return;
+        }
+
         // Clear any existing countdown interval to prevent multiple timers
         if (AniCal.state.countdownInterval) {
             clearInterval(AniCal.state.countdownInterval);
@@ -93,135 +99,6 @@ AniCal.main.initialize = function() {
 };
 
 /**
- * Sets up a safety initialization mechanism that performs additional
- * initialization attempts if the calendar hasn't loaded properly
- */
-AniCal.main.setupSafetyInitialization = function() {
-    // Clear any existing safety timers
-    if (AniCal.state.safetyTimer) {
-        clearTimeout(AniCal.state.safetyTimer);
-        AniCal.state.safetyTimer = null;
-    }
-
-    // Schedule staggered safety initialization attempts
-    const safetyChecks = [
-        { delay: 1000, reason: "Quick safety check" },
-        { delay: 3000, reason: "Medium delay safety check" },
-        { delay: 6000, reason: "Long delay safety check" },
-        { delay: 12000, reason: "Final safety check" }
-    ];
-
-    safetyChecks.forEach(check => {
-        setTimeout(() => {
-            // Only proceed if calendar is not already initialized
-            if (!AniCal.state.isCalendarInitialized) {
-                AniCal.utils.log(`Safety initialization attempt (${check.reason})`);
-                AniCal.state.startupAttempts++;
-
-                // Try to find the Airing section again
-                const isFound = AniCal.main.findAndReplaceAiringSection();
-                AniCal.utils.log(`Safety initialization ${isFound ? 'successful' : 'still not successful'}`);
-
-                // If still not initialized and this is the final check, try a more aggressive approach
-                if (!AniCal.state.isCalendarInitialized && check.delay === 12000) {
-                    AniCal.utils.log("Final safety check - performing aggressive initialization");
-                    AniCal.main.performAggressiveInitialization();
-                }
-            }
-        }, check.delay);
-    });
-};
-
-/**
- * Performs a more aggressive initialization attempt as a last resort
- * This tries multiple selector approaches and DOM traversal strategies
- */
-AniCal.main.performAggressiveInitialization = function() {
-    AniCal.utils.log("Performing aggressive initialization");
-
-    try {
-        // Check if any anime data is visible on the page
-        const animeCards = document.querySelectorAll('.media-preview-card, .airing-anime, .countdown-card, .media-card, [class*="airing" i], [data-media-id], [data-media-type="ANIME"]');
-
-        if (animeCards.length > 0) {
-            AniCal.utils.log(`Found ${animeCards.length} potential anime cards, attempting direct initialization`);
-
-            // Scan for buttons and images
-            AniCal.main.scanForAnimeButtons(true);
-
-            // Try to extract anime data directly from the page
-            const container = document.createElement('div');
-            animeCards.forEach(card => container.appendChild(card.cloneNode(true)));
-
-            // Process the extracted data
-            const animeData = AniCal.calendar.extractAnimeDataFromDOM(container);
-
-            if (animeData && animeData.length > 0) {
-                AniCal.utils.log(`Successfully extracted ${animeData.length} anime entries, creating calendar`);
-
-                // Check if we already have a calendar container
-                if (!AniCal.state.calendarContainer) {
-                    // Try to find a suitable container for our calendar
-                    const possibleContainers = [
-                        document.querySelector('.list-preview-wrap'),
-                        document.querySelector('.content-wrap'),
-                        document.querySelector('.list-wrap'),
-                        document.querySelector('.page-content'),
-                        document.querySelector('main'),
-                        document.querySelector('.airing-content'),
-                        // Fallback to body if nothing else works
-                        document.body
-                    ];
-
-                    let targetContainer = null;
-                    for (const container of possibleContainers) {
-                        if (container) {
-                            targetContainer = container;
-                            break;
-                        }
-                    }
-
-                    if (targetContainer) {
-                        AniCal.utils.log(`Found target container: ${targetContainer.tagName}${targetContainer.className ? ' with class ' + targetContainer.className : ''}`);
-
-                        // Create our calendar container
-                        AniCal.state.calendarContainer = document.createElement('div');
-                        AniCal.state.calendarContainer.className = 'anilist-weekly-calendar';
-                        AniCal.state.calendarContainer.classList.add(`${AniCal.userPreferences.layoutMode}-mode`);
-                        AniCal.state.calendarContainer.classList.add(`title-${AniCal.userPreferences.titleAlignment}`);
-
-                        // Add our calendar to the page
-                        targetContainer.prepend(AniCal.state.calendarContainer);
-
-                        // Process data and render calendar
-                        AniCal.state.weeklySchedule = AniCal.calendar.processAnimeData(animeData);
-                        AniCal.calendar.renderCalendar(AniCal.state.weeklySchedule, false);
-
-                        // Start countdown timer if needed
-                        if (AniCal.userPreferences.timeFormat === 'countdown') {
-                            AniCal.calendar.startCountdownTimer();
-                        }
-
-                        // Mark as initialized
-                        AniCal.state.isCalendarInitialized = true;
-                        AniCal.utils.log("Aggressive initialization successful");
-
-                        return true;
-                    }
-                }
-            }
-        }
-
-        // If we couldn't do direct initialization, try one more attempt with the standard approach
-        return AniCal.main.findAndReplaceAiringSection();
-
-    } catch (err) {
-        AniCal.utils.log("Error during aggressive initialization", err);
-        return false;
-    }
-};
-
-/**
  * Error handler for global errors
  * @param {Event} event - The error event
  */
@@ -233,6 +110,12 @@ function handleGlobalError(event) {
  * Sets up a mutation observer to watch for DOM changes
  */
 AniCal.main.setupObserver = function() {
+    // Check if we're on the home page - if not, exit early
+    if (!AniCal.main.isHomePage()) {
+        AniCal.utils.log("Not on home page, skipping observer setup");
+        return;
+    }
+
     if (AniCal.state.domObserver) {
         AniCal.state.domObserver.disconnect();
         AniCal.state.domObserver = null;
@@ -293,6 +176,12 @@ AniCal.main.setupObserver = function() {
  */
 AniCal.main.findAndReplaceAiringSection = function() {
     try {
+        // Check if we're on the home page - if not, exit early
+        if (!AniCal.main.isHomePage()) {
+            AniCal.utils.log("Not on home page, skipping Airing section replacement");
+            return false;
+        }
+
         AniCal.utils.log("Attempting to find Airing section...");
 
         // Function to find elements by text content
@@ -617,6 +506,11 @@ AniCal.main.isHomePage = function() {
  */
 AniCal.main.scanForAnimeButtons = function(isFullScan = false) {
     try {
+        // If not on home page and not a full scan, skip scanning
+        if (!AniCal.main.isHomePage() && !isFullScan) {
+            return;
+        }
+
         // Use more extensive selectors for the home page or full scans
         const isHome = AniCal.main.isHomePage();
         const selectors = isHome || isFullScan ?
@@ -764,117 +658,324 @@ AniCal.main.scanForAnimeButtons = function(isFullScan = false) {
     }
 };
 
+/**
+ * Sets up a safety initialization mechanism that performs additional
+ * initialization attempts if the calendar hasn't loaded properly
+ */
+AniCal.main.setupSafetyInitialization = function() {
+    // Check if we're on the home page - if not, exit early
+    if (!AniCal.main.isHomePage()) {
+        AniCal.utils.log("Not on home page, skipping safety initialization");
+        return;
+    }
+
+    // Clear any existing safety timers
+    if (AniCal.state.safetyTimer) {
+        clearTimeout(AniCal.state.safetyTimer);
+        AniCal.state.safetyTimer = null;
+    }
+
+    // Schedule staggered safety initialization attempts
+    const safetyChecks = [
+        { delay: 1000, reason: "Quick safety check" },
+        { delay: 3000, reason: "Medium delay safety check" },
+        { delay: 6000, reason: "Long delay safety check" },
+        { delay: 12000, reason: "Final safety check" }
+    ];
+
+    safetyChecks.forEach(check => {
+        setTimeout(() => {
+            // Only proceed if calendar is not already initialized
+            if (!AniCal.state.isCalendarInitialized) {
+                AniCal.utils.log(`Safety initialization attempt (${check.reason})`);
+                AniCal.state.startupAttempts++;
+
+                // Try to find the Airing section again
+                const isFound = AniCal.main.findAndReplaceAiringSection();
+                AniCal.utils.log(`Safety initialization ${isFound ? 'successful' : 'still not successful'}`);
+
+                // If still not initialized and this is the final check, try a more aggressive approach
+                if (!AniCal.state.isCalendarInitialized && check.delay === 12000) {
+                    AniCal.utils.log("Final safety check - performing aggressive initialization");
+                    AniCal.main.performAggressiveInitialization();
+                }
+            }
+        }, check.delay);
+    });
+};
+
+/**
+ * Performs a more aggressive initialization attempt as a last resort
+ * This tries multiple selector approaches and DOM traversal strategies
+ */
+AniCal.main.performAggressiveInitialization = function() {
+    // Check if we're on the home page - if not, exit early
+    if (!AniCal.main.isHomePage()) {
+        AniCal.utils.log("Not on home page, skipping aggressive initialization");
+        return false;
+    }
+
+    AniCal.utils.log("Performing aggressive initialization");
+
+    try {
+        // Check if any anime data is visible on the page
+        const animeCards = document.querySelectorAll('.media-preview-card, .airing-anime, .countdown-card, .media-card, [class*="airing" i], [data-media-id], [data-media-type="ANIME"]');
+
+        if (animeCards.length > 0) {
+            AniCal.utils.log(`Found ${animeCards.length} potential anime cards, attempting direct initialization`);
+
+            // Scan for buttons and images
+            AniCal.main.scanForAnimeButtons(true);
+
+            // Try to extract anime data directly from the page
+            const container = document.createElement('div');
+            animeCards.forEach(card => container.appendChild(card.cloneNode(true)));
+
+            // Process the extracted data
+            const animeData = AniCal.calendar.extractAnimeDataFromDOM(container);
+
+            if (animeData && animeData.length > 0) {
+                AniCal.utils.log(`Successfully extracted ${animeData.length} anime entries, creating calendar`);
+
+                // Check if we already have a calendar container
+                if (!AniCal.state.calendarContainer) {
+                    // Try to find a suitable container for our calendar
+                    const possibleContainers = [
+                        document.querySelector('.list-preview-wrap'),
+                        document.querySelector('.content-wrap'),
+                        document.querySelector('.list-wrap'),
+                        document.querySelector('.page-content'),
+                        document.querySelector('main'),
+                        document.querySelector('.airing-content'),
+                        // Fallback to body if nothing else works
+                        document.body
+                    ];
+
+                    let targetContainer = null;
+                    for (const container of possibleContainers) {
+                        if (container) {
+                            targetContainer = container;
+                            break;
+                        }
+                    }
+
+                    if (targetContainer) {
+                        AniCal.utils.log(`Found target container: ${targetContainer.tagName}${targetContainer.className ? ' with class ' + targetContainer.className : ''}`);
+
+                        // Create our calendar container
+                        AniCal.state.calendarContainer = document.createElement('div');
+                        AniCal.state.calendarContainer.className = 'anilist-weekly-calendar';
+                        AniCal.state.calendarContainer.classList.add(`${AniCal.userPreferences.layoutMode}-mode`);
+                        AniCal.state.calendarContainer.classList.add(`title-${AniCal.userPreferences.titleAlignment}`);
+
+                        // Add our calendar to the page
+                        targetContainer.prepend(AniCal.state.calendarContainer);
+
+                        // Process data and render calendar
+                        AniCal.state.weeklySchedule = AniCal.calendar.processAnimeData(animeData);
+                        AniCal.calendar.renderCalendar(AniCal.state.weeklySchedule, false);
+
+                        // Start countdown timer if needed
+                        if (AniCal.userPreferences.timeFormat === 'countdown') {
+                            AniCal.calendar.startCountdownTimer();
+                        }
+
+                        // Mark as initialized
+                        AniCal.state.isCalendarInitialized = true;
+                        AniCal.utils.log("Aggressive initialization successful");
+
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // If we couldn't do direct initialization, try one more attempt with the standard approach
+        return AniCal.main.findAndReplaceAiringSection();
+
+    } catch (err) {
+        AniCal.utils.log("Error during aggressive initialization", err);
+        return false;
+    }
+};
+
 // Initialize when the page is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         console.log("[Anilist Calendar] DOM Content Loaded - initializing...");
         AniCal.utils.loadFontAwesome();
+
+        // Then initialize normally
         AniCal.main.initialize();
 
-        // Initial aggressive scan for buttons and images
-        // Run multiple scans with increasing delays to catch everything
+        // Initial scan for anime buttons and images
         const scanDelays = [500, 1000, 2000, 3500, 5000];
 
         scanDelays.forEach(delay => {
             setTimeout(() => {
                 const isHome = AniCal.main.isHomePage();
-                AniCal.utils.log(`Running scan at ${delay}ms delay${isHome ? ' (on home page)' : ''}`);
-                AniCal.main.scanForAnimeButtons(true); // true = full scan
+                if (isHome) {
+                    AniCal.utils.log(`Running scan at ${delay}ms delay`);
+                    AniCal.main.scanForAnimeButtons(true);
+                }
             }, delay);
         });
     });
 } else {
     console.log("[Anilist Calendar] Document already loaded - initializing immediately...");
     AniCal.utils.loadFontAwesome();
+
+    // Then initialize normally
     AniCal.main.initialize();
 
-    // Initial aggressive scan for buttons and images
-    // Run multiple scans with increasing delays to catch everything
+    // Initial scan for anime buttons and images
     const scanDelays = [500, 1000, 2000, 3500, 5000];
 
     scanDelays.forEach(delay => {
         setTimeout(() => {
             const isHome = AniCal.main.isHomePage();
-            AniCal.utils.log(`Running scan at ${delay}ms delay${isHome ? ' (on home page)' : ''}`);
-            AniCal.main.scanForAnimeButtons(true); // true = full scan
+            if (isHome) {
+                AniCal.utils.log(`Running scan at ${delay}ms delay`);
+                AniCal.main.scanForAnimeButtons(true);
+            }
         }, delay);
     });
 }
 
-// URL change detection with button scanning
+/**
+ * Handle navigation to home page with robust initialization
+ */
+AniCal.main.handleNavigationToHome = function() {
+    AniCal.utils.log("Home page detected, performing robust initialization");
+
+    // Reset initialization flag
+    AniCal.state.isCalendarInitialized = false;
+
+    // Run initial initialization
+    AniCal.main.initialize();
+
+    // Schedule multiple delayed initialization attempts to ensure the calendar renders
+    // These are spaced out to catch different loading stages of the page
+    const initDelays = [200, 500, 1000, 2000, 3500];
+
+    initDelays.forEach(delay => {
+        setTimeout(() => {
+            if (!AniCal.state.isCalendarInitialized && AniCal.main.isHomePage()) {
+                AniCal.utils.log(`Retry initialization at ${delay}ms delay`);
+                AniCal.main.initialize();
+
+                // Additional check for Airing section
+                if (!AniCal.state.isCalendarInitialized) {
+                    AniCal.main.findAndReplaceAiringSection();
+                }
+            }
+        }, delay);
+    });
+
+    // After initialization, run a thorough scan for buttons and images
+    AniCal.main.scanForAnimeButtons(true);
+
+    // Clear any existing scan timer
+    if (AniCal.state.scanTimer) {
+        clearInterval(AniCal.state.scanTimer);
+        AniCal.state.scanTimer = null;
+    }
+
+    // Perform multiple scans with increasing intervals
+    let scanCount = 0;
+    const scanIntervals = [500, 1000, 2000, 3000, 5000];
+
+    AniCal.state.scanTimer = setInterval(() => {
+        AniCal.utils.log(`Running scan #${scanCount + 1} for anime buttons and images`);
+        AniCal.main.scanForAnimeButtons(true);
+        scanCount++;
+
+        // Stop scanning after all intervals
+        if (scanCount >= scanIntervals.length) {
+            AniCal.utils.log("Completed scheduled button and image scans");
+            clearInterval(AniCal.state.scanTimer);
+            AniCal.state.scanTimer = null;
+        }
+    }, 1000);
+};
+
+// URL change detection with improved navigation handling
 let scanTimer = null;
-setInterval(() => {
+
+// Monitor URL changes using both interval and History API
+const urlCheckInterval = setInterval(() => {
     const currentUrl = location.href;
 
     // If URL changed
     if (currentUrl !== AniCal.state.lastUrl) {
+        const wasHome = AniCal.state.lastUrl ?
+            (AniCal.state.lastUrl === 'https://anilist.co/' ||
+                AniCal.state.lastUrl === 'https://anilist.co/home' ||
+                AniCal.state.lastUrl.endsWith('anilist.co/') ||
+                AniCal.state.lastUrl.endsWith('anilist.co/home')) : false;
+
         const isNowHome = AniCal.main.isHomePage();
 
         AniCal.state.lastUrl = currentUrl;
-        AniCal.utils.log(`URL changed to: ${currentUrl}`);
+        AniCal.utils.log(`URL changed to: ${currentUrl} (wasHome: ${wasHome}, isNowHome: ${isNowHome})`);
 
-        // If we're going to the home page, do a complete reset
+        // If navigating to home page (especially from a non-home page)
         if (isNowHome) {
-            AniCal.utils.log("Home page detected, performing complete reset and scan");
-
-            // Reset initialization flag
-            AniCal.state.isCalendarInitialized = false;
-
-            // Initialize as if starting from scratch
-            AniCal.main.initialize();
-
-            // After initialization, run a thorough scan for buttons and images
-            // Do this immediately and then again after a delay to catch everything
-            AniCal.main.scanForAnimeButtons();
-
-            // Clear any existing scan timer
-            if (scanTimer) {
-                clearInterval(scanTimer);
-            }
-
-            // Perform multiple scans with increasing intervals to catch elements
-            // as they are loaded into the page
-            let scanCount = 0;
-            const scanIntervals = [500, 1000, 2000, 3000, 5000]; // Increasing intervals
-
-            scanTimer = setInterval(() => {
-                AniCal.utils.log(`Running scan #${scanCount + 1} for anime buttons and images`);
-                AniCal.main.scanForAnimeButtons();
-                scanCount++;
-
-                // Stop scanning after all intervals
-                if (scanCount >= scanIntervals.length) {
-                    AniCal.utils.log("Completed scheduled button and image scans");
-                    clearInterval(scanTimer);
-                    scanTimer = null;
-                }
-            }, 1000);
+            AniCal.main.handleNavigationToHome();
         } else {
-            // For non-home pages, just re-initialize normally
-            AniCal.utils.log("Non-home page, re-initializing");
+            // For non-home pages, reset but don't activate
+            AniCal.utils.log("Non-home page detected, resetting state");
             AniCal.state.isCalendarInitialized = false;
-            AniCal.main.initialize();
 
             // Clear any existing scan timer
             if (scanTimer) {
                 clearInterval(scanTimer);
+                scanTimer = null;
             }
-
-            // Set up periodic button scanning for the next few seconds
-            let scanCount = 0;
-            scanTimer = setInterval(() => {
-                AniCal.main.scanForAnimeButtons();
-                scanCount++;
-
-                // Stop scanning after a few attempts
-                if (scanCount >= 3) {
-                    clearInterval(scanTimer);
-                    scanTimer = null;
-                }
-            }, 1000);
         }
     }
-}, 1000);
+}, 500);
+
+// Also listen for History API navigation events
+window.addEventListener('popstate', () => {
+    const isNowHome = AniCal.main.isHomePage();
+    AniCal.utils.log(`History navigation event detected, now on home: ${isNowHome}`);
+
+    if (isNowHome) {
+        AniCal.main.handleNavigationToHome();
+    }
+});
+
+// For single-page apps that use pushState/replaceState
+const originalPushState = history.pushState;
+history.pushState = function() {
+    originalPushState.apply(this, arguments);
+
+    // After URL changes via pushState, check if we're on home
+    setTimeout(() => {
+        const isNowHome = AniCal.main.isHomePage();
+        AniCal.utils.log(`pushState navigation detected, now on home: ${isNowHome}`);
+
+        if (isNowHome) {
+            AniCal.main.handleNavigationToHome();
+        }
+    }, 50);
+};
+
+const originalReplaceState = history.replaceState;
+history.replaceState = function() {
+    originalReplaceState.apply(this, arguments);
+
+    // After URL changes via replaceState, check if we're on home
+    setTimeout(() => {
+        const isNowHome = AniCal.main.isHomePage();
+        AniCal.utils.log(`replaceState navigation detected, now on home: ${isNowHome}`);
+
+        if (isNowHome) {
+            AniCal.main.handleNavigationToHome();
+        }
+    }, 50);
+};
 
 // Periodically scan for anime buttons to ensure we have the latest references
 // This helps with pages that load content dynamically
