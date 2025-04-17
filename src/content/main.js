@@ -902,40 +902,6 @@ AniCal.main.handleNavigationToHome = function() {
 // URL change detection with improved navigation handling
 let scanTimer = null;
 
-// Monitor URL changes using both interval and History API
-const urlCheckInterval = setInterval(() => {
-    const currentUrl = location.href;
-
-    // If URL changed
-    if (currentUrl !== AniCal.state.lastUrl) {
-        const wasHome = AniCal.state.lastUrl ?
-            (AniCal.state.lastUrl === 'https://anilist.co/' ||
-                AniCal.state.lastUrl === 'https://anilist.co/home' ||
-                AniCal.state.lastUrl.endsWith('anilist.co/') ||
-                AniCal.state.lastUrl.endsWith('anilist.co/home')) : false;
-
-        const isNowHome = AniCal.main.isHomePage();
-
-        AniCal.state.lastUrl = currentUrl;
-        AniCal.utils.log(`URL changed to: ${currentUrl} (wasHome: ${wasHome}, isNowHome: ${isNowHome})`);
-
-        // If navigating to home page (especially from a non-home page)
-        if (isNowHome) {
-            AniCal.main.handleNavigationToHome();
-        } else {
-            // For non-home pages, reset but don't activate
-            AniCal.utils.log("Non-home page detected, resetting state");
-            AniCal.state.isCalendarInitialized = false;
-
-            // Clear any existing scan timer
-            if (scanTimer) {
-                clearInterval(scanTimer);
-                scanTimer = null;
-            }
-        }
-    }
-}, 500);
-
 // Also listen for History API navigation events
 window.addEventListener('popstate', () => {
     const isNowHome = AniCal.main.isHomePage();

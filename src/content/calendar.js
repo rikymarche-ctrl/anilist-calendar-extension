@@ -406,33 +406,56 @@ window.AnilistCalendar.calendar.updateAnimeEntryInUI = function(animeId, newProg
             const text = episodeNumber.textContent;
             const matches = text.match(/Ep\s+(\d+)(?:\/(\d+)(?:\/(\d+))?)?/);
             if (matches) {
-                let newText = `Ep ${newProgress}`;
-                if (matches[3] && newProgress === parseInt(matches[2])) {
-                    newText = `Ep ${newProgress}/${matches[3]}`;
-                } else if (matches[2] && matches[3]) {
-                    newText = `Ep ${newProgress}/${matches[2]}/${matches[3]}`;
-                } else if (matches[2]) {
-                    newText = `Ep ${newProgress}/${matches[2]}`;
+                // Get anime data first to properly evaluate if we're still behind
+                let animeData = window.AnilistCalendar.calendar.getAnimeDataFromEntry(entry);
+                if (animeData) {
+                    // Update watched count in data
+                    animeData.watched = newProgress;
+
+                    // Only update episodesBehind to 0 if we've caught up
+                    if (animeData.episodesBehind > 0 && animeData.watched >= animeData.available) {
+                        animeData.episodesBehind = 0;
+                    }
+
+                    // If we've somehow watched more than what's available, update available
+                    if (animeData.available < newProgress) {
+                        animeData.available = newProgress;
+                    }
+
+                    // Save the updated data back to the entry
+                    entry.dataset.animeData = JSON.stringify(animeData);
+
+                    // Format the new episode text
+                    let newText = `Ep ${newProgress}`;
+                    if (matches[3] && newProgress === parseInt(matches[2])) {
+                        newText = `Ep ${newProgress}/${matches[3]}`;
+                    } else if (matches[2] && matches[3]) {
+                        newText = `Ep ${newProgress}/${matches[2]}/${matches[3]}`;
+                    } else if (matches[2]) {
+                        newText = `Ep ${newProgress}/${matches[2]}`;
+                    }
+
+                    // Instead of setting textContent which removes all child elements,
+                    // we'll clear the element and rebuild it properly
+                    const behindIndicator = episodeNumber.querySelector('.behind-indicator');
+                    episodeNumber.textContent = ''; // Clear but keep the element
+
+                    // Only add behind indicator if we're still behind after the update
+                    if (animeData.episodesBehind > 0) {
+                        const newBehindIndicator = document.createElement('span');
+                        newBehindIndicator.className = 'behind-indicator';
+                        newBehindIndicator.title = `${animeData.episodesBehind} episode(s) behind`;
+                        episodeNumber.appendChild(newBehindIndicator);
+                    }
+
+                    // Append the text node for the episode number
+                    episodeNumber.appendChild(document.createTextNode(newText));
                 }
-                const behindIndicator = episodeNumber.querySelector('.behind-indicator');
-                if (behindIndicator) {
-                    behindIndicator.remove();
-                }
-                episodeNumber.textContent = newText;
             }
-        }
-        let animeData = window.AnilistCalendar.calendar.getAnimeDataFromEntry(entry);
-        if (animeData) {
-            animeData.watched = newProgress;
-            if (animeData.episodesBehind > 0 && animeData.watched >= animeData.available) {
-                animeData.episodesBehind = 0;
-            }
-            if (animeData.available < newProgress) {
-                animeData.available = newProgress;
-            }
-            entry.dataset.animeData = JSON.stringify(animeData);
         }
     });
+
+    // Update weekly schedule data
     if (window.AnilistCalendar.state.weeklySchedule) {
         for (const day in window.AnilistCalendar.state.weeklySchedule) {
             const animeIndex = window.AnilistCalendar.state.weeklySchedule[day].findIndex(anime => anime.id === animeId);
